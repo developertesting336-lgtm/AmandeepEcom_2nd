@@ -658,33 +658,36 @@ const ProductDetails = () => {
                 </button>
               </div>
 
-              {/* Add to Cart */}
-              <button
-                type="button"
-                className="pdp-btn pdp-btn-cart"
-                onClick={handleAddToCart}
-                disabled={product.stock <= 0}
-              >
-                {addedNotice ? (
-                  <>
-                    <Check size={18} /> Added to Cart!
-                  </>
-                ) : (
-                  <>
-                    <ShoppingCart size={18} /> Add to Cart
-                  </>
-                )}
-              </button>
+              {/* Action Buttons Group */}
+              <div className="pdp-btns-group">
+                {/* Add to Cart */}
+                <button
+                  type="button"
+                  className="pdp-btn pdp-btn-cart"
+                  onClick={handleAddToCart}
+                  disabled={product.stock <= 0}
+                >
+                  {addedNotice ? (
+                    <>
+                      <Check size={18} /> Added to Cart!
+                    </>
+                  ) : (
+                    <>
+                      <ShoppingCart size={18} /> Add to Cart
+                    </>
+                  )}
+                </button>
 
-              {/* Buy Now */}
-              <button
-                type="button"
-                className="pdp-btn pdp-btn-buy"
-                onClick={handleBuyNow}
-                disabled={product.stock <= 0}
-              >
-                <Zap size={18} fill="currentColor" /> Buy Now
-              </button>
+                {/* Buy Now */}
+                <button
+                  type="button"
+                  className="pdp-btn pdp-btn-buy"
+                  onClick={handleBuyNow}
+                  disabled={product.stock <= 0}
+                >
+                  <Zap size={18} fill="currentColor" /> Buy Now
+                </button>
+              </div>
             </div>
           </div>
         </div>
