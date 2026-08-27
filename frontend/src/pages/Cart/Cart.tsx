@@ -32,14 +32,13 @@ const Cart = () => {
   const shippingFee = isFreeShipping || cartItems.length === 0 ? 0 : 99;
   const grandTotal = subtotal + shippingFee;
 
-  if (!isAuthenticated) {
-    navigate("/login");
-  }
   useEffect(() => {
-    if (isAuthenticated) {
+    if (!isAuthenticated) {
+      navigate("/login");
+    } else {
       fetchCart();
     }
-  }, []);
+  }, [isAuthenticated]);
 
   if (loading && cartItems.length === 0) {
     return (
@@ -57,7 +56,6 @@ const Cart = () => {
       </div>
     );
   }
-
 
   if (cartItems.length === 0) {
     return (
@@ -111,16 +109,16 @@ const Cart = () => {
               </thead>
               <tbody>
                 {cartItems.map((item) => {
-                  // const quantity = item?.quantity || 0
                   const prod = item.product;
+                  if (!prod) return null;
                   const itemPrice = item.price || (prod.salePrice && prod.salePrice < prod.price ? prod.salePrice : prod.price);
                   const itemTotal = itemPrice * item.quantity;
                   const imgUrl = formatImageUrl(prod.images?.[0], product1);
                   const catName = typeof prod.category === "object" ? prod.category?.name || "General" : prod.category || "General";
 
                   return (
-                    <tr key={prod._id || item._id}>
-                      <td>
+                    <tr key={prod._id || item._id} className="cart-item-row">
+                      <td className="cart-cell-product">
                         <div className="cart-product-cell">
                           <div className="cart-product-image">
                             <img src={imgUrl} alt={prod.name} onError={(e) => { (e.target as HTMLImageElement).src = product1; }} />
@@ -133,43 +131,51 @@ const Cart = () => {
                               {prod.name}
                             </h3>
                             <span className="cart-product-category">{catName}</span>
+                            <span className="cart-mobile-price">₹{itemPrice.toLocaleString("en-IN")}</span>
                           </div>
                         </div>
                       </td>
 
-                      <td>
+                      <td className="cart-cell-price">
                         <span className="cart-unit-price">₹{itemPrice.toLocaleString("en-IN")}</span>
                       </td>
 
-                      <td>
+                      <td className="cart-cell-qty">
                         <div className="cart-qty-control">
                           <button
+                            type="button"
                             className="cart-qty-btn"
                             onClick={() => updateQuantity(prod._id, item.quantity - 1)}
                             title="Decrease quantity"
+                            aria-label="Decrease quantity"
                           >
                             <Minus size={14} />
                           </button>
                           <span className="cart-qty-val">{item.quantity}</span>
                           <button
+                            type="button"
                             className="cart-qty-btn"
                             onClick={() => updateQuantity(prod._id, item.quantity + 1)}
                             title="Increase quantity"
+                            aria-label="Increase quantity"
                           >
                             <Plus size={14} />
                           </button>
                         </div>
                       </td>
 
-                      <td>
+                      <td className="cart-cell-total">
+                        <span className="cart-cell-label">Total: </span>
                         <span className="cart-item-total">₹{itemTotal.toLocaleString("en-IN")}</span>
                       </td>
 
-                      <td>
+                      <td className="cart-cell-action">
                         <button
+                          type="button"
                           className="cart-remove-btn"
                           onClick={() => removeFromCart(prod._id)}
                           title="Remove item"
+                          aria-label="Remove item"
                         >
                           <Trash2 size={16} />
                         </button>
