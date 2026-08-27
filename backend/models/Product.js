@@ -106,42 +106,48 @@ const productSchema = new mongoose.Schema(
     // =========================
 
     manufacturer: {
-      name: {
-        type: String,
-        trim: true,
-        default: "",
-      },
+      type: new mongoose.Schema(
+        {
+          name: {
+            type: String,
+            trim: true,
+            default: "",
+          },
 
-      address: {
-        type: String,
-        trim: true,
-        default: "",
-      },
+          address: {
+            type: String,
+            trim: true,
+            default: "",
+          },
 
-      country: {
-        type: String,
-        trim: true,
-        default: "",
-      },
+          country: {
+            type: String,
+            trim: true,
+            default: "",
+          },
 
-      contact: {
-        type: String,
-        trim: true,
-        default: "",
-      },
+          contact: {
+            type: String,
+            trim: true,
+            default: "",
+          },
 
-      email: {
-        type: String,
-        trim: true,
-        lowercase: true,
-        default: "",
-      },
+          email: {
+            type: String,
+            trim: true,
+            lowercase: true,
+            default: "",
+          },
 
-      website: {
-        type: String,
-        trim: true,
-        default: "",
-      },
+          website: {
+            type: String,
+            trim: true,
+            default: "",
+          },
+        },
+        { _id: false }
+      ),
+      default: null,
     },
 
     // =========================
@@ -149,45 +155,51 @@ const productSchema = new mongoose.Schema(
     // =========================
 
     warranty: {
-      available: {
-        type: Boolean,
-        default: false,
-      },
+      type: new mongoose.Schema(
+        {
+          available: {
+            type: Boolean,
+            default: false,
+          },
 
-      duration: {
-        type: Number,
-        default: null,
-        min: [0, "Warranty duration cannot be negative"],
-      },
+          duration: {
+            type: Number,
+            default: null,
+            min: [0, "Warranty duration cannot be negative"],
+          },
 
-      unit: {
-        type: String,
-        enum: ["days", "months", "years"],
-        default: "months",
-      },
+          unit: {
+            type: String,
+            enum: ["days", "months", "years"],
+            default: "months",
+          },
 
-      type: {
-        type: String,
-        enum: [
-          "Manufacturer Warranty",
-          "Seller Warranty",
-          "Brand Warranty",
-          "No Warranty",
-        ],
-        default: "No Warranty",
-      },
+          type: {
+            type: String,
+            enum: [
+              "Manufacturer Warranty",
+              "Seller Warranty",
+              "Brand Warranty",
+              "No Warranty",
+            ],
+            default: "No Warranty",
+          },
 
-      description: {
-        type: String,
-        trim: true,
-        default: "",
-      },
+          description: {
+            type: String,
+            trim: true,
+            default: "",
+          },
 
-      terms: {
-        type: String,
-        trim: true,
-        default: "",
-      },
+          terms: {
+            type: String,
+            trim: true,
+            default: "",
+          },
+        },
+        { _id: false }
+      ),
+      default: null,
     },
 
     // =========================
@@ -195,44 +207,50 @@ const productSchema = new mongoose.Schema(
     // =========================
 
     returnPolicy: {
-      eligible: {
-        type: Boolean,
-        default: false,
-      },
+      type: new mongoose.Schema(
+        {
+          eligible: {
+            type: Boolean,
+            default: false,
+          },
 
-      returnWindow: {
-        type: Number,
-        default: null,
-        min: [0, "Return window cannot be negative"],
-      },
+          returnWindow: {
+            type: Number,
+            default: null,
+            min: [0, "Return window cannot be negative"],
+          },
 
-      returnWindowUnit: {
-        type: String,
-        enum: ["days", "months"],
-        default: "days",
-      },
+          returnWindowUnit: {
+            type: String,
+            enum: ["days", "months"],
+            default: "days",
+          },
 
-      replacementAvailable: {
-        type: Boolean,
-        default: false,
-      },
+          replacementAvailable: {
+            type: Boolean,
+            default: false,
+          },
 
-      refundAvailable: {
-        type: Boolean,
-        default: false,
-      },
+          refundAvailable: {
+            type: Boolean,
+            default: false,
+          },
 
-      conditions: {
-        type: String,
-        trim: true,
-        default: "",
-      },
+          conditions: {
+            type: String,
+            trim: true,
+            default: "",
+          },
 
-      description: {
-        type: String,
-        trim: true,
-        default: "",
-      },
+          description: {
+            type: String,
+            trim: true,
+            default: "",
+          },
+        },
+        { _id: false }
+      ),
+      default: null,
     },
 
     // =========================

@@ -152,21 +152,44 @@ const AddProduct = () => {
         setLoadingCategories(true);
         setError("");
 
-        const res = await fetch(`${API_BASE}/api/admin/categories/all`, {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-          credentials: "include",
-        });
-
-        const data = await res.json();
-
-        if (!res.ok) {
-          throw new Error(data?.message || "Failed to fetch categories");
+        const token = localStorage.getItem("token");
+        const headers: Record<string, string> = {};
+        if (token) {
+          headers["Authorization"] = `Bearer ${token}`;
         }
 
-        setCategories(Array.isArray(data.data) ? data.data : []);
+        const categoryEndpoints = [
+          `${API_BASE}/api/admin/categories/all`,
+          `${API_BASE}/api/categories`,
+          `${API_BASE}/api/admin/categories`,
+        ];
+
+        let fetchedList: Category[] = [];
+
+        for (const endpoint of categoryEndpoints) {
+          try {
+            const res = await fetch(endpoint, {
+              headers,
+              credentials: "include",
+            });
+            if (res.ok) {
+              const categoryData = await res.json();
+              const catList =
+                categoryData.data?.categories ||
+                categoryData.data ||
+                categoryData.categories ||
+                (Array.isArray(categoryData) ? categoryData : []);
+              if (Array.isArray(catList) && catList.length > 0) {
+                fetchedList = catList;
+                break;
+              }
+            }
+          } catch (err) {
+            console.warn(`Failed fetching categories from ${endpoint}:`, err);
+          }
+        }
+
+        setCategories(fetchedList);
       } catch (err) {
         console.error("Fetch Categories Error:", err);
         setError(
@@ -177,10 +200,8 @@ const AddProduct = () => {
       }
     };
 
-    if (token) {
-      fetchCategories();
-    }
-  }, [token]);
+    fetchCategories();
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -188,16 +209,23 @@ const AddProduct = () => {
     };
   }, [previews]);
 
-
-  const mainCategories = categories.filter((c) => !c.parent);
-
+  const mainCategories = categories.filter(
+    (c) =>
+      !c.parent ||
+      c.parent === "" ||
+      c.parent === null ||
+      (typeof c.parent === "object" && !(c.parent as any)._id && !(c.parent as any).id)
+  );
 
   const availableSubcategories = categories.filter((c) => {
     if (!c.parent || !form.category) return false;
     if (typeof c.parent === "object" && c.parent !== null) {
-      return c.parent._id === form.category;
+      return (
+        (c.parent as any)._id === form.category ||
+        (c.parent as any).id === form.category
+      );
     }
-    return c.parent === form.category;
+    return String(c.parent) === String(form.category);
   });
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -271,7 +299,7 @@ const AddProduct = () => {
       return;
     }
 
-    if (!form.subcategory) {
+    if (availableSubcategories.length > 0 && !form.subcategory) {
       setError("Please select a Subcategory.");
       return;
     }
@@ -392,8 +420,12 @@ const AddProduct = () => {
 
       formData.append("highlights", JSON.stringify(formattedHighlights));
       formData.append("manufacturer", JSON.stringify(productPayload.manufacturer));
-      formData.append("warranty", JSON.stringify(productPayload.warranty));
-      formData.append("returnPolicy", JSON.stringify(productPayload.returnPolicy));
+      if (form.warranty.available) {
+        formData.append("warranty", JSON.stringify(productPayload.warranty));
+      }
+      if (form.returnPolicy.eligible) {
+        formData.append("returnPolicy", JSON.stringify(productPayload.returnPolicy));
+      }
       formData.append("attributes", JSON.stringify(productPayload.attributes));
 
       // Append each raw file to "images" field so Express multer parses req.files
@@ -1153,7 +1185,9 @@ const AddProduct = () => {
             </div>
 
             <div className="form-group">
-              <label htmlFor="subcategory">Subcategory *</label>
+              <label htmlFor="subcategory">
+                Subcategory {availableSubcategories.length > 0 ? "*" : ""}
+              </label>
               <select
                 id="subcategory"
                 name="subcategory"
@@ -1164,12 +1198,14 @@ const AddProduct = () => {
                     subcategory: e.target.value,
                   }))
                 }
-                disabled={!form.category}
-                required
+                disabled={!form.category || availableSubcategories.length === 0}
+                required={availableSubcategories.length > 0}
               >
                 <option value="">
                   {form.category
-                    ? "Select Subcategory"
+                    ? availableSubcategories.length > 0
+                      ? "Select Subcategory"
+                      : "No Subcategories Available"
                     : "Select Category First"}
                 </option>
                 {availableSubcategories.map((c) => (

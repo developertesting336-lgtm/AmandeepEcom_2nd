@@ -10,7 +10,6 @@ import {
   Sparkles,
   Check,
   Heart,
-  // X,
 } from "lucide-react";
 import { useCart } from "../../context/cartContext";
 import { useAuth } from "../../context/authContext";
@@ -34,7 +33,7 @@ interface Product {
   full_description?: string;
   fullDescription?: string;
   description?: string;
-  highlights?: string[];
+  highlights?: string[] | string;
   price: number;
   salePrice: number | null;
   sku: string;
@@ -44,51 +43,73 @@ interface Product {
   brand: string;
   images: ProductImageItem[];
   isFeatured: boolean;
-  manufacturer?: {
-    name?: string;
-    address?: string;
-    country?: string;
-    contact?: string;
-    email?: string;
-    website?: string;
-  };
-  warranty?: {
-    available?: boolean;
-    duration?: number | null | string;
-    unit?: string;
-    type?: string;
-    description?: string;
-    terms?: string;
-  };
-  returnPolicy?: {
-    eligible?: boolean;
-    returnWindow?: number | null | string;
-    returnWindowUnit?: string;
-    replacementAvailable?: boolean;
-    refundAvailable?: boolean;
-    conditions?: string;
-    description?: string;
-  };
-  attributes?: {
-    color?: string;
-    size?: string;
-    material?: string;
-    screenSize?: string;
-    weight?: { value?: number | null | string; unit?: string };
-    weightValue?: string | number;
-    weightUnit?: string;
-    dimensions?: {
-      length?: number | null | string;
-      width?: number | null | string;
-      height?: number | null | string;
-      unit?: string;
-    };
-    length?: string | number;
-    width?: string | number;
-    height?: string | number;
-    dimUnit?: string;
-  };
+  manufacturer?:
+    | string
+    | {
+        name?: string;
+        address?: string;
+        country?: string;
+        contact?: string;
+        email?: string;
+        website?: string;
+      };
+  warranty?:
+    | string
+    | {
+        available?: boolean;
+        duration?: number | null | string;
+        unit?: string;
+        type?: string;
+        description?: string;
+        terms?: string;
+      };
+  returnPolicy?:
+    | string
+    | {
+        eligible?: boolean;
+        returnWindow?: number | null | string;
+        returnWindowUnit?: string;
+        replacementAvailable?: boolean;
+        refundAvailable?: boolean;
+        conditions?: string;
+        description?: string;
+      };
+  attributes?:
+    | string
+    | {
+        color?: string;
+        size?: string;
+        material?: string;
+        screenSize?: string;
+        weight?: { value?: number | null | string; unit?: string };
+        weightValue?: string | number;
+        weightUnit?: string;
+        dimensions?: {
+          length?: number | null | string;
+          width?: number | null | string;
+          height?: number | null | string;
+          unit?: string;
+        };
+        length?: string | number;
+        width?: string | number;
+        height?: string | number;
+        dimUnit?: string;
+      };
 }
+
+const safeParse = (val: any) => {
+  if (!val) return undefined;
+  if (typeof val === "object") return val;
+  if (typeof val === "string") {
+    try {
+      const parsed = JSON.parse(val);
+      return typeof parsed === "object" ? parsed : undefined;
+    } catch {
+      return undefined;
+    }
+  }
+  return undefined;
+};
 
 const ProductDetails = () => {
   const { productId } = useParams<{ productId: string }>();
@@ -160,66 +181,18 @@ const ProductDetails = () => {
           result = await res.json();
           const list = result.data?.products || result.data || result.products || (Array.isArray(result) ? result : []);
           if (Array.isArray(list) && list.length > 0) {
-            fetchedProduct = list.find((p: Product) => p._id === productId) || list[0];
+            fetchedProduct = list.find((p: Product) => p._id === productId);
           }
         }
 
         if (fetchedProduct && typeof fetchedProduct === "object" && fetchedProduct._id) {
           setProduct(fetchedProduct);
         } else {
-          // Default rich mock sample matching product details page architecture
-          setProduct({
-            _id: productId || "sam-tv-55",
-            name: "Samsung 55\" Crystal 4K UHD Smart TV (2025 Model)",
-            brand: "Samsung",
-            sku: "SAM-55-4K-UHD",
-            stock: 15,
-            price: 54999,
-            salePrice: 42999,
-            category: { _id: "cat-electronics", name: "Electronics" },
-            subcategory: { _id: "sub-tv", name: "Televisions" },
-            short_description: "Ultra HD 4K Resolution with Crystal Processor 4K, HDR10+ and Dolby Audio.",
-            full_description: "Experience lifelike picture quality with vivid color expressions and crisp details. Features 3 HDMI ports, 2 USB ports, ultra-slim bezel design and Smart Hub for all your OTT streaming services.",
-            highlights: [
-              "Crystal Display Technology & HDR Support",
-              "Smart TV with Built-in Wi-Fi & Streaming Apps",
-              "Multiple HDMI and USB Ports with Slim Bezel Design",
-            ],
-            images: [product1],
-            isFeatured: true,
-            warranty: {
-              available: true,
-              type: "Manufacturer Warranty",
-              duration: 1,
-              unit: "Year",
-              description: "Covers manufacturing defects under normal usage",
-            },
-            returnPolicy: {
-              eligible: true,
-              returnWindow: 7,
-              returnWindowUnit: "Days",
-              replacementAvailable: true,
-              refundAvailable: true,
-              description: "Eligible for full refund or unit replacement",
-            },
-            attributes: {
-              size: "55 Inch",
-              screenSize: "55 Inch",
-              color: "Black",
-              material: "Plastic and Metal",
-              weight: { value: 14.2, unit: "kg" },
-              dimensions: { length: 123, width: 25, height: 78, unit: "cm" },
-            },
-            manufacturer: {
-              name: "Samsung Electronics (South Korea)",
-              country: "South Korea",
-              contact: "+82-2-2255-0114",
-              email: "support@samsung.com",
-            },
-          });
+          setProduct(null);
         }
       } catch (err) {
         console.error("Error loading product detail:", err);
+        setProduct(null);
       } finally {
         setLoading(false);
       }
@@ -238,13 +211,11 @@ const ProductDetails = () => {
       return;
     }
 
-    // const toastId = toast.loading(`Adding "${product.name}" to cart...`);
     try {
       toast.success(`${quantity} x "${product.name}" added to cart!`);
       const success = await addToCart(product._id, quantity);
       if (success) {
         setAddedNotice(true);
-        // setTimeout(() => setAddedNotice(false), 2500);
       } else {
         toast.error("Failed to add product to cart");
       }
@@ -312,7 +283,6 @@ const ProductDetails = () => {
         setIsWishlisted(data.action === "added");
       }
     } catch (error: any) {
-      // Revert optimistic update on failure
       setIsWishlisted(!nextState);
       console.error("Wishlist toggle error:", error);
       toast.error(error?.message || "Failed to update wishlist");
@@ -395,70 +365,115 @@ const ProductDetails = () => {
         ? product.subcategory
         : "";
 
-  // Dynamic Highlights List
-  const highlightsList =
-    Array.isArray(product.highlights) && product.highlights.length > 0
-      ? product.highlights
-      : [
-        product.short_description || "High-performance build and engineered for premium durability",
-        "Advanced high-definition display with vivid color reproduction",
-        "Engineered for energy efficiency and seamless user experience",
-        "Complete manufacturer support with standard accessories included",
-      ];
+  // Dynamic Highlights List from Backend
+  let highlightsList: string[] = [];
+  if (Array.isArray(product.highlights) && product.highlights.length > 0) {
+    highlightsList = product.highlights.filter((h) => typeof h === "string" && h.trim().length > 0);
+  } else if (typeof product.highlights === "string") {
+    try {
+      const parsed = JSON.parse(product.highlights);
+      if (Array.isArray(parsed)) {
+        highlightsList = parsed.filter((h) => typeof h === "string" && h.trim().length > 0);
+      } else if (parsed && typeof parsed === "string") {
+        highlightsList = [parsed];
+      }
+    } catch {
+      if (product.highlights.trim()) {
+        highlightsList = [product.highlights.trim()];
+      }
+    }
+  }
 
-  // Specs extraction helpers
-  const screenSizeVal =
-    product.attributes?.screenSize ||
-    product.attributes?.size ||
-    (product.name.match(/\b\d+(\.\d+)?\s*(inch|")/i)?.[0] ?? "55 Inch");
+  // Parse backend dynamic objects
+  const parsedWarranty = safeParse(product.warranty);
+  const parsedReturnPolicy = safeParse(product.returnPolicy);
+  const parsedManufacturer = safeParse(product.manufacturer);
+  const parsedAttributes = safeParse(product.attributes);
 
-  const colorVal = product.attributes?.color || "Black";
-  const materialVal = product.attributes?.material || "Plastic and Metal";
-
-  const weightVal =
-    product.attributes?.weight?.value !== undefined && product.attributes?.weight?.value !== null
-      ? `${product.attributes.weight.value} ${product.attributes.weight.unit || "kg"}`
-      : product.attributes?.weightValue
-        ? `${product.attributes.weightValue} ${product.attributes.weightUnit || "kg"}`
-        : "14.2 kg";
-
-  const dimVal =
-    product.attributes?.dimensions?.length ||
-      product.attributes?.dimensions?.width ||
-      product.attributes?.dimensions?.height
-      ? `${[
-        product.attributes.dimensions.length,
-        product.attributes.dimensions.width,
-        product.attributes.dimensions.height,
-      ]
-        .filter(Boolean)
-        .join(" x ")} ${product.attributes.dimensions.unit || "cm"}`
-      : product.attributes?.length || product.attributes?.width || product.attributes?.height
-        ? `${[product.attributes.length, product.attributes.width, product.attributes.height]
-          .filter(Boolean)
-          .join(" x ")} ${product.attributes.dimUnit || "cm"}`
-        : "123 x 25 x 78 cm";
-
-  const manufacturerVal =
-    product.manufacturer?.name || "Samsung Electronics (South Korea)";
+  // Warranty availability from backend
+  const hasWarranty = Boolean(
+    parsedWarranty &&
+    parsedWarranty.available === true
+  );
 
   const warrantyDuration =
-    product.warranty?.duration !== undefined && product.warranty?.duration !== null
-      ? `${product.warranty.duration} ${product.warranty.unit || "Year"}`
-      : "1 Year";
+    parsedWarranty?.duration !== undefined && parsedWarranty?.duration !== null && String(parsedWarranty.duration).trim() !== ""
+      ? `${parsedWarranty.duration} ${parsedWarranty.unit || "Months"}`
+      : "";
 
-  const warrantyTitle = `${warrantyDuration} ${product.warranty?.type || "Manufacturer Warranty"}`;
+  const warrantyType = parsedWarranty?.type && parsedWarranty.type !== "No Warranty" ? parsedWarranty.type : "Warranty";
+  const warrantyTitle = warrantyDuration ? `${warrantyDuration} ${warrantyType}` : warrantyType;
   const warrantyDesc =
-    product.warranty?.description || "Covers manufacturing defects under normal usage";
+    parsedWarranty?.description || parsedWarranty?.terms || "Standard warranty against manufacturing defects";
+
+  // Return Policy availability from backend
+  const hasReturnPolicy = Boolean(
+    parsedReturnPolicy &&
+    parsedReturnPolicy.eligible === true
+  );
 
   const returnWindow =
-    product.returnPolicy?.returnWindow !== undefined && product.returnPolicy?.returnWindow !== null
-      ? `${product.returnPolicy.returnWindow} ${product.returnPolicy.returnWindowUnit || "Days"}`
-      : "7 Days";
+    parsedReturnPolicy?.returnWindow !== undefined && parsedReturnPolicy?.returnWindow !== null && String(parsedReturnPolicy.returnWindow).trim() !== ""
+      ? `${parsedReturnPolicy.returnWindow} ${parsedReturnPolicy.returnWindowUnit || "Days"}`
+      : "";
 
-  const returnTitle = `${returnWindow} Return & Replacement`;
+  const returnTitle = returnWindow
+    ? `${returnWindow} ${
+        parsedReturnPolicy?.replacementAvailable && parsedReturnPolicy?.refundAvailable
+          ? "Return & Replacement"
+          : parsedReturnPolicy?.replacementAvailable
+          ? "Replacement"
+          : parsedReturnPolicy?.refundAvailable
+          ? "Return & Refund"
+          : "Return Window"
+      }`
+    : parsedReturnPolicy?.replacementAvailable && parsedReturnPolicy?.refundAvailable
+    ? "Return & Replacement Available"
+    : parsedReturnPolicy?.replacementAvailable
+    ? "Replacement Available"
+    : parsedReturnPolicy?.refundAvailable
+    ? "Refund Available"
+    : "Return Policy Available";
+
   const returnDesc =
-    product.returnPolicy?.description || "Eligible for full refund or unit replacement";
+    parsedReturnPolicy?.description ||
+    parsedReturnPolicy?.conditions ||
+    (parsedReturnPolicy?.replacementAvailable && parsedReturnPolicy?.refundAvailable
+      ? "Eligible for refund or replacement under policy"
+      : parsedReturnPolicy?.refundAvailable
+      ? "Eligible for refund under policy conditions"
+      : parsedReturnPolicy?.replacementAvailable
+      ? "Eligible for replacement under policy conditions"
+      : "Eligible for return as per store policy");
+
+  // Specs extraction helpers from parsed backend attributes
+  const colorVal = parsedAttributes?.color?.trim();
+  const sizeVal = (parsedAttributes?.size || parsedAttributes?.screenSize)?.trim();
+  const materialVal = parsedAttributes?.material?.trim();
+
+  const weightVal =
+    parsedAttributes?.weight?.value !== undefined && parsedAttributes?.weight?.value !== null && String(parsedAttributes.weight.value).trim() !== ""
+      ? `${parsedAttributes.weight.value} ${parsedAttributes.weight.unit || "g"}`
+      : parsedAttributes?.weightValue !== undefined && parsedAttributes?.weightValue !== null && String(parsedAttributes.weightValue).trim() !== ""
+      ? `${parsedAttributes.weightValue} ${parsedAttributes.weightUnit || "g"}`
+      : undefined;
+
+  const dimVal =
+    parsedAttributes?.dimensions?.length ||
+    parsedAttributes?.dimensions?.width ||
+    parsedAttributes?.dimensions?.height
+      ? `${[
+          parsedAttributes.dimensions.length,
+          parsedAttributes.dimensions.width,
+          parsedAttributes.dimensions.height,
+        ]
+          .filter(Boolean)
+          .join(" x ")} ${parsedAttributes.dimensions.unit || "cm"}`
+      : parsedAttributes?.length || parsedAttributes?.width || parsedAttributes?.height
+      ? `${[parsedAttributes.length, parsedAttributes.width, parsedAttributes.height]
+          .filter(Boolean)
+          .join(" x ")} ${parsedAttributes.dimUnit || "cm"}`
+      : undefined;
 
   return (
     <div className="pdp-page">
@@ -532,23 +547,27 @@ const ProductDetails = () => {
           {/* RIGHT: INFO & CONVERSION ZONE */}
           <div className="pdp-info-zone">
             {/* BRAND */}
-            <div className="pdp-brand-tag">{product.brand || "SAMSUNG"}</div>
+            {Boolean(product.brand) && (
+              <div className="pdp-brand-tag">{product.brand}</div>
+            )}
 
             {/* PRODUCT TITLE */}
             <h2 className="pdp-product-title">{product.name}</h2>
 
             {/* SKU & STOCK STATUS */}
             <div className="pdp-meta-row">
-              <span className="pdp-sku-text">
-                SKU: {product.sku || "SAM-TV-55-4K-001"}
-              </span>
-              <span className="pdp-meta-dot">•</span>
+              {Boolean(product.sku) && (
+                <>
+                  <span className="pdp-sku-text">SKU: {product.sku}</span>
+                  <span className="pdp-meta-dot">•</span>
+                </>
+              )}
               <span className="pdp-stock-text">
                 {product.stock > 0 ? (
                   <>
                     In Stock{" "}
                     <span className="pdp-stock-urgency">
-                      (Only {product.stock} units left)
+                      ({product.stock} units available)
                     </span>
                   </>
                 ) : (
@@ -574,39 +593,47 @@ const ProductDetails = () => {
               )}
             </div>
 
-            {/* KEY HIGHLIGHTS */}
-            <div className="pdp-highlights-wrap">
-              <h3 className="pdp-highlights-title">Key Highlights:</h3>
-              <ul className="pdp-highlights-list">
-                {highlightsList.map((item, idx) => (
-                  <li key={idx}>
-                    <span className="pdp-bullet">•</span>
-                    <span>{item}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            {/* TRUST / GUARANTEE BADGES */}
-            <div className="pdp-trust-cards-grid">
-              {/* Warranty Card */}
-              <div className="pdp-trust-card warranty">
-                <div className="pdp-trust-card-header">
-                  <ShieldCheck size={16} className="pdp-trust-icon" />
-                  <span className="pdp-trust-card-title">{warrantyTitle}</span>
-                </div>
-                <p className="pdp-trust-card-desc">{warrantyDesc}</p>
+            {/* KEY HIGHLIGHTS (DYNAMIC FROM BACKEND) */}
+            {highlightsList.length > 0 && (
+              <div className="pdp-highlights-wrap">
+                <h3 className="pdp-highlights-title">Key Highlights:</h3>
+                <ul className="pdp-highlights-list">
+                  {highlightsList.map((item, idx) => (
+                    <li key={idx}>
+                      <span className="pdp-bullet">•</span>
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
               </div>
+            )}
 
-              {/* Return Policy Card */}
-              <div className="pdp-trust-card return-policy">
-                <div className="pdp-trust-card-header">
-                  <RotateCcw size={16} className="pdp-trust-icon" />
-                  <span className="pdp-trust-card-title">{returnTitle}</span>
-                </div>
-                <p className="pdp-trust-card-desc">{returnDesc}</p>
+            {/* TRUST / GUARANTEE BADGES - DYNAMIC FROM BACKEND */}
+            {(hasWarranty || hasReturnPolicy) && (
+              <div className="pdp-trust-cards-grid">
+                {/* Warranty Card */}
+                {hasWarranty && (
+                  <div className="pdp-trust-card warranty">
+                    <div className="pdp-trust-card-header">
+                      <ShieldCheck size={16} className="pdp-trust-icon" />
+                      <span className="pdp-trust-card-title">{warrantyTitle}</span>
+                    </div>
+                    <p className="pdp-trust-card-desc">{warrantyDesc}</p>
+                  </div>
+                )}
+
+                {/* Return Policy Card */}
+                {hasReturnPolicy && (
+                  <div className="pdp-trust-card return-policy">
+                    <div className="pdp-trust-card-header">
+                      <RotateCcw size={16} className="pdp-trust-icon" />
+                      <span className="pdp-trust-card-title">{returnTitle}</span>
+                    </div>
+                    <p className="pdp-trust-card-desc">{returnDesc}</p>
+                  </div>
+                )}
               </div>
-            </div>
+            )}
 
             {/* PURCHASE CONTROLS */}
             <div className="pdp-actions-row">
@@ -685,7 +712,7 @@ const ProductDetails = () => {
               className={`pdp-tab-item ${activeTab === "warranty" ? "active" : ""}`}
               onClick={() => setActiveTab("warranty")}
             >
-              Warranty & Manufacturer Info
+              Warranty & Returns
             </button>
           </div>
 
@@ -693,49 +720,71 @@ const ProductDetails = () => {
           {activeTab === "specifications" && (
             <div className="pdp-tab-body">
               <div className="pdp-specs-table-grid">
-                {/* Row 1 */}
-                <div className="pdp-spec-cell row-even">
-                  <span className="pdp-spec-key">Screen Size</span>
-                  <span className="pdp-spec-val">{screenSizeVal}</span>
-                </div>
-                <div className="pdp-spec-cell row-even">
-                  <span className="pdp-spec-key">Color</span>
-                  <span className="pdp-spec-val">{colorVal}</span>
-                </div>
-
-                {/* Row 2 */}
-                <div className="pdp-spec-cell row-odd">
-                  <span className="pdp-spec-key">Dimensions (L x W x H)</span>
-                  <span className="pdp-spec-val">{dimVal}</span>
-                </div>
-                <div className="pdp-spec-cell row-odd">
-                  <span className="pdp-spec-key">Material</span>
-                  <span className="pdp-spec-val">{materialVal}</span>
-                </div>
-
-                {/* Row 3 */}
-                <div className="pdp-spec-cell row-even">
-                  <span className="pdp-spec-key">Weight</span>
-                  <span className="pdp-spec-val">{weightVal}</span>
-                </div>
-                <div className="pdp-spec-cell row-even">
-                  <span className="pdp-spec-key">Manufacturer</span>
-                  <span className="pdp-spec-val">{manufacturerVal}</span>
-                </div>
-
-                {/* Additional Spec details if available */}
+                {Boolean(product.brand) && (
+                  <div className="pdp-spec-cell row-even">
+                    <span className="pdp-spec-key">Brand</span>
+                    <span className="pdp-spec-val">{product.brand}</span>
+                  </div>
+                )}
+                {Boolean(categoryName) && (
+                  <div className="pdp-spec-cell row-even">
+                    <span className="pdp-spec-key">Category</span>
+                    <span className="pdp-spec-val">
+                      {categoryName} {subcategoryName ? `› ${subcategoryName}` : ""}
+                    </span>
+                  </div>
+                )}
                 {Boolean(product.sku) && (
                   <div className="pdp-spec-cell row-odd">
                     <span className="pdp-spec-key">Model SKU</span>
                     <span className="pdp-spec-val">{product.sku}</span>
                   </div>
                 )}
-                {Boolean(categoryName) && (
+                {Boolean(colorVal) && (
                   <div className="pdp-spec-cell row-odd">
-                    <span className="pdp-spec-key">Category</span>
-                    <span className="pdp-spec-val">
-                      {categoryName} {subcategoryName ? `› ${subcategoryName}` : ""}
-                    </span>
+                    <span className="pdp-spec-key">Color</span>
+                    <span className="pdp-spec-val">{colorVal}</span>
+                  </div>
+                )}
+                {Boolean(sizeVal) && (
+                  <div className="pdp-spec-cell row-even">
+                    <span className="pdp-spec-key">Size</span>
+                    <span className="pdp-spec-val">{sizeVal}</span>
+                  </div>
+                )}
+                {Boolean(materialVal) && (
+                  <div className="pdp-spec-cell row-even">
+                    <span className="pdp-spec-key">Material</span>
+                    <span className="pdp-spec-val">{materialVal}</span>
+                  </div>
+                )}
+                {Boolean(weightVal) && (
+                  <div className="pdp-spec-cell row-odd">
+                    <span className="pdp-spec-key">Weight</span>
+                    <span className="pdp-spec-val">{weightVal}</span>
+                  </div>
+                )}
+                {Boolean(dimVal) && (
+                  <div className="pdp-spec-cell row-odd">
+                    <span className="pdp-spec-key">Dimensions (L x W x H)</span>
+                    <span className="pdp-spec-val">{dimVal}</span>
+                  </div>
+                )}
+                {Boolean(parsedManufacturer?.name) && (
+                  <div className="pdp-spec-cell row-even">
+                    <span className="pdp-spec-key">Manufacturer</span>
+                    <span className="pdp-spec-val">{parsedManufacturer.name}</span>
+                  </div>
+                )}
+                {Boolean(parsedManufacturer?.country) && (
+                  <div className="pdp-spec-cell row-even">
+                    <span className="pdp-spec-key">Country of Origin</span>
+                    <span className="pdp-spec-val">{parsedManufacturer.country}</span>
+                  </div>
+                )}
+                {!product.brand && !categoryName && !colorVal && !sizeVal && !materialVal && !weightVal && !dimVal && (
+                  <div className="pdp-spec-cell row-even" style={{ gridColumn: "1 / -1" }}>
+                    <span className="pdp-spec-key">No specific attributes configured for this product.</span>
                   </div>
                 )}
               </div>
@@ -745,7 +794,7 @@ const ProductDetails = () => {
           {/* TAB CONTENT: FULL DESCRIPTION */}
           {activeTab === "description" && (
             <div className="pdp-tab-body pdp-desc-tab">
-              {product.full_description || product.fullDescription || product.description ? (
+              {product.full_description || product.fullDescription || product.description || product.short_description ? (
                 <div
                   className="pdp-rich-description"
                   dangerouslySetInnerHTML={{
@@ -753,6 +802,7 @@ const ProductDetails = () => {
                       product.full_description ||
                       product.fullDescription ||
                       product.description ||
+                      product.short_description ||
                       "",
                   }}
                 />
@@ -764,7 +814,7 @@ const ProductDetails = () => {
             </div>
           )}
 
-          {/* TAB CONTENT: WARRANTY & MANUFACTURER INFO */}
+          {/* TAB CONTENT: WARRANTY & RETURNS & MANUFACTURER */}
           {activeTab === "warranty" && (
             <div className="pdp-tab-body pdp-info-tab">
               <div className="pdp-info-tab-grid">
@@ -774,18 +824,33 @@ const ProductDetails = () => {
                     <ShieldCheck size={18} className="pdp-info-icon" />
                     Warranty Coverage
                   </h4>
-                  <p className="pdp-info-line">
-                    <strong>Type:</strong> {product.warranty?.type || "Manufacturer Warranty"}
-                  </p>
-                  <p className="pdp-info-line">
-                    <strong>Duration:</strong> {warrantyDuration}
-                  </p>
-                  {product.warranty?.description && (
-                    <p className="pdp-info-line text-muted">{product.warranty.description}</p>
-                  )}
-                  {product.warranty?.terms && (
+                  {hasWarranty ? (
+                    <>
+                      <p className="pdp-info-line">
+                        <strong>Status:</strong> Covered
+                      </p>
+                      {parsedWarranty?.type && (
+                        <p className="pdp-info-line">
+                          <strong>Type:</strong> {parsedWarranty.type}
+                        </p>
+                      )}
+                      {warrantyDuration && (
+                        <p className="pdp-info-line">
+                          <strong>Duration:</strong> {warrantyDuration}
+                        </p>
+                      )}
+                      {parsedWarranty?.description && (
+                        <p className="pdp-info-line text-muted">{parsedWarranty.description}</p>
+                      )}
+                      {parsedWarranty?.terms && (
+                        <p className="pdp-info-line text-muted">
+                          <strong>Terms:</strong> {parsedWarranty.terms}
+                        </p>
+                      )}
+                    </>
+                  ) : (
                     <p className="pdp-info-line text-muted">
-                      <strong>Terms:</strong> {product.warranty.terms}
+                      No warranty coverage provided for this product.
                     </p>
                   )}
                 </div>
@@ -796,49 +861,76 @@ const ProductDetails = () => {
                     <RotateCcw size={18} className="pdp-info-icon" />
                     Returns & Replacement
                   </h4>
-                  <p className="pdp-info-line">
-                    <strong>Return Window:</strong> {returnWindow}
-                  </p>
-                  <p className="pdp-info-line">
-                    <strong>Replacement:</strong>{" "}
-                    {product.returnPolicy?.replacementAvailable !== false
-                      ? "Eligible"
-                      : "Not Available"}
-                  </p>
-                  <p className="pdp-info-line">
-                    <strong>Refund:</strong>{" "}
-                    {product.returnPolicy?.refundAvailable !== false
-                      ? "Eligible"
-                      : "Not Available"}
-                  </p>
-                  {product.returnPolicy?.description && (
-                    <p className="pdp-info-line text-muted">{product.returnPolicy.description}</p>
+                  {hasReturnPolicy ? (
+                    <>
+                      <p className="pdp-info-line">
+                        <strong>Eligibility:</strong> Eligible for Return / Replacement
+                      </p>
+                      {returnWindow && (
+                        <p className="pdp-info-line">
+                          <strong>Return Window:</strong> {returnWindow}
+                        </p>
+                      )}
+                      <p className="pdp-info-line">
+                        <strong>Replacement:</strong>{" "}
+                        {parsedReturnPolicy?.replacementAvailable ? "Available" : "Not Available"}
+                      </p>
+                      <p className="pdp-info-line">
+                        <strong>Refund:</strong>{" "}
+                        {parsedReturnPolicy?.refundAvailable ? "Available" : "Not Available"}
+                      </p>
+                      {parsedReturnPolicy?.conditions && (
+                        <p className="pdp-info-line text-muted">
+                          <strong>Conditions:</strong> {parsedReturnPolicy.conditions}
+                        </p>
+                      )}
+                      {parsedReturnPolicy?.description && (
+                        <p className="pdp-info-line text-muted">{parsedReturnPolicy.description}</p>
+                      )}
+                    </>
+                  ) : (
+                    <p className="pdp-info-line text-muted">
+                      This item is non-returnable / no return policy provided.
+                    </p>
                   )}
                 </div>
 
                 {/* Manufacturer Block */}
-                {Boolean(product.manufacturer?.name) && (
+                {Boolean(
+                  parsedManufacturer?.name ||
+                  parsedManufacturer?.country ||
+                  parsedManufacturer?.contact ||
+                  parsedManufacturer?.email ||
+                  parsedManufacturer?.address
+                ) && (
                   <div className="pdp-info-block">
                     <h4 className="pdp-info-block-title">
                       <Sparkles size={18} className="pdp-info-icon" />
                       Manufacturer Details
                     </h4>
-                    <p className="pdp-info-line">
-                      <strong>Company:</strong> {product.manufacturer!.name}
-                    </p>
-                    {Boolean(product.manufacturer?.country) && (
+                    {parsedManufacturer?.name && (
                       <p className="pdp-info-line">
-                        <strong>Country of Origin:</strong> {product.manufacturer!.country}
+                        <strong>Company:</strong> {parsedManufacturer.name}
                       </p>
                     )}
-                    {Boolean(product.manufacturer?.contact) && (
+                    {parsedManufacturer?.country && (
                       <p className="pdp-info-line">
-                        <strong>Contact / Helpline:</strong> {product.manufacturer!.contact}
+                        <strong>Country of Origin:</strong> {parsedManufacturer.country}
                       </p>
                     )}
-                    {Boolean(product.manufacturer?.email) && (
+                    {parsedManufacturer?.contact && (
                       <p className="pdp-info-line">
-                        <strong>Email:</strong> {product.manufacturer!.email}
+                        <strong>Contact / Helpline:</strong> {parsedManufacturer.contact}
+                      </p>
+                    )}
+                    {parsedManufacturer?.email && (
+                      <p className="pdp-info-line">
+                        <strong>Email:</strong> {parsedManufacturer.email}
+                      </p>
+                    )}
+                    {parsedManufacturer?.address && (
+                      <p className="pdp-info-line">
+                        <strong>Address:</strong> {parsedManufacturer.address}
                       </p>
                     )}
                   </div>

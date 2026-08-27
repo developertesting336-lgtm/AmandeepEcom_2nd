@@ -264,38 +264,84 @@ export const addProduct = async (req, res) => {
 
 
 
-    let parsedManufacturer = {};
-    let parsedWarranty = {};
-    let parsedReturnPolicy = {};
+    let parsedManufacturer = null;
+    let parsedWarranty = null;
+    let parsedReturnPolicy = null;
     let parsedAttributes = {};
 
     try {
-      if (manufacturer) {
-        parsedManufacturer =
+      if (
+        manufacturer &&
+        manufacturer !== "null" &&
+        manufacturer !== "undefined"
+      ) {
+        const parsed =
           typeof manufacturer === "string"
             ? JSON.parse(manufacturer)
             : manufacturer;
+
+        if (
+          parsed &&
+          typeof parsed === "object" &&
+          Object.values(parsed).some(
+            (v) => v !== null && v !== undefined && String(v).trim() !== ""
+          )
+        ) {
+          parsedManufacturer = parsed;
+        }
       }
 
-      if (warranty) {
-        parsedWarranty =
+      if (
+        warranty &&
+        warranty !== "null" &&
+        warranty !== "undefined"
+      ) {
+        const parsed =
           typeof warranty === "string"
             ? JSON.parse(warranty)
             : warranty;
+
+        if (
+          parsed &&
+          typeof parsed === "object" &&
+          (parsed.available === true || parsed.available === "true")
+        ) {
+          parsedWarranty = parsed;
+        }
       }
 
-      if (returnPolicy) {
-        parsedReturnPolicy =
+      if (
+        returnPolicy &&
+        returnPolicy !== "null" &&
+        returnPolicy !== "undefined"
+      ) {
+        const parsed =
           typeof returnPolicy === "string"
             ? JSON.parse(returnPolicy)
             : returnPolicy;
+
+        if (
+          parsed &&
+          typeof parsed === "object" &&
+          (parsed.eligible === true || parsed.eligible === "true")
+        ) {
+          parsedReturnPolicy = parsed;
+        }
       }
 
-      if (attributes) {
-        parsedAttributes =
+      if (
+        attributes &&
+        attributes !== "null" &&
+        attributes !== "undefined"
+      ) {
+        const parsed =
           typeof attributes === "string"
             ? JSON.parse(attributes)
             : attributes;
+
+        if (parsed && typeof parsed === "object") {
+          parsedAttributes = parsed;
+        }
       }
     } catch (error) {
       return res.status(400).json({
@@ -658,8 +704,8 @@ export const updateProduct = async (req, res) => {
     } = req.body;
 
 
-    console.log("files", req.files)
-    // console.log("body", req.body)
+    // console.log("files", req.files)
+    console.log("body", req.body)
 
     const product = await Product.findById(productId);
 
@@ -875,32 +921,97 @@ export const updateProduct = async (req, res) => {
 
 
     try {
-      if (manufacturer !== undefined) {
-        product.manufacturer =
+      if (
+        !manufacturer ||
+        manufacturer === "null" ||
+        manufacturer === "undefined"
+      ) {
+        product.manufacturer = null;
+      } else {
+        const parsed =
           typeof manufacturer === "string"
             ? JSON.parse(manufacturer)
             : manufacturer;
+
+        if (
+          parsed &&
+          typeof parsed === "object" &&
+          Object.values(parsed).some(
+            (v) => v !== null && v !== undefined && String(v).trim() !== ""
+          )
+        ) {
+          product.manufacturer = parsed;
+        } else {
+          product.manufacturer = null;
+        }
       }
 
-      if (warranty !== undefined) {
-        product.warranty =
+      if (
+        !warranty ||
+        warranty === "null" ||
+        warranty === "undefined"
+      ) {
+        product.warranty = null;
+      } else {
+        const parsed =
           typeof warranty === "string"
             ? JSON.parse(warranty)
             : warranty;
+
+        if (
+          parsed &&
+          typeof parsed === "object" &&
+          (parsed.available === true || parsed.available === "true")
+        ) {
+          product.warranty = parsed;
+        } else {
+          product.warranty = null;
+        }
       }
 
-      if (returnPolicy !== undefined) {
-        product.returnPolicy =
+      if (
+        !returnPolicy ||
+        returnPolicy === "null" ||
+        returnPolicy === "undefined"
+      ) {
+        product.returnPolicy = null;
+      } else {
+        const parsed =
           typeof returnPolicy === "string"
             ? JSON.parse(returnPolicy)
             : returnPolicy;
+
+        if (
+          parsed &&
+          typeof parsed === "object" &&
+          (parsed.eligible === true || parsed.eligible === "true")
+        ) {
+          product.returnPolicy = parsed;
+        } else {
+          product.returnPolicy = null;
+        }
       }
 
       if (attributes !== undefined) {
-        product.attributes =
-          typeof attributes === "string"
-            ? JSON.parse(attributes)
-            : attributes;
+        if (
+          attributes === null ||
+          attributes === "" ||
+          attributes === "null" ||
+          attributes === "undefined"
+        ) {
+          product.attributes = {};
+        } else {
+          const parsed =
+            typeof attributes === "string"
+              ? JSON.parse(attributes)
+              : attributes;
+
+          if (parsed && typeof parsed === "object") {
+            product.attributes = parsed;
+          } else {
+            product.attributes = {};
+          }
+        }
       }
     } catch {
       return res.status(400).json({

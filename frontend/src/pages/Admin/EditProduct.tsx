@@ -457,15 +457,24 @@ const EditProduct = () => {
   }, [newImagePreviews]);
 
   // Main categories (no parent)
-  const mainCategories = categories.filter((c) => !c.parent);
+  const mainCategories = categories.filter(
+    (c) =>
+      !c.parent ||
+      c.parent === "" ||
+      c.parent === null ||
+      (typeof c.parent === "object" && !(c.parent as any)._id && !(c.parent as any).id)
+  );
 
   // Subcategories matching selected category
   const availableSubcategories = categories.filter((c) => {
     if (!c.parent || !category) return false;
     if (typeof c.parent === "object" && c.parent !== null) {
-      return c.parent._id === category;
+      return (
+        (c.parent as any)._id === category ||
+        (c.parent as any).id === category
+      );
     }
-    return c.parent === category;
+    return String(c.parent) === String(category);
   });
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -541,7 +550,7 @@ const EditProduct = () => {
       return;
     }
 
-    if (!subcategory) {
+    if (availableSubcategories.length > 0 && !subcategory) {
       setError("Please select a Subcategory.");
       return;
     }
@@ -597,23 +606,28 @@ const EditProduct = () => {
         email: manufacturer.email.trim(),
         website: manufacturer.website.trim(),
       }));
-      formData.append("warranty", JSON.stringify({
-        available: warranty.available,
-        duration: warranty.duration ? Number(warranty.duration) : null,
-        unit: warranty.unit,
-        type: warranty.type,
-        description: warranty.description.trim(),
-        terms: warranty.terms.trim(),
-      }));
-      formData.append("returnPolicy", JSON.stringify({
-        eligible: returnPolicy.eligible,
-        returnWindow: returnPolicy.returnWindow ? Number(returnPolicy.returnWindow) : null,
-        returnWindowUnit: returnPolicy.returnWindowUnit,
-        replacementAvailable: returnPolicy.replacementAvailable,
-        refundAvailable: returnPolicy.refundAvailable,
-        conditions: returnPolicy.conditions.trim(),
-        description: returnPolicy.description.trim(),
-      }));
+      if (warranty.available) {
+        formData.append("warranty", JSON.stringify({
+          available: warranty.available,
+          duration: warranty.duration ? Number(warranty.duration) : null,
+          unit: warranty.unit,
+          type: warranty.type,
+          description: warranty.description.trim(),
+          terms: warranty.terms.trim(),
+        }));
+      }
+
+      if (returnPolicy.eligible) {
+        formData.append("returnPolicy", JSON.stringify({
+          eligible: returnPolicy.eligible,
+          returnWindow: returnPolicy.returnWindow ? Number(returnPolicy.returnWindow) : null,
+          returnWindowUnit: returnPolicy.returnWindowUnit,
+          replacementAvailable: returnPolicy.replacementAvailable,
+          refundAvailable: returnPolicy.refundAvailable,
+          conditions: returnPolicy.conditions.trim(),
+          description: returnPolicy.description.trim(),
+        }));
+      }
       formData.append("attributes", JSON.stringify({
         color: attributes.color.trim(),
         size: attributes.size.trim(),
@@ -934,11 +948,12 @@ const EditProduct = () => {
             </div>
           </div>
 
-          {/* Warranty & Returns */}
+          {/* Warranty Details */}
           <div className="edit-card">
-            <h3 className="edit-card-title">Warranty & Returns</h3>
+            <h3 className="edit-card-title">Warranty Details</h3>
 
-            <label style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 12 }}>
+            <label className="edit-toggle" style={{ marginBottom: warranty.available ? 16 : 0 }}>
+              <span>Warranty Available</span>
               <input
                 type="checkbox"
                 checked={warranty.available}
@@ -946,60 +961,263 @@ const EditProduct = () => {
                   setWarranty((prev) => ({ ...prev, available: e.target.checked }))
                 }
               />
-              <strong>Warranty Available</strong>
             </label>
 
             {warranty.available && (
-              <div className="edit-row">
-                <div className="edit-group">
-                  <label>Type</label>
-                  <select
-                    value={warranty.type}
-                    onChange={(e) =>
-                      setWarranty((prev) => ({
-                        ...prev,
-                        type: e.target.value as any,
-                      }))
-                    }
-                  >
-                    <option value="Manufacturer Warranty">Manufacturer Warranty</option>
-                    <option value="Seller Warranty">Seller Warranty</option>
-                    <option value="Brand Warranty">Brand Warranty</option>
-                    <option value="No Warranty">No Warranty</option>
-                  </select>
-                </div>
-
-                <div className="edit-group">
-                  <label>Duration & Unit</label>
-                  <div style={{ display: "flex", gap: 6 }}>
-                    <input
-                      type="number"
-                      placeholder="e.g. 12"
-                      value={warranty.duration}
-                      onChange={(e) =>
-                        setWarranty((prev) => ({
-                          ...prev,
-                          duration: e.target.value,
-                        }))
-                      }
-                    />
+              <div style={{ display: "flex", flexDirection: "column", gap: 14, marginTop: 12 }}>
+                <div className="edit-row">
+                  <div className="edit-group">
+                    <label>Warranty Type</label>
                     <select
-                      value={warranty.unit}
+                      value={warranty.type}
                       onChange={(e) =>
                         setWarranty((prev) => ({
                           ...prev,
-                          unit: e.target.value as any,
+                          type: e.target.value as any,
                         }))
                       }
                     >
-                      <option value="days">Days</option>
-                      <option value="months">Months</option>
-                      <option value="years">Years</option>
+                      <option value="Manufacturer Warranty">Manufacturer Warranty</option>
+                      <option value="Seller Warranty">Seller Warranty</option>
+                      <option value="Brand Warranty">Brand Warranty</option>
+                      <option value="No Warranty">No Warranty</option>
                     </select>
                   </div>
+
+                  <div className="edit-group">
+                    <label>Duration & Unit</label>
+                    <div style={{ display: "flex", gap: 6 }}>
+                      <input
+                        type="number"
+                        min="1"
+                        placeholder="e.g. 12"
+                        value={warranty.duration}
+                        onChange={(e) =>
+                          setWarranty((prev) => ({
+                            ...prev,
+                            duration: e.target.value,
+                          }))
+                        }
+                      />
+                      <select
+                        value={warranty.unit}
+                        onChange={(e) =>
+                          setWarranty((prev) => ({
+                            ...prev,
+                            unit: e.target.value as any,
+                          }))
+                        }
+                      >
+                        <option value="days">Days</option>
+                        <option value="months">Months</option>
+                        <option value="years">Years</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="edit-group">
+                  <label>Warranty Description & Terms</label>
+                  <textarea
+                    rows={3}
+                    placeholder="Provide details about what is covered under warranty..."
+                    value={warranty.description}
+                    onChange={(e) =>
+                      setWarranty((prev) => ({
+                        ...prev,
+                        description: e.target.value,
+                      }))
+                    }
+                  />
                 </div>
               </div>
             )}
+          </div>
+
+          {/* Return Policy */}
+          <div className="edit-card">
+            <h3 className="edit-card-title">Return Policy</h3>
+
+            <label className="edit-toggle" style={{ marginBottom: returnPolicy.eligible ? 16 : 0 }}>
+              <span>Eligible for Return / Replacement</span>
+              <input
+                type="checkbox"
+                checked={returnPolicy.eligible}
+                onChange={(e) =>
+                  setReturnPolicy((prev) => ({ ...prev, eligible: e.target.checked }))
+                }
+              />
+            </label>
+
+            {returnPolicy.eligible && (
+              <div style={{ display: "flex", flexDirection: "column", gap: 14, marginTop: 12 }}>
+                <div className="edit-row">
+                  <div className="edit-group">
+                    <label>Return Window</label>
+                    <div style={{ display: "flex", gap: 6 }}>
+                      <input
+                        type="number"
+                        min="1"
+                        placeholder="e.g. 7 or 30"
+                        value={returnPolicy.returnWindow}
+                        onChange={(e) =>
+                          setReturnPolicy((prev) => ({
+                            ...prev,
+                            returnWindow: e.target.value,
+                          }))
+                        }
+                      />
+                      <select
+                        value={returnPolicy.returnWindowUnit}
+                        onChange={(e) =>
+                          setReturnPolicy((prev) => ({
+                            ...prev,
+                            returnWindowUnit: e.target.value as any,
+                          }))
+                        }
+                      >
+                        <option value="days">Days</option>
+                        <option value="months">Months</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="edit-group">
+                    <label>Return Options</label>
+                    <div style={{ display: "flex", gap: 18, marginTop: 8 }}>
+                      <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, cursor: "pointer" }}>
+                        <input
+                          type="checkbox"
+                          checked={returnPolicy.refundAvailable}
+                          onChange={(e) =>
+                            setReturnPolicy((prev) => ({
+                              ...prev,
+                              refundAvailable: e.target.checked,
+                            }))
+                          }
+                          style={{ width: 16, height: 16, accentColor: "#2563eb" }}
+                        />
+                        <span>Refund Available</span>
+                      </label>
+
+                      <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, cursor: "pointer" }}>
+                        <input
+                          type="checkbox"
+                          checked={returnPolicy.replacementAvailable}
+                          onChange={(e) =>
+                            setReturnPolicy((prev) => ({
+                              ...prev,
+                              replacementAvailable: e.target.checked,
+                            }))
+                          }
+                          style={{ width: 16, height: 16, accentColor: "#2563eb" }}
+                        />
+                        <span>Replacement Available</span>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="edit-group">
+                  <label>Return Conditions</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Unused, in original packaging with all tags intact"
+                    value={returnPolicy.conditions}
+                    onChange={(e) =>
+                      setReturnPolicy((prev) => ({
+                        ...prev,
+                        conditions: e.target.value,
+                      }))
+                    }
+                  />
+                </div>
+
+                <div className="edit-group">
+                  <label>Policy Description / Instructions</label>
+                  <textarea
+                    rows={3}
+                    placeholder="Detailed return terms and process for customers..."
+                    value={returnPolicy.description}
+                    onChange={(e) =>
+                      setReturnPolicy((prev) => ({
+                        ...prev,
+                        description: e.target.value,
+                      }))
+                    }
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Manufacturer Information */}
+          <div className="edit-card">
+            <h3 className="edit-card-title">Manufacturer Information</h3>
+
+            <div className="edit-row">
+              <div className="edit-group">
+                <label>Manufacturer Name</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Acme Corp"
+                  value={manufacturer.name}
+                  onChange={(e) =>
+                    setManufacturer((prev) => ({ ...prev, name: e.target.value }))
+                  }
+                />
+              </div>
+
+              <div className="edit-group">
+                <label>Country of Origin</label>
+                <input
+                  type="text"
+                  placeholder="e.g. India"
+                  value={manufacturer.country}
+                  onChange={(e) =>
+                    setManufacturer((prev) => ({ ...prev, country: e.target.value }))
+                  }
+                />
+              </div>
+            </div>
+
+            <div className="edit-row">
+              <div className="edit-group">
+                <label>Contact Phone / Hotline</label>
+                <input
+                  type="text"
+                  placeholder="Customer support number"
+                  value={manufacturer.contact}
+                  onChange={(e) =>
+                    setManufacturer((prev) => ({ ...prev, contact: e.target.value }))
+                  }
+                />
+              </div>
+
+              <div className="edit-group">
+                <label>Support Email</label>
+                <input
+                  type="email"
+                  placeholder="support@company.com"
+                  value={manufacturer.email}
+                  onChange={(e) =>
+                    setManufacturer((prev) => ({ ...prev, email: e.target.value }))
+                  }
+                />
+              </div>
+            </div>
+
+            <div className="edit-group">
+              <label>Address</label>
+              <input
+                type="text"
+                placeholder="Full address of manufacturer"
+                value={manufacturer.address}
+                onChange={(e) =>
+                  setManufacturer((prev) => ({ ...prev, address: e.target.value }))
+                }
+              />
+            </div>
           </div>
         </div>
 
@@ -1030,16 +1248,22 @@ const EditProduct = () => {
             </div>
 
             <div className="edit-group">
-              <label htmlFor="edit-subcategory">Subcategory *</label>
+              <label htmlFor="edit-subcategory">
+                Subcategory {availableSubcategories.length > 0 ? "*" : ""}
+              </label>
               <select
                 id="edit-subcategory"
                 value={subcategory}
                 onChange={(e) => setSubcategory(e.target.value)}
-                disabled={!category}
-                required
+                disabled={!category || availableSubcategories.length === 0}
+                required={availableSubcategories.length > 0}
               >
                 <option value="">
-                  {category ? "Select Subcategory" : "Select Category First"}
+                  {category
+                    ? availableSubcategories.length > 0
+                      ? "Select Subcategory"
+                      : "No Subcategories Available"
+                    : "Select Category First"}
                 </option>
                 {availableSubcategories.map((c) => (
                   <option key={c._id} value={c._id}>
