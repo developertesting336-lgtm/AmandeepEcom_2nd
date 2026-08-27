@@ -1,0 +1,166 @@
+/* ================================
+   SCROLL STORY
+================================ */
+
+.scroll-story {
+  position: relative;
+  width: 100%;
+  height: 100vh;
+  overflow: hidden;
+
+  /* Relevant to homepage: uses the same background.jpg with a dark gradient overlay */
+  background:
+    linear-gradient(
+      135deg,
+      rgba(10, 10, 26, 0.92),
+      rgba(26, 26, 46, 0.88),
+      rgba(10, 10, 26, 0.92)
+    ),
+    url("../../assets/background.jpg");
+
+  background-size: cover;
+  background-position: center;
+}
+
+
+/* ================================
+   STORY IMAGES
+================================ */
+
+.story-images {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.story-image {
+  position: absolute;
+  inset: 0;
+
+  width: 100%;
+  height: 100%;
+
+  object-fit: cover;
+
+  will-change: transform, opacity;
+}
+
+/* Dark overlay on images for text readability */
+.story-images::after {
+  content: "";
+
+  position: absolute;
+  inset: 0;
+
+  background:
+    linear-gradient(
+      90deg,
+      rgba(10, 10, 26, 0.85),
+      rgba(26, 26, 46, 0.25),
+      rgba(10, 10, 26, 0.45)
+    );
+}
+
+
+/* ================================
+   STORY CONTENT
+================================ */
+
+.story-content {
+  position: relative;
+
+  z-index: 5;
+
+  width: 100%;
+  height: 100%;
+
+  display: flex;
+  align-items: center;
+
+  padding: 0 8%;
+}
+
+.story-text {
+  position: absolute;
+
+  left: 0;
+  bottom: 10%;
+
+  max-width: 500px;
+
+  color: white;
+
+  opacity: 0;
+
+  transition: opacity 0.5s ease;
+}
+
+.story-text.active {
+  opacity: 1;
+}
+
+.story-text span {
+  display: block;
+
+  margin-bottom: 15px;
+
+  font-size: 14px;
+  letter-spacing: 4px;
+
+  color: #22d3ee;
+}
+
+.story-text h2 {
+  font-size: clamp(40px, 5vw, 80px);
+
+  line-height: 1;
+
+  margin: 0 0 20px;
+}
+
+.story-text p {
+  font-size: 18px;
+
+  line-height: 1.6;
+
+  color: rgba(255, 255, 255, 0.7);
+}
+
+
+/* ================================
+   RESPONSIVE
+================================ */
+
+@media (max-width: 768px) {
+  .scroll-story {
+    height: 100vh;
+  }
+
+  .story-content {
+    padding: 0 6%;
+  }
+
+  .story-text {
+    max-width: 400px;
+    bottom: 8%;
+  }
+
+  .story-text h2 {
+    font-size: 44px;
+  }
+
+  .story-text p {
+    font-size: 15px;
+  }
+}
+
+@media (max-width: 480px) {
+  .story-text h2 {
+    font-size: 36px;
+  }
+
+  .story-text p {
+    font-size: 14px;
+  }
+}

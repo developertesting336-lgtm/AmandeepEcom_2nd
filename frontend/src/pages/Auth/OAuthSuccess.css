@@ -1,0 +1,249 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+.oauth-success-page {
+  min-height: calc(100vh - 80px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #f8fafc;
+  padding: 40px 20px;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+.oauth-success-container {
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+.oauth-card {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 44px 32px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+  border: 1px solid #e2e8f0;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.oauth-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+}
+
+.oauth-card.loading-card::before {
+  background: linear-gradient(90deg, #3b82f6, #6366f1);
+}
+
+.oauth-card.success-card::before {
+  background: linear-gradient(90deg, #10b981, #059669);
+}
+
+.oauth-card.error-card::before {
+  background: linear-gradient(90deg, #ef4444, #dc2626);
+}
+
+.oauth-status-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.oauth-icon-wrapper {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+.loading-icon-wrapper {
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.oauth-spinner {
+  animation: oauth-spin 1s linear infinite;
+}
+
+@keyframes oauth-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.success-icon-wrapper {
+  background: #ecfdf5;
+  color: #10b981;
+}
+
+.success-icon {
+  stroke-width: 2.2;
+}
+
+.error-icon-wrapper {
+  background: #fef2f2;
+  color: #ef4444;
+}
+
+.error-icon {
+  stroke-width: 2.2;
+}
+
+.oauth-badge {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  padding: 4px 12px;
+  border-radius: 9999px;
+  margin-bottom: 14px;
+}
+
+.loading-pill {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.success-pill {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.error-pill {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.oauth-title {
+  font-size: 24px;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0 0 10px;
+  letter-spacing: -0.5px;
+}
+
+.oauth-desc {
+  font-size: 14.5px;
+  color: #64748b;
+  line-height: 1.6;
+  margin: 0 0 24px;
+  max-width: 380px;
+}
+
+.oauth-redirect-indicator {
+  width: 100%;
+  height: 4px;
+  background-color: #f1f5f9;
+  border-radius: 2px;
+  overflow: hidden;
+  margin-top: 10px;
+}
+
+.redirect-progress-bar {
+  height: 100%;
+  background: #10b981;
+  animation: redirect-progress 1.2s ease forwards;
+}
+
+@keyframes redirect-progress {
+  from {
+    width: 0%;
+  }
+  to {
+    width: 100%;
+  }
+}
+
+.oauth-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  margin-top: 6px;
+  margin-bottom: 12px;
+}
+
+.oauth-primary-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 12px 18px;
+  background: #0f172a;
+  color: #ffffff;
+  font-size: 14.5px;
+  font-weight: 600;
+  border-radius: 8px;
+  text-decoration: none;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.2);
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+}
+
+.oauth-primary-btn:hover {
+  background: #2563eb;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(37, 99, 235, 0.3);
+}
+
+.oauth-secondary-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 11px 18px;
+  background: transparent;
+  color: #64748b;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 8px;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+}
+
+.oauth-secondary-btn:hover {
+  color: #0f172a;
+  background: #f1f5f9;
+}
+
+.oauth-security-note {
+  margin-top: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 12.5px;
+  color: #94a3b8;
+  border-top: 1px solid #f1f5f9;
+  padding-top: 18px;
+}
+
+@media (max-width: 500px) {
+  .oauth-card {
+    padding: 32px 20px;
+  }
+
+  .oauth-title {
+    font-size: 20px;
+  }
+
+  .oauth-desc {
+    font-size: 13.5px;
+  }
+}

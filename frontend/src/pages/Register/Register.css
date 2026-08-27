@@ -1,0 +1,17 @@
+@import "../Login/Login.css";
+
+.auth-success {
+  margin-bottom: 20px;
+  padding: 12px 14px;
+  border: 1px solid #b7dfc0;
+  border-radius: 8px;
+  background: #effaf1;
+  color: #247a35;
+  font-size: 13.5px;
+  line-height: 1.4;
+}
+
+.auth-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

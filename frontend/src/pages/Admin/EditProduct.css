@@ -1,0 +1,389 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+/* =========================================
+   EDIT PRODUCT PAGE
+========================================= */
+
+.edit-product-page {
+  min-height: calc(100vh - 68px);
+  width: 100%;
+  padding: 40px 5% 80px;
+  background-color: #ffffff;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  color: #0f172a;
+  box-sizing: border-box;
+}
+
+.edit-product-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 80px 20px;
+  font-size: 14px;
+  color: #64748b;
+}
+
+/* =========================================
+   HEADER
+========================================= */
+
+.edit-product-header {
+  max-width: 1400px;
+  margin: 0 auto 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.edit-product-header h2 {
+  font-family: 'Inter', sans-serif;
+  color: #0f172a;
+  font-size: 32px;
+  font-weight: 800;
+  margin: 0;
+  letter-spacing: -0.5px;
+}
+
+.btn-back,
+.edit-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: transparent;
+  border: 1px solid #cbd5e1;
+  padding: 8px 14px;
+  border-radius: 8px;
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  width: fit-content;
+  transition: all 0.2s ease;
+}
+
+.btn-back:hover,
+.edit-back-btn:hover {
+  border-color: #0f172a;
+  color: #0f172a;
+}
+
+/* =========================================
+   ALERTS
+========================================= */
+
+.edit-alert,
+.edit-product-alert {
+  max-width: 1400px;
+  margin: 0 auto 20px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
+.edit-alert-error,
+.edit-product-alert.error {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #dc2626;
+}
+
+.edit-alert-success,
+.edit-product-alert.success {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  color: #16a34a;
+}
+
+/* =========================================
+   FORM LAYOUT
+========================================= */
+
+.edit-product-form {
+  max-width: 1400px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  align-items: start;
+  gap: 24px;
+}
+
+.edit-form-main,
+.edit-product-main {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 0;
+}
+
+.edit-form-sidebar,
+.edit-product-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* =========================================
+   CARD
+========================================= */
+
+.edit-card,
+.edit-product-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+}
+
+.edit-card-title,
+.edit-card-heading h2 {
+  font-family: 'Inter', sans-serif;
+  color: #0f172a;
+  font-size: 16px;
+  font-weight: 700;
+  margin: 0 0 18px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+/* =========================================
+   FIELDS & INPUTS
+========================================= */
+
+.edit-group,
+.edit-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.edit-group:last-child {
+  margin-bottom: 0;
+}
+
+.edit-group label,
+.edit-field label {
+  color: #0f172a;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.edit-group input[type="text"],
+.edit-group input[type="number"],
+.edit-group input[type="email"],
+.edit-group textarea,
+.edit-group select,
+.edit-field input,
+.edit-field textarea,
+.edit-field select {
+  background-color: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  color: #0f172a;
+  font-size: 14px;
+  padding: 10px 12px;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  outline: none;
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.edit-group input:focus,
+.edit-group textarea:focus,
+.edit-group select:focus,
+.edit-field input:focus,
+.edit-field textarea:focus,
+.edit-field select:focus {
+  border-color: #2563eb;
+  background-color: #ffffff;
+}
+
+.edit-group textarea,
+.edit-field textarea {
+  resize: vertical;
+  min-height: 90px;
+}
+
+.edit-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.edit-row-3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 14px;
+}
+
+/* =========================================
+   IMAGE DROPZONE & PREVIEWS
+========================================= */
+
+.edit-image-dropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 1.5px dashed #cbd5e1;
+  border-radius: 8px;
+  padding: 24px 16px;
+  cursor: pointer;
+  color: #64748b;
+  background-color: #f8fafc;
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+  text-align: center;
+}
+
+.edit-image-dropzone:hover {
+  border-color: #2563eb;
+  background-color: #eff6ff;
+}
+
+.edit-image-dropzone span {
+  font-size: 13px;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.edit-image-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.edit-image-item {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+}
+
+.edit-image-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+.edit-image-remove {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(15, 23, 42, 0.8);
+  border: none;
+  border-radius: 50%;
+  color: #ffffff;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.edit-image-remove:hover {
+  background-color: #dc2626;
+}
+
+/* =========================================
+   TOGGLES
+========================================= */
+
+.edit-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 0;
+  color: #0f172a;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.edit-toggle input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: #2563eb;
+  cursor: pointer;
+}
+
+/* =========================================
+   SUBMIT BUTTON
+========================================= */
+
+.btn-save,
+.edit-save-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background-color: #0f172a;
+  color: #ffffff;
+  border: none;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 12px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.2);
+  transition: background-color 0.2s ease;
+}
+
+.btn-save:hover:not(:disabled),
+.edit-save-btn:hover:not(:disabled) {
+  background-color: #2563eb;
+}
+
+.btn-save:disabled,
+.edit-save-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.spin {
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* =========================================
+   RESPONSIVE
+========================================= */
+
+@media (max-width: 860px) {
+  .edit-product-form {
+    grid-template-columns: 1fr;
+  }
+
+  .edit-row-3 {
+    grid-template-columns: 1fr;
+  }
+
+  .edit-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 560px) {
+  .edit-product-page {
+    padding: 24px 16px 60px;
+  }
+
+  .edit-card {
+    padding: 18px;
+  }
+}

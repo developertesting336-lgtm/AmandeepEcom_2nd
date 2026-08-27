@@ -1,0 +1,325 @@
+/* FeaturedProducts.css */
+
+:root {
+    --primary-color: #0d1117;
+    --accent-color: #007bff;
+    --text-color: #1f2328;
+    --light-text-color: #656d76;
+    --bg-color: #ffffff;
+    --card-bg-color: #ffffff;
+    --border-color: #e1e4e8;
+    --shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+body {
+    font-family: var(--font-family);
+    color: var(--text-color);
+    background-color: var(--bg-color);
+    margin: 0;
+    padding: 0;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 40px 20px;
+}
+
+/* Header Styles */
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 32px;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 16px;
+}
+
+.header-titles {
+    display: flex;
+    flex-direction: column;
+}
+
+.sub-header {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--light-text-color);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+}
+
+.main-header {
+    font-size: 28px;
+    font-weight: 700;
+    margin: 6px 0 0;
+    color: var(--text-color);
+}
+
+.header-filters {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.filter-buttons {
+    display: flex;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    overflow: hidden;
+    background-color: #f6f8fa;
+}
+
+.filter-button {
+    background: none;
+    border: none;
+    padding: 8px 16px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--light-text-color);
+    cursor: pointer;
+    border-right: 1px solid var(--border-color);
+    transition: all 0.2s ease;
+}
+
+.filter-button:last-child {
+    border-right: none;
+}
+
+.filter-button.active {
+    background-color: #ffffff;
+    color: var(--text-color);
+    font-weight: 600;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.view-all-button {
+    background: #ffffff;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 8px 16px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-color);
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.view-all-button:hover {
+    background-color: #f6f8fa;
+}
+
+/* Carousel Layout */
+.product-carousel {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.carousel-control {
+    background-color: #ffffff;
+    border: 1px solid var(--border-color);
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 10;
+    color: var(--text-color);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    transition: background-color 0.2s, transform 0.2s;
+}
+
+.carousel-control:hover {
+    background-color: #f6f8fa;
+    transform: translateY(-50%) scale(1.05);
+}
+
+.carousel-control.prev {
+    left: -20px;
+}
+
+.carousel-control.next {
+    right: -20px;
+}
+
+.product-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+    width: 100%;
+}
+
+/* Product Card Styling */
+.product-card {
+    background-color: var(--card-bg-color);
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.product-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow);
+}
+
+/* Image Container */
+.card-image-container {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    border-radius: 8px;
+    overflow: hidden;
+    background-color: #f8f9fa;
+    margin-bottom: 12px;
+}
+
+.product-image {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    object-position: center;
+    display: block;
+}
+
+/* Overlay Badges */
+.discount-badge {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    background-color: #dc3545;
+    color: #ffffff;
+    padding: 4px 10px;
+    border-radius: 16px;
+    font-size: 11px;
+    font-weight: 700;
+    z-index: 2;
+    pointer-events: none;
+}
+
+.wishlist-button {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background-color: #ffffff;
+    border: 1px solid var(--border-color);
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--light-text-color);
+    transition: all 0.2s ease;
+    z-index: 2;
+}
+
+.wishlist-button:hover {
+    color: #dc3545;
+    border-color: #dc3545;
+}
+
+/* Card Content Details */
+.card-details {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+}
+
+.category-rating {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+}
+
+.product-category {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--accent-color);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.product-rating {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-color);
+    display: flex;
+    align-items: center;
+    gap: 3px;
+}
+
+.star-icon {
+    color: #ffc107;
+}
+
+.product-title {
+    font-size: 15px;
+    font-weight: 600;
+    margin: 0 0 16px 0;
+    color: var(--text-color);
+    line-height: 1.3;
+    height: 2.6em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+}
+
+/* Price & Button Layout */
+.price-cart {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-top: auto;
+}
+
+.product-prices {
+    display: flex;
+    flex-direction: column;
+}
+
+.discounted-price {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text-color);
+    line-height: 1.1;
+}
+
+.original-price {
+    font-size: 12px;
+    color: var(--light-text-color);
+    text-decoration: line-through;
+    margin-top: 2px;
+}
+
+.add-to-cart-button {
+    background-color: var(--primary-color);
+    color: #ffffff;
+    border: none;
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: background-color 0.2s ease;
+}
+
+.add-to-cart-button:hover {
+    background-color: #24292f;
+}

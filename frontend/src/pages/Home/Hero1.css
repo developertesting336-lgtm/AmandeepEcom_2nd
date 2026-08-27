@@ -1,0 +1,141 @@
+/* =========================================================
+   FULL-BLEED HERO BANNER SLIDER - PERFECT FIT FOR 100% ZOOM
+========================================================= */
+
+.hero {
+  width: 100%;
+  padding: 0;
+  margin: 0;
+  background-color: transparent;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  box-sizing: border-box;
+}
+
+.hero-slider {
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  position: relative;
+  border-radius: 0;
+  box-shadow: none;
+  border: none;
+}
+
+.hero-track {
+  display: flex;
+  transition: transform 0.7s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.hero-slide {
+  min-width: 100%;
+  width: 100%;
+}
+
+.hero-slide img {
+  width: 100%;
+  height: auto;
+  max-height: 380px;
+  object-fit: cover;
+  display: block;
+  border-radius: 0;
+}
+
+.hero-btn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 44px;
+  height: 44px;
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.92);
+  color: #0f172a;
+  cursor: pointer;
+  font-size: 20px;
+  transition: all 0.25s ease;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(6px);
+  z-index: 5;
+}
+
+.hero-btn:hover {
+  background: #0f172a;
+  color: #ffffff;
+  border-color: #0f172a;
+  transform: translateY(-50%) scale(1.08);
+  box-shadow: 0 6px 20px rgba(15, 23, 42, 0.25);
+}
+
+.prev {
+  left: 20px;
+}
+
+.next {
+  right: 20px;
+}
+
+.hero-dots {
+  position: absolute;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 8px;
+  z-index: 5;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.6);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(4px);
+}
+
+.dot.active {
+  width: 28px;
+  border-radius: 20px;
+  background: #7257c2;
+}
+
+/* Responsive Breakpoints */
+@media (max-width: 992px) {
+  .hero-slide img {
+    max-height: 300px;
+  }
+
+  .prev {
+    left: 14px;
+  }
+
+  .next {
+    right: 14px;
+  }
+}
+
+@media (max-width: 600px) {
+  .hero-slide img {
+    max-height: 220px;
+  }
+
+  .hero-btn {
+    width: 34px;
+    height: 34px;
+    font-size: 15px;
+  }
+
+  .prev {
+    left: 10px;
+  }
+
+  .next {
+    right: 10px;
+  }
+}
