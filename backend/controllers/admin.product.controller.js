@@ -705,7 +705,7 @@ export const updateProduct = async (req, res) => {
 
 
     // console.log("files", req.files)
-    console.log("body", req.body)
+    // console.log("body", req.body)
 
     const product = await Product.findById(productId);
 

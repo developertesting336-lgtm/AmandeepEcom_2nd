@@ -44,57 +44,57 @@ interface Product {
   images: ProductImageItem[];
   isFeatured: boolean;
   manufacturer?:
-    | string
-    | {
-        name?: string;
-        address?: string;
-        country?: string;
-        contact?: string;
-        email?: string;
-        website?: string;
-      };
+  | string
+  | {
+    name?: string;
+    address?: string;
+    country?: string;
+    contact?: string;
+    email?: string;
+    website?: string;
+  };
   warranty?:
-    | string
-    | {
-        available?: boolean;
-        duration?: number | null | string;
-        unit?: string;
-        type?: string;
-        description?: string;
-        terms?: string;
-      };
+  | string
+  | {
+    available?: boolean;
+    duration?: number | null | string;
+    unit?: string;
+    type?: string;
+    description?: string;
+    terms?: string;
+  };
   returnPolicy?:
-    | string
-    | {
-        eligible?: boolean;
-        returnWindow?: number | null | string;
-        returnWindowUnit?: string;
-        replacementAvailable?: boolean;
-        refundAvailable?: boolean;
-        conditions?: string;
-        description?: string;
-      };
+  | string
+  | {
+    eligible?: boolean;
+    returnWindow?: number | null | string;
+    returnWindowUnit?: string;
+    replacementAvailable?: boolean;
+    refundAvailable?: boolean;
+    conditions?: string;
+    description?: string;
+  };
   attributes?:
-    | string
-    | {
-        color?: string;
-        size?: string;
-        material?: string;
-        screenSize?: string;
-        weight?: { value?: number | null | string; unit?: string };
-        weightValue?: string | number;
-        weightUnit?: string;
-        dimensions?: {
-          length?: number | null | string;
-          width?: number | null | string;
-          height?: number | null | string;
-          unit?: string;
-        };
-        length?: string | number;
-        width?: string | number;
-        height?: string | number;
-        dimUnit?: string;
-      };
+  | string
+  | {
+    color?: string;
+    size?: string;
+    material?: string;
+    screenSize?: string;
+    weight?: { value?: number | null | string; unit?: string };
+    weightValue?: string | number;
+    weightUnit?: string;
+    dimensions?: {
+      length?: number | null | string;
+      width?: number | null | string;
+      height?: number | null | string;
+      unit?: string;
+    };
+    length?: string | number;
+    width?: string | number;
+    height?: string | number;
+    dimUnit?: string;
+  };
 }
 
 const safeParse = (val: any) => {
@@ -418,22 +418,21 @@ const ProductDetails = () => {
       : "";
 
   const returnTitle = returnWindow
-    ? `${returnWindow} ${
-        parsedReturnPolicy?.replacementAvailable && parsedReturnPolicy?.refundAvailable
-          ? "Return & Replacement"
-          : parsedReturnPolicy?.replacementAvailable
-          ? "Replacement"
-          : parsedReturnPolicy?.refundAvailable
+    ? `${returnWindow} ${parsedReturnPolicy?.replacementAvailable && parsedReturnPolicy?.refundAvailable
+      ? "Return & Replacement"
+      : parsedReturnPolicy?.replacementAvailable
+        ? "Replacement"
+        : parsedReturnPolicy?.refundAvailable
           ? "Return & Refund"
           : "Return Window"
-      }`
+    }`
     : parsedReturnPolicy?.replacementAvailable && parsedReturnPolicy?.refundAvailable
-    ? "Return & Replacement Available"
-    : parsedReturnPolicy?.replacementAvailable
-    ? "Replacement Available"
-    : parsedReturnPolicy?.refundAvailable
-    ? "Refund Available"
-    : "Return Policy Available";
+      ? "Return & Replacement Available"
+      : parsedReturnPolicy?.replacementAvailable
+        ? "Replacement Available"
+        : parsedReturnPolicy?.refundAvailable
+          ? "Refund Available"
+          : "Return Policy Available";
 
   const returnDesc =
     parsedReturnPolicy?.description ||
@@ -441,10 +440,10 @@ const ProductDetails = () => {
     (parsedReturnPolicy?.replacementAvailable && parsedReturnPolicy?.refundAvailable
       ? "Eligible for refund or replacement under policy"
       : parsedReturnPolicy?.refundAvailable
-      ? "Eligible for refund under policy conditions"
-      : parsedReturnPolicy?.replacementAvailable
-      ? "Eligible for replacement under policy conditions"
-      : "Eligible for return as per store policy");
+        ? "Eligible for refund under policy conditions"
+        : parsedReturnPolicy?.replacementAvailable
+          ? "Eligible for replacement under policy conditions"
+          : "Eligible for return as per store policy");
 
   // Specs extraction helpers from parsed backend attributes
   const colorVal = parsedAttributes?.color?.trim();
@@ -455,25 +454,25 @@ const ProductDetails = () => {
     parsedAttributes?.weight?.value !== undefined && parsedAttributes?.weight?.value !== null && String(parsedAttributes.weight.value).trim() !== ""
       ? `${parsedAttributes.weight.value} ${parsedAttributes.weight.unit || "g"}`
       : parsedAttributes?.weightValue !== undefined && parsedAttributes?.weightValue !== null && String(parsedAttributes.weightValue).trim() !== ""
-      ? `${parsedAttributes.weightValue} ${parsedAttributes.weightUnit || "g"}`
-      : undefined;
+        ? `${parsedAttributes.weightValue} ${parsedAttributes.weightUnit || "g"}`
+        : undefined;
 
   const dimVal =
     parsedAttributes?.dimensions?.length ||
-    parsedAttributes?.dimensions?.width ||
-    parsedAttributes?.dimensions?.height
+      parsedAttributes?.dimensions?.width ||
+      parsedAttributes?.dimensions?.height
       ? `${[
-          parsedAttributes.dimensions.length,
-          parsedAttributes.dimensions.width,
-          parsedAttributes.dimensions.height,
-        ]
-          .filter(Boolean)
-          .join(" x ")} ${parsedAttributes.dimensions.unit || "cm"}`
+        parsedAttributes.dimensions.length,
+        parsedAttributes.dimensions.width,
+        parsedAttributes.dimensions.height,
+      ]
+        .filter(Boolean)
+        .join(" x ")} ${parsedAttributes.dimensions.unit || "cm"}`
       : parsedAttributes?.length || parsedAttributes?.width || parsedAttributes?.height
-      ? `${[parsedAttributes.length, parsedAttributes.width, parsedAttributes.height]
+        ? `${[parsedAttributes.length, parsedAttributes.width, parsedAttributes.height]
           .filter(Boolean)
           .join(" x ")} ${parsedAttributes.dimUnit || "cm"}`
-      : undefined;
+        : undefined;
 
   return (
     <div className="pdp-page">
@@ -537,7 +536,7 @@ const ProductDetails = () => {
                     onClick={() => setSelectedImgIndex(idx)}
                   >
                     <img src={img} alt={`Thumb ${idx + 1}`} />
-                    <span className="pdp-thumb-label">Thumb {idx + 1}</span>
+                    <span className="pdp-thumb-label">Image {idx + 1}</span>
                   </button>
                 ))}
               </div>
@@ -906,38 +905,38 @@ const ProductDetails = () => {
                   parsedManufacturer?.email ||
                   parsedManufacturer?.address
                 ) && (
-                  <div className="pdp-info-block">
-                    <h4 className="pdp-info-block-title">
-                      <Sparkles size={18} className="pdp-info-icon" />
-                      Manufacturer Details
-                    </h4>
-                    {parsedManufacturer?.name && (
-                      <p className="pdp-info-line">
-                        <strong>Company:</strong> {parsedManufacturer.name}
-                      </p>
-                    )}
-                    {parsedManufacturer?.country && (
-                      <p className="pdp-info-line">
-                        <strong>Country of Origin:</strong> {parsedManufacturer.country}
-                      </p>
-                    )}
-                    {parsedManufacturer?.contact && (
-                      <p className="pdp-info-line">
-                        <strong>Contact / Helpline:</strong> {parsedManufacturer.contact}
-                      </p>
-                    )}
-                    {parsedManufacturer?.email && (
-                      <p className="pdp-info-line">
-                        <strong>Email:</strong> {parsedManufacturer.email}
-                      </p>
-                    )}
-                    {parsedManufacturer?.address && (
-                      <p className="pdp-info-line">
-                        <strong>Address:</strong> {parsedManufacturer.address}
-                      </p>
-                    )}
-                  </div>
-                )}
+                    <div className="pdp-info-block">
+                      <h4 className="pdp-info-block-title">
+                        <Sparkles size={18} className="pdp-info-icon" />
+                        Manufacturer Details
+                      </h4>
+                      {parsedManufacturer?.name && (
+                        <p className="pdp-info-line">
+                          <strong>Company:</strong> {parsedManufacturer.name}
+                        </p>
+                      )}
+                      {parsedManufacturer?.country && (
+                        <p className="pdp-info-line">
+                          <strong>Country of Origin:</strong> {parsedManufacturer.country}
+                        </p>
+                      )}
+                      {parsedManufacturer?.contact && (
+                        <p className="pdp-info-line">
+                          <strong>Contact / Helpline:</strong> {parsedManufacturer.contact}
+                        </p>
+                      )}
+                      {parsedManufacturer?.email && (
+                        <p className="pdp-info-line">
+                          <strong>Email:</strong> {parsedManufacturer.email}
+                        </p>
+                      )}
+                      {parsedManufacturer?.address && (
+                        <p className="pdp-info-line">
+                          <strong>Address:</strong> {parsedManufacturer.address}
+                        </p>
+                      )}
+                    </div>
+                  )}
               </div>
             </div>
           )}
