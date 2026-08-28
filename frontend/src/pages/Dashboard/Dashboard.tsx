@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../context/authContext";
+import NotificationSettings from "../../components/common/NotificationSettings/NotificationSettings";
 import "./Dashboard.css";
 
 const Dashboard = () => {
@@ -12,10 +13,7 @@ const Dashboard = () => {
   useEffect(() => {
     const loadProducts = async () => {
       try {
-     
-
         await new Promise((resolve) => setTimeout(resolve, 1000));
-
         setProducts([]);
       } catch (error) {
         console.error("Failed to load products:", error);
@@ -27,14 +25,11 @@ const Dashboard = () => {
     loadProducts();
   }, []);
 
-  // console.log(user)
-
   return (
     <main className="dashboard">
 
       {/* Welcome */}
       <section className="dashboard-welcome">
-
         <div>
           <p className="dashboard-eyebrow">
             MY ACCOUNT
@@ -45,7 +40,7 @@ const Dashboard = () => {
           </h1>
 
           <p className="welcome-description">
-            Manage your account and explore our products.
+            Manage your account, notification preferences, and explore our products.
           </p>
         </div>
 
@@ -55,13 +50,10 @@ const Dashboard = () => {
         >
           Browse Products
         </Link>
-
       </section>
-
 
       {/* Quick Information */}
       <section className="dashboard-overview">
-
         <div className="overview-item">
           <span>Orders</span>
           <strong>—</strong>
@@ -79,7 +71,11 @@ const Dashboard = () => {
           <strong>Active</strong>
           <small>Your account status</small>
         </div>
+      </section>
 
+      {/* Notification Preferences */}
+      <section className="dashboard-notifications-section">
+        <NotificationSettings />
       </section>
 
 
