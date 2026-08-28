@@ -18,6 +18,7 @@ import { stripeWebhook } from './controllers/user.order.js'
 import adminOrderRoutes from './routes/admin.order.js'
 import adminUserRoutes from './routes/admin.users.routes.js'
 import googleAuth from './routes/oauth.js'
+import notificationRoutes from './routes/notification.routes.js'
 import cookieParser from "cookie-parser";
 
 
@@ -84,6 +85,7 @@ app.use('/api/order', order)
 
 app.use('/api/admin/order', adminOrderRoutes)
 app.use('/api/admin/users', adminUserRoutes)
+app.use('/api/notifications', notificationRoutes)
 
 
 

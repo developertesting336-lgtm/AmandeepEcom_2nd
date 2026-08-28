@@ -2,6 +2,10 @@ import Order from '../models/Order.js'
 import User from '../models/user.js'
 import Product from '../models/Product.js'
 import stripe from "../config/stripe.js";
+import Notification from "../models/Notification.js";
+import PushSubscription from "../models/PushSubscription.js";
+import webpush from "../config/webpush.js";
+
 
 
 
@@ -187,6 +191,46 @@ export const updatedOrderByAdmin = async (req, res) => {
             });
         }
 
+        const userId = order.user;
+        const url = `/order`;
+
+        const subscriptions = await PushSubscription.find({ userId });
+        console.log(`Found ${subscriptions.length} push subscription(s) for user:`, userId);
+
+        const pushPayload = JSON.stringify({
+            title: "Order Updated",
+            body: `Your order has been updated successfully as ${updateData.orderStatus}`,
+            icon: "/favicon.png",
+            data: {
+                url,
+                orderId,
+            },
+        });
+
+        const pushResults = await Promise.allSettled(
+            subscriptions.map(async (sub) => {
+                try {
+                    return await webpush.sendNotification(
+                        {
+                            endpoint: sub.endpoint,
+                            keys: sub.keys,
+                        },
+                        pushPayload
+                    );
+                } catch (pushErr) {
+                    // If subscription is expired or invalid (410 or 404), clean it up
+                    if (pushErr.statusCode === 410 || pushErr.statusCode === 404) {
+                        console.log("Removing expired push subscription:", sub.endpoint);
+                        await PushSubscription.findByIdAndDelete(sub._id);
+                    }
+                    throw pushErr;
+                }
+            })
+        );
+
+        const successfulPushes = pushResults.filter((r) => r.status === "fulfilled").length;
+        console.log(`Push notifications sent: ${successfulPushes}/${subscriptions.length} successful`);
+
         return res.status(200).json({
             success: true,
             message: "Order updated successfully",
@@ -280,6 +324,43 @@ export const refundGenrate = async (req, res) => {
         }
 
         await order.save();
+
+        const userId = order.user;
+        const url = `/order`;
+
+        const subscriptions = await PushSubscription.find({ userId });
+        console.log(`Found ${subscriptions.length} push subscription(s) for user:`, userId);
+
+        const pushPayload = JSON.stringify({
+            title: "Order Refunded",
+            body: `Order Id ${orderId} has been refunded successfully and order is cancelled`,
+            icon: "/favicon.png",
+            data: {
+                url,
+                orderId,
+            },
+        });
+
+        const pushResults = await Promise.allSettled(
+            subscriptions.map(async (sub) => {
+                try {
+                    return await webpush.sendNotification(
+                        {
+                            endpoint: sub.endpoint,
+                            keys: sub.keys,
+                        },
+                        pushPayload
+                    );
+                } catch (pushErr) {
+                    // If subscription is expired or invalid (410 or 404), clean it up
+                    if (pushErr.statusCode === 410 || pushErr.statusCode === 404) {
+                        console.log("Removing expired push subscription:", sub.endpoint);
+                        await PushSubscription.findByIdAndDelete(sub._id);
+                    }
+                    throw pushErr;
+                }
+            })
+        );
 
         return res.status(200).json({
             success: true,
