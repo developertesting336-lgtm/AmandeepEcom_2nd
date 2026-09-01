@@ -43,11 +43,13 @@ export const toggleProductActive = async (req, res) => {
 export const toggleProductFeatured = async (req, res) => {
   try {
     const { productID } = req.params;
-    console.log(productID)
+
+    console.log("/toggle/featured hitted", "prodctID", productID)
+    // console.log(productID)
 
     const product = await Product.findById(productID);
 
-    console.log(product)
+    // console.log(product)
 
     if (!product) {
       return res.status(404).json({
@@ -438,7 +440,7 @@ export const getProducts = async (req, res) => {
       isActive,
       isFeatured,
       page = 1,
-      limit = 10,
+      limit = 20,
       sortBy = "createdAt",
       sortOrder = "desc",
     } = req.query;
@@ -448,6 +450,8 @@ export const getProducts = async (req, res) => {
     const filter = {};
 
 
+
+    // console.log("url hitted", "/all/products", Date.now())
     // Search by name
     if (name) {
       filter.name = {
@@ -563,7 +567,7 @@ export const getProducts = async (req, res) => {
 
     const perPage = Math.min(
       Math.max(Number(limit), 1),
-      100
+      200
     );
 
     const skip = (currentPage - 1) * perPage;

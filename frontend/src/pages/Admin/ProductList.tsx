@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo, memo } from "react";
 import {
   Search,
   Pencil,
@@ -11,6 +11,10 @@ import {
   Loader2,
   RefreshCw,
   Star,
+  Package,
+  CheckCircle2,
+  XCircle,
+  AlertTriangle,
 } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import "./ProductList.css";
@@ -65,18 +69,234 @@ const formatImageUrl = (
   return `${API_BASE_URL}${formattedPath}`;
 };
 
+interface ProductTableRowProps {
+  product: Product;
+  isDeleting: boolean;
+  isTogglingActive: boolean;
+  isTogglingFeatured: boolean;
+  onToggleActive: (productId: string, currentStatus: boolean) => void;
+  onToggleFeatured: (productId: string, currentStatus: boolean) => void;
+  onEdit: (productId: string) => void;
+  onDelete: (productId: string) => void;
+}
+
+const ProductTableRow = memo(
+  ({
+    product,
+    isDeleting,
+    isTogglingActive,
+    isTogglingFeatured,
+    onToggleActive,
+    onToggleFeatured,
+    onEdit,
+    onDelete,
+  }: ProductTableRowProps) => {
+    const categoryName =
+      typeof product.category === "object"
+        ? product.category?.name || "Uncategorized"
+        : product.category || "Uncategorized";
+
+    const subCategoryName =
+      typeof product.subcategory === "object"
+        ? product.subcategory?.name
+        : product.subcategory;
+
+    const hasDiscount =
+      product.salePrice !== null &&
+      product.salePrice !== undefined &&
+      Number(product.salePrice) > 0 &&
+      Number(product.salePrice) < Number(product.price);
+
+    return (
+      <tr className="product-table-row">
+        {/* Product Cell */}
+        <td className="cell-product">
+          <div className="product-cell">
+            <div className="product-image">
+              {formatImageUrl(product.images?.[0]) ? (
+                <img
+                  src={formatImageUrl(product.images?.[0])}
+                  alt={product.name}
+                  loading="lazy"
+                />
+              ) : (
+                <div className="no-image">No Image</div>
+              )}
+            </div>
+
+            <div className="product-details">
+              <strong title={product.name}>{product.name}</strong>
+              <span>{product.brand || "Generic Brand"}</span>
+            </div>
+          </div>
+        </td>
+
+        {/* SKU */}
+        <td className="cell-sku">
+          <span className="sku" title={product.sku || "N/A"}>
+            {product.sku || "N/A"}
+          </span>
+        </td>
+
+        {/* Category & Subcategory */}
+        <td className="cell-category">
+          <div className="cat-cell">
+            <strong className="cat-main">{categoryName}</strong>
+            {subCategoryName && (
+              <span className="subcategory-tag">
+                › {subCategoryName}
+              </span>
+            )}
+          </div>
+        </td>
+
+        {/* Price */}
+        <td className="cell-price">
+          <div className="price-cell">
+            {hasDiscount ? (
+              <>
+                <strong>
+                  ₹{Number(product.salePrice).toLocaleString("en-IN")}
+                </strong>
+                <del>
+                  ₹{Number(product.price).toLocaleString("en-IN")}
+                </del>
+              </>
+            ) : (
+              <strong>
+                ₹{Number(product.price || 0).toLocaleString("en-IN")}
+              </strong>
+            )}
+          </div>
+        </td>
+
+        {/* Stock */}
+        <td className="cell-stock">
+          <span
+            className={`stock-badge ${product.stock === 0
+                ? "out"
+                : product.stock <= 10
+                  ? "low"
+                  : "available"
+              }`}
+          >
+            {product.stock === 0
+              ? "Out of stock"
+              : `${product.stock} in stock`}
+          </span>
+        </td>
+
+        {/* Status */}
+        <td className="cell-status">
+          <button
+            type="button"
+            role="switch"
+            aria-checked={product.isActive !== false}
+            className={`admin-toggle-badge ${product.isActive !== false ? "active" : "inactive"
+              }`}
+            onClick={() =>
+              onToggleActive(product._id, product.isActive !== false)
+            }
+            disabled={isTogglingActive}
+            title={
+              product.isActive !== false
+                ? "Active — Click to set Inactive"
+                : "Inactive — Click to set Active"
+            }
+          >
+            <span className="toggle-badge-track">
+              <span className="toggle-badge-thumb">
+                {isTogglingActive ? (
+                  <Loader2 size={8} className="toggle-badge-spinner spin" />
+                ) : null}
+              </span>
+            </span>
+            <span className="toggle-badge-label">
+              {product.isActive !== false ? "Active" : "Inactive"}
+            </span>
+          </button>
+        </td>
+
+        {/* Featured */}
+        <td className="cell-featured">
+          <button
+            type="button"
+            role="switch"
+            aria-checked={Boolean(product.isFeatured)}
+            className={`admin-toggle-badge ${product.isFeatured ? "featured" : "standard"
+              }`}
+            onClick={() =>
+              onToggleFeatured(product._id, Boolean(product.isFeatured))
+            }
+            disabled={isTogglingFeatured}
+            title={
+              product.isFeatured
+                ? "Featured — Click to remove from Featured"
+                : "Standard — Click to set as Featured"
+            }
+          >
+            <span className="toggle-badge-track">
+              <span className="toggle-badge-thumb">
+                {isTogglingFeatured ? (
+                  <Loader2 size={8} className="toggle-badge-spinner spin" />
+                ) : product.isFeatured ? (
+                  <Star size={8} className="toggle-star-icon" />
+                ) : null}
+              </span>
+            </span>
+            <span className="toggle-badge-label">
+              {product.isFeatured ? "Featured" : "Standard"}
+            </span>
+          </button>
+        </td>
+
+        {/* Actions */}
+        <td className="cell-actions">
+          <div className="product-actions">
+            <button
+              type="button"
+              className="edit-btn"
+              onClick={() => onEdit(product._id)}
+              title="Edit product"
+            >
+              <Pencil size={15} />
+              <span className="btn-text-mobile">Edit</span>
+            </button>
+
+            <button
+              type="button"
+              className="delete-btn"
+              onClick={() => onDelete(product._id)}
+              disabled={isDeleting}
+              title="Delete product"
+            >
+              {isDeleting ? (
+                <Loader2 size={15} className="spin" />
+              ) : (
+                <Trash2 size={15} />
+              )}
+              <span className="btn-text-mobile">Delete</span>
+            </button>
+          </div>
+        </td>
+      </tr>
+    );
+  }
+);
+
+ProductTableRow.displayName = "ProductTableRow";
+
 const ProductList = () => {
   const navigate = useNavigate();
 
   const [allFetchedProducts, setAllFetchedProducts] = useState<Product[]>([]);
-  // const [currentPage, setCurrentPage] = useState<number>(1)
   const [searchParams, setSearchParams] = useSearchParams();
 
   const currentPage = Math.max(
     1,
     Number(searchParams.get("page")) || 1
   );
-  const [perPage, setPerPage] = useState<number>(100);
+  const [perPage, setPerPage] = useState<number>(200);
   const [search, setSearch] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
@@ -109,56 +329,18 @@ const ProductList = () => {
           limit: String(limitToFetch),
         });
 
-        // Try primary admin endpoint
-        let response = await fetch(
+        const response = await fetch(
           `${API_BASE_URL}/api/admin/all/products?${queryParams.toString()}`,
           { headers, credentials: "include" }
         );
-        let result: any = null;
 
-        if (response.ok) {
-          try {
-            result = await response.json();
-          } catch {
-            result = null;
-          }
-        }
-
-        // Fallback 1: /api/admin/products
-        if (!response.ok || !result) {
-          response = await fetch(
-            `${API_BASE_URL}/api/admin/products?${queryParams.toString()}`,
-            { headers, credentials: "include" }
-          );
-          if (response.ok) {
-            try {
-              result = await response.json();
-            } catch {
-              result = null;
-            }
-          }
-        }
-
-        // Fallback 2: /api/products
-        if (!response.ok || !result) {
-          response = await fetch(
-            `${API_BASE_URL}/api/products?${queryParams.toString()}`,
-            { headers, credentials: "include" }
-          );
-          if (response.ok) {
-            try {
-              result = await response.json();
-            } catch {
-              result = null;
-            }
-          }
-        }
-
-        if (!result) {
+        if (!response.ok) {
           throw new Error("Unable to reach backend product service");
         }
 
-        // Extract products array from any valid response format
+        const result = await response.json();
+
+        // Extract products array from valid response format
         const productList: Product[] =
           result.data?.products ||
           result.products ||
@@ -206,30 +388,46 @@ const ProductList = () => {
   }, [currentPage, perPage, fetchProducts]);
 
   // Filter products by search query
-  const filteredProducts = allFetchedProducts.filter((product) => {
-    if (!search.trim()) return true;
-    const value = search.toLowerCase().trim();
+  const filteredProducts = useMemo(() => {
+    return allFetchedProducts.filter((product) => {
+      if (!search.trim()) return true;
+      const value = search.toLowerCase().trim();
 
-    const catName =
-      typeof product.category === "object"
-        ? product.category?.name
-        : product.category;
+      const catName =
+        typeof product.category === "object"
+          ? product.category?.name
+          : product.category;
 
-    const subCatName =
-      typeof product.subcategory === "object"
-        ? product.subcategory?.name
-        : product.subcategory;
+      const subCatName =
+        typeof product.subcategory === "object"
+          ? product.subcategory?.name
+          : product.subcategory;
 
-    return (
-      product.name?.toLowerCase().includes(value) ||
-      product.sku?.toLowerCase().includes(value) ||
-      product.brand?.toLowerCase().includes(value) ||
-      String(catName || "").toLowerCase().includes(value) ||
-      String(subCatName || "").toLowerCase().includes(value)
-    );
-  });
+      return (
+        product.name?.toLowerCase().includes(value) ||
+        product.sku?.toLowerCase().includes(value) ||
+        product.brand?.toLowerCase().includes(value) ||
+        String(catName || "").toLowerCase().includes(value) ||
+        String(subCatName || "").toLowerCase().includes(value)
+      );
+    });
+  }, [allFetchedProducts, search]);
 
-  // Calculate dynamic pagination (Client-side slicing if all items returned, or Server-side pagination)
+  // Statistics calculation for overview bar
+  const stats = useMemo(() => {
+    const total = allFetchedProducts.length;
+    const active = allFetchedProducts.filter((p) => p.isActive !== false).length;
+    const inactive = total - active;
+    const featured = allFetchedProducts.filter((p) => Boolean(p.isFeatured)).length;
+    const outOfStock = allFetchedProducts.filter((p) => Number(p.stock) <= 0).length;
+    const lowStock = allFetchedProducts.filter(
+      (p) => Number(p.stock) > 0 && Number(p.stock) <= 10
+    ).length;
+
+    return { total, active, inactive, featured, outOfStock, lowStock };
+  }, [allFetchedProducts]);
+
+  // Calculate dynamic pagination
   const isServerPaginated =
     serverPagination !== null &&
     typeof serverPagination.totalPages === "number" &&
@@ -244,23 +442,30 @@ const ProductList = () => {
     ? serverPagination.totalPages || 1
     : Math.max(1, Math.ceil(filteredProducts.length / perPage));
 
+  const effectivePage = Math.min(Math.max(1, currentPage), totalPages || 1);
+
+  // If currentPage is out of range, normalize to page 1
+  useEffect(() => {
+    if (totalPages > 0 && currentPage > totalPages) {
+      setSearchParams((prev) => {
+        const params = new URLSearchParams(prev);
+        params.set("page", "1");
+        return params;
+      });
+    }
+  }, [currentPage, totalPages, setSearchParams]);
+
   // Determine items to display on current page
   const displayedProducts = isServerPaginated
     ? filteredProducts
     : filteredProducts.slice(
-      (currentPage - 1) * perPage,
-      currentPage * perPage
+      (effectivePage - 1) * perPage,
+      effectivePage * perPage
     );
 
   const hasPreviousPage = currentPage > 1;
   const hasNextPage = currentPage < totalPages;
 
-  // const handlePageChange = (newPage: number) => {
-  //   if (newPage >= 1 && newPage <= totalPages && newPage !== currentPage) {
-  //     setCurrentPage(newPage);
-  //     window.scrollTo({ top: 0, behavior: "smooth" });
-  //   }
-  // };
   const handlePageChange = (newPage: number) => {
     if (
       newPage >= 1 &&
@@ -292,7 +497,6 @@ const ProductList = () => {
     e: React.ChangeEvent<HTMLSelectElement>
   ) => {
     const newLimit = Number(e.target.value);
-
     setPerPage(newLimit);
     resetToFirstPage();
   };
@@ -304,7 +508,7 @@ const ProductList = () => {
     resetToFirstPage();
   };
 
-  const handleDelete = async (productId: string) => {
+  const handleDelete = useCallback(async (productId: string) => {
     const confirmed = window.confirm(
       "Are you sure you want to delete this product? This action cannot be undone."
     );
@@ -315,8 +519,8 @@ const ProductList = () => {
       setDeletingId(productId);
       const token = localStorage.getItem("token");
 
-      let response = await fetch(
-        `${API_BASE_URL}/api/admin/product/${productId}`,
+      const response = await fetch(
+        `${API_BASE_URL}/api/admin/products/${productId}`,
         {
           method: "DELETE",
           headers: {
@@ -325,32 +529,6 @@ const ProductList = () => {
           credentials: "include",
         }
       );
-
-      if (!response.ok) {
-        response = await fetch(
-          `${API_BASE_URL}/api/admin/all/products/${productId}`,
-          {
-            method: "DELETE",
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-            credentials: "include",
-          }
-        );
-      }
-
-      if (!response.ok) {
-        response = await fetch(
-          `${API_BASE_URL}/api/admin/products/${productId}`,
-          {
-            method: "DELETE",
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-            credentials: "include",
-          }
-        );
-      }
 
       const result = await response.json();
 
@@ -366,12 +544,20 @@ const ProductList = () => {
     } finally {
       setDeletingId(null);
     }
-  };
+  }, [currentPage, perPage, fetchProducts]);
 
-  const handleToggleActive = async (
+  // Optimistic Toggle for Active status (0ms delay)
+  const handleToggleActive = useCallback(async (
     productId: string,
     currentActiveStatus: boolean
   ) => {
+    const newStatus = !currentActiveStatus;
+    setAllFetchedProducts((prev) =>
+      prev.map((item) =>
+        item._id === productId ? { ...item, isActive: newStatus } : item
+      )
+    );
+
     try {
       setTogglingActiveId(productId);
       const token = localStorage.getItem("token");
@@ -397,20 +583,27 @@ const ProductList = () => {
         );
       }
 
-      const updatedStatus =
+      const confirmedStatus =
         typeof result.data?.isActive === "boolean"
           ? result.data.isActive
           : typeof result.product?.isActive === "boolean"
             ? result.product.isActive
-            : !currentActiveStatus;
+            : newStatus;
 
-      setAllFetchedProducts((prev) =>
-        prev.map((item) =>
-          item._id === productId ? { ...item, isActive: updatedStatus } : item
-        )
-      );
+      if (confirmedStatus !== newStatus) {
+        setAllFetchedProducts((prev) =>
+          prev.map((item) =>
+            item._id === productId ? { ...item, isActive: confirmedStatus } : item
+          )
+        );
+      }
     } catch (err) {
       console.error("Toggle active error:", err);
+      setAllFetchedProducts((prev) =>
+        prev.map((item) =>
+          item._id === productId ? { ...item, isActive: currentActiveStatus } : item
+        )
+      );
       alert(
         err instanceof Error
           ? err.message
@@ -419,12 +612,20 @@ const ProductList = () => {
     } finally {
       setTogglingActiveId(null);
     }
-  };
+  }, []);
 
-  const handleToggleFeatured = async (
+  // Optimistic Toggle for Featured status (0ms delay)
+  const handleToggleFeatured = useCallback(async (
     productId: string,
     currentFeaturedStatus: boolean
   ) => {
+    const newStatus = !currentFeaturedStatus;
+    setAllFetchedProducts((prev) =>
+      prev.map((item) =>
+        item._id === productId ? { ...item, isFeatured: newStatus } : item
+      )
+    );
+
     try {
       setTogglingFeaturedId(productId);
       const token = localStorage.getItem("token");
@@ -450,22 +651,27 @@ const ProductList = () => {
         );
       }
 
-      const updatedStatus =
+      const confirmedStatus =
         typeof result.data?.isFeatured === "boolean"
           ? result.data.isFeatured
           : typeof result.product?.isFeatured === "boolean"
             ? result.product.isFeatured
-            : !currentFeaturedStatus;
+            : newStatus;
 
-      setAllFetchedProducts((prev) =>
-        prev.map((item) =>
-          item._id === productId
-            ? { ...item, isFeatured: updatedStatus }
-            : item
-        )
-      );
+      if (confirmedStatus !== newStatus) {
+        setAllFetchedProducts((prev) =>
+          prev.map((item) =>
+            item._id === productId ? { ...item, isFeatured: confirmedStatus } : item
+          )
+        );
+      }
     } catch (err) {
       console.error("Toggle featured error:", err);
+      setAllFetchedProducts((prev) =>
+        prev.map((item) =>
+          item._id === productId ? { ...item, isFeatured: currentFeaturedStatus } : item
+        )
+      );
       alert(
         err instanceof Error
           ? err.message
@@ -474,13 +680,17 @@ const ProductList = () => {
     } finally {
       setTogglingFeaturedId(null);
     }
-  };
+  }, []);
 
-  // Helper to generate page number buttons with ellipses
+  const handleEdit = useCallback((productId: string) => {
+    navigate(`/admin/products/edit/${productId}`);
+  }, [navigate]);
+
+  // Helper to generate page numbers
   const getPageNumbers = () => {
     const total = totalPages;
     const current = currentPage;
-    const delta = 2;
+    const delta = 1;
     const range: (number | string)[] = [];
 
     for (
@@ -514,7 +724,7 @@ const ProductList = () => {
     <section className="product-list-section">
       {/* Header */}
       <div className="product-list-header">
-        <div>
+        <div className="header-info">
           <span className="product-list-eyebrow">PRODUCT MANAGEMENT</span>
           <h1>Products Catalog</h1>
           <p>
@@ -531,7 +741,7 @@ const ProductList = () => {
             title="Refresh Products"
           >
             <RefreshCw size={16} className={loading ? "spin" : ""} />
-            Refresh
+            <span>Refresh</span>
           </button>
 
           <button
@@ -540,10 +750,47 @@ const ProductList = () => {
             onClick={() => navigate("/admin/add/product")}
           >
             <Plus size={18} />
-            Add Product
+            <span>Add Product</span>
           </button>
         </div>
       </div>
+
+      {/* Overview Metric Chips */}
+      {allFetchedProducts.length > 0 && (
+        <div className="catalog-stats-bar">
+          <div className="stat-chip">
+            <Package size={15} className="stat-icon total" />
+            <span className="stat-label">Total</span>
+            <span className="stat-value">{stats.total}</span>
+          </div>
+
+          <div className="stat-chip">
+            <CheckCircle2 size={15} className="stat-icon active" />
+            <span className="stat-label">Active</span>
+            <span className="stat-value">{stats.active}</span>
+          </div>
+
+          <div className="stat-chip">
+            <XCircle size={15} className="stat-icon inactive" />
+            <span className="stat-label">Inactive</span>
+            <span className="stat-value">{stats.inactive}</span>
+          </div>
+
+          <div className="stat-chip">
+            <Star size={15} className="stat-icon featured" />
+            <span className="stat-label">Featured</span>
+            <span className="stat-value">{stats.featured}</span>
+          </div>
+
+          {stats.outOfStock > 0 && (
+            <div className="stat-chip alert">
+              <AlertTriangle size={15} className="stat-icon danger" />
+              <span className="stat-label">Out of Stock</span>
+              <span className="stat-value">{stats.outOfStock}</span>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Toolbar */}
       <div className="product-toolbar">
@@ -561,7 +808,6 @@ const ProductList = () => {
               className="clear-search-btn"
               onClick={() => {
                 setSearch("");
-
                 const params = new URLSearchParams(searchParams);
                 params.set("page", "1");
                 setSearchParams(params);
@@ -574,22 +820,23 @@ const ProductList = () => {
 
         <div className="toolbar-controls">
           <div className="per-page-selector">
-            <label htmlFor="perPageSelect">Rows per page:</label>
+            <label htmlFor="perPageSelect">Show:</label>
             <select
               id="perPageSelect"
               value={perPage}
               onChange={handlePerPageChange}
               disabled={loading}
             >
-              <option value={10}>10</option>
-              <option value={20}>20</option>
-              <option value={50}>50</option>
-              <option value={100}>100</option>
+              <option value={10}>10 rows</option>
+              <option value={20}>20 rows</option>
+              <option value={50}>50 rows</option>
+              <option value={100}>100 rows</option>
+              <option value={200}>200 rows</option>
             </select>
           </div>
 
           <span className="product-count">
-            Total: <strong>{totalProductsCount}</strong> products
+            Total: <strong>{totalProductsCount}</strong> items
           </span>
         </div>
       </div>
@@ -605,11 +852,14 @@ const ProductList = () => {
       {/* Content Area */}
       {loading && allFetchedProducts.length === 0 ? (
         <div className="product-loading">
-          <Loader2 size={32} className="spin" />
+          <Loader2 size={36} className="spin" />
           <p>Loading catalog products...</p>
         </div>
       ) : displayedProducts.length === 0 ? (
         <div className="product-empty">
+          <div className="empty-icon-circle">
+            <Package size={32} />
+          </div>
           <h3>No products found</h3>
           <p>
             {search
@@ -622,12 +872,10 @@ const ProductList = () => {
               className="btn-ghost"
               onClick={() => {
                 setSearch("");
-
                 const params = new URLSearchParams(searchParams);
                 params.set("page", "1");
                 setSearchParams(params);
               }}
-              style={{ marginTop: 12 }}
             >
               Clear Search
             </button>
@@ -636,7 +884,6 @@ const ProductList = () => {
               type="button"
               className="add-product-btn"
               onClick={() => navigate("/admin/add/product")}
-              style={{ marginTop: 16 }}
             >
               <Plus size={16} /> Add Product
             </button>
@@ -644,6 +891,9 @@ const ProductList = () => {
         </div>
       ) : (
         <>
+          {/* =====================================================
+              UNIFIED RESPONSIVE DATA TABLE
+          ===================================================== */}
           <div className="product-table-wrapper">
             {loading && (
               <div className="table-loading-overlay">
@@ -655,203 +905,30 @@ const ProductList = () => {
             <table className="product-table">
               <thead>
                 <tr>
-                  <th>Product</th>
-                  <th>SKU</th>
-                  <th>Category</th>
-                  <th>Price</th>
-                  <th>Stock</th>
-                  <th>Status</th>
-                  <th>Featured</th>
-                  <th>Actions</th>
+                  <th className="th-product">Product</th>
+                  <th className="th-sku">SKU</th>
+                  <th className="th-category">Category</th>
+                  <th className="th-price">Price</th>
+                  <th className="th-stock">Stock</th>
+                  <th className="th-status">Status</th>
+                  <th className="th-featured">Featured</th>
+                  <th className="th-actions">Actions</th>
                 </tr>
               </thead>
 
               <tbody>
                 {displayedProducts.map((product) => (
-                  <tr key={product._id}>
-                    {/* Product Cell */}
-                    <td>
-                      <div className="product-cell">
-                        <div className="product-image">
-                          {formatImageUrl(product.images?.[0]) ? (
-                            <img
-                              src={formatImageUrl(product.images?.[0])}
-                              alt={product.name}
-                              loading="lazy"
-                            />
-                          ) : (
-                            <div className="no-image">No Image</div>
-                          )}
-                        </div>
-
-                        <div className="product-details">
-                          <strong title={product.name}>{product.name}</strong>
-                          <span>{product.brand || "Generic Brand"}</span>
-                        </div>
-                      </div>
-                    </td>
-
-                    {/* SKU */}
-                    <td>
-                      <span className="sku">{product.sku || "N/A"}</span>
-                    </td>
-
-                    {/* Category & Subcategory */}
-                    <td>
-                      <div>
-                        <strong>
-                          {typeof product.category === "object"
-                            ? product.category?.name || "Uncategorized"
-                            : product.category || "Uncategorized"}
-                        </strong>
-                        {product.subcategory && (
-                          <div className="subcategory-tag">
-                            ›{" "}
-                            {typeof product.subcategory === "object"
-                              ? product.subcategory?.name
-                              : product.subcategory}
-                          </div>
-                        )}
-                      </div>
-                    </td>
-
-                    {/* Price */}
-                    <td>
-                      <div className="price-cell">
-                        {product.salePrice !== null &&
-                          product.salePrice !== undefined &&
-                          product.salePrice > 0 &&
-                          product.salePrice < product.price ? (
-                          <>
-                            <strong>
-                              ₹{Number(product.salePrice).toLocaleString("en-IN")}
-                            </strong>
-                            <del>
-                              ₹{Number(product.price).toLocaleString("en-IN")}
-                            </del>
-                          </>
-                        ) : (
-                          <strong>
-                            ₹{Number(product.price || 0).toLocaleString("en-IN")}
-                          </strong>
-                        )}
-                      </div>
-                    </td>
-
-                    {/* Stock */}
-                    <td>
-                      <span
-                        className={`stock-badge ${product.stock === 0
-                          ? "out"
-                          : product.stock <= 10
-                            ? "low"
-                            : "available"
-                          }`}
-                      >
-                        {product.stock === 0
-                          ? "Out of stock"
-                          : `${product.stock} in stock`}
-                      </span>
-                    </td>
-
-                    {/* Status */}
-                    <td>
-                      <button
-                        type="button"
-                        role="switch"
-                        aria-checked={product.isActive !== false}
-                        className={`admin-toggle-badge ${product.isActive !== false ? "active" : "inactive"
-                          }`}
-                        onClick={() =>
-                          handleToggleActive(
-                            product._id,
-                            product.isActive !== false
-                          )
-                        }
-                        disabled={togglingActiveId === product._id}
-                        title={
-                          product.isActive !== false
-                            ? "Active — Click to set Inactive"
-                            : "Inactive — Click to set Active"
-                        }
-                      >
-                        <span className="toggle-badge-track">
-                          <span className="toggle-badge-thumb">
-                            {togglingActiveId === product._id ? (
-                              <Loader2 size={8} className="toggle-badge-spinner spin" />
-                            ) : null}
-                          </span>
-                        </span>
-                        <span className="toggle-badge-label">
-                          {product.isActive !== false ? "Active" : "Inactive"}
-                        </span>
-                      </button>
-                    </td>
-
-                    {/* Featured */}
-                    <td>
-                      <button
-                        type="button"
-                        role="switch"
-                        aria-checked={Boolean(product.isFeatured)}
-                        className={`admin-toggle-badge ${product.isFeatured ? "featured" : "standard"
-                          }`}
-                        onClick={() =>
-                          handleToggleFeatured(
-                            product._id,
-                            Boolean(product.isFeatured)
-                          )
-                        }
-                        disabled={togglingFeaturedId === product._id}
-                        title={
-                          product.isFeatured
-                            ? "Featured — Click to remove from Featured"
-                            : "Standard — Click to set as Featured"
-                        }
-                      >
-                        <span className="toggle-badge-track">
-                          <span className="toggle-badge-thumb">
-                            {togglingFeaturedId === product._id ? (
-                              <Loader2 size={8} className="toggle-badge-spinner spin" />
-                            ) : product.isFeatured ? (
-                              <Star size={8} className="toggle-star-icon" />
-                            ) : null}
-                          </span>
-                        </span>
-                        <span className="toggle-badge-label">
-                          {product.isFeatured ? "Featured" : "Standard"}
-                        </span>
-                      </button>
-                    </td>
-
-                    {/* Actions */}
-                    <td>
-                      <div className="product-actions">
-                        <button
-                          className="edit-btn"
-                          onClick={() =>
-                            navigate(`/admin/products/edit/${product._id}`)
-                          }
-                          title="Edit product"
-                        >
-                          <Pencil size={15} />
-                        </button>
-
-                        <button
-                          className="delete-btn"
-                          onClick={() => handleDelete(product._id)}
-                          disabled={deletingId === product._id}
-                          title="Delete product"
-                        >
-                          {deletingId === product._id ? (
-                            <Loader2 size={15} className="spin" />
-                          ) : (
-                            <Trash2 size={15} />
-                          )}
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
+                  <ProductTableRow
+                    key={product._id}
+                    product={product}
+                    isDeleting={deletingId === product._id}
+                    isTogglingActive={togglingActiveId === product._id}
+                    isTogglingFeatured={togglingFeaturedId === product._id}
+                    onToggleActive={handleToggleActive}
+                    onToggleFeatured={handleToggleFeatured}
+                    onEdit={handleEdit}
+                    onDelete={handleDelete}
+                  />
                 ))}
               </tbody>
             </table>
@@ -872,7 +949,7 @@ const ProductList = () => {
                 {/* First Page */}
                 <button
                   type="button"
-                  className="pagination-btn"
+                  className="pagination-btn pagination-nav-btn pagination-first-btn"
                   onClick={() => handlePageChange(1)}
                   disabled={currentPage <= 1 || loading}
                   title="First Page"
@@ -883,7 +960,7 @@ const ProductList = () => {
                 {/* Prev Page */}
                 <button
                   type="button"
-                  className="pagination-btn"
+                  className="pagination-btn pagination-nav-btn"
                   onClick={() => handlePageChange(currentPage - 1)}
                   disabled={!hasPreviousPage || loading}
                   title="Previous Page"
@@ -892,7 +969,12 @@ const ProductList = () => {
                   <span>Prev</span>
                 </button>
 
-                {/* Page Number Buttons */}
+                {/* Mobile Page Indicator */}
+                <div className="pagination-mobile-indicator">
+                  <span>Page <strong>{currentPage}</strong> of <strong>{totalPages}</strong></span>
+                </div>
+
+                {/* Desktop Page Number Buttons */}
                 <div className="pagination-pages">
                   {getPageNumbers().map((pageNum, idx) => {
                     if (pageNum === "...") {
@@ -923,7 +1005,7 @@ const ProductList = () => {
                 {/* Next Page */}
                 <button
                   type="button"
-                  className="pagination-btn"
+                  className="pagination-btn pagination-nav-btn"
                   onClick={() => handlePageChange(currentPage + 1)}
                   disabled={!hasNextPage || loading}
                   title="Next Page"
@@ -935,7 +1017,7 @@ const ProductList = () => {
                 {/* Last Page */}
                 <button
                   type="button"
-                  className="pagination-btn"
+                  className="pagination-btn pagination-nav-btn pagination-last-btn"
                   onClick={() => handlePageChange(totalPages)}
                   disabled={currentPage >= totalPages || loading}
                   title="Last Page"

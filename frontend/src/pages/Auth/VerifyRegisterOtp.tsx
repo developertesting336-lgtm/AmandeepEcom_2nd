@@ -109,7 +109,7 @@ export const VerifyRegisterOtp: React.FC = () => {
       if (data.user || data.data?.user) {
         const userObj = data.user || data.data?.user;
         login(userObj);
-        navigate("/profile");
+        navigate("/");
       } else {
         // Otherwise navigate to login page
         navigate("/login");
@@ -212,8 +212,8 @@ export const VerifyRegisterOtp: React.FC = () => {
                 {resending
                   ? "Resending..."
                   : resendCountdown > 0
-                  ? `Resend OTP (${resendCountdown}s)`
-                  : "Resend OTP"}
+                    ? `Resend OTP (${resendCountdown}s)`
+                    : "Resend OTP"}
               </button>
             </div>
           </div>

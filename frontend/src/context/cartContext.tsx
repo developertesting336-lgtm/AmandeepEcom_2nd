@@ -48,7 +48,7 @@ const API_BASE_URL =
 const API_CART = `${API_BASE_URL}/api/cart`;
 
 export const CartProvider = ({ children }: { children: ReactNode }) => {
-  const { isAuthenticated, logout } = useAuth();
+  const { isAuthenticated, logout, user } = useAuth();
 
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [totalItems, setTotalItems] = useState<number>(0);
@@ -155,6 +155,10 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     //   await logout();
     // }
 
+    if (!isAuthenticated || user?.role === "admin") {
+      return;
+    }
+
     try {
       setLoading(true);
 
@@ -192,8 +196,14 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   // ==========================================
 
   useEffect(() => {
-    fetchCart();
-  }, [isAuthenticated]);
+    if (isAuthenticated && user?.role !== "admin") {
+      fetchCart();
+    } else {
+      setCartItems([]);
+      setTotalItems(0);
+      setSubtotal(0);
+    }
+  }, [isAuthenticated, user?.role]);
 
   // ==========================================
   // ADD TO CART
