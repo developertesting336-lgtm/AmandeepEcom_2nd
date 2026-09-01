@@ -6,6 +6,8 @@ import {
   type ReactNode,
 } from "react";
 import { useAuth } from "./authContext";
+// import { useNavigate } from "react-router-dom";
+
 
 export interface CartProduct {
   _id: string;
@@ -36,6 +38,8 @@ interface CartContextType {
   fetchCart: () => Promise<void>;
 }
 
+//  const navigate = useNavigate();
+
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
 const API_BASE_URL =
@@ -44,7 +48,7 @@ const API_BASE_URL =
 const API_CART = `${API_BASE_URL}/api/cart`;
 
 export const CartProvider = ({ children }: { children: ReactNode }) => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, logout } = useAuth();
 
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [totalItems, setTotalItems] = useState<number>(0);
@@ -145,12 +149,11 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   // ==========================================
 
   const fetchCart = async () => {
-    if (!isAuthenticated) {
-      setCartItems([]);
-      setTotalItems(0);
-      setSubtotal(0);
-      return;
-    }
+
+    // console.log("isAuthenticated : ", isAuthenticated)
+    // if (!isAuthenticated) {
+    //   await logout();
+    // }
 
     try {
       setLoading(true);
@@ -174,9 +177,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         );
 
         if (res.status === 401) {
-          setCartItems([]);
-          setTotalItems(0);
-          setSubtotal(0);
+          await logout();
         }
       }
     } catch (err) {
@@ -234,6 +235,11 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
       if (res.status === 401) {
         alert("Your session has expired. Please log in again.");
+
+        await logout(); // backend clears cookie + frontend clears user
+
+        // navigate("/login", { replace: true });
+
         return false;
       }
 

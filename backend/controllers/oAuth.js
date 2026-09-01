@@ -56,6 +56,7 @@ export const googleAuthLogin = async (googleUser, res) => {
             user = await User.create({
                 name,
                 email: normalizedEmail,
+                password: "ajdfjafenrernfdjhdfhahdfafh",
                 googleId,
                 isEmailVerified: true,
                 authProvider: "google"

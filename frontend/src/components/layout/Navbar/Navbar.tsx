@@ -7,7 +7,7 @@ import {
   Menu,
   X,
   Search,
-  Settings,
+  User,
   Package,
   Heart,
   LogOut,
@@ -225,8 +225,8 @@ const Navbar = () => {
                       className="dropdown-item"
                       onClick={closeMenu}
                     >
-                      <Settings size={16} className="dropdown-item-icon" />
-                      <span>Settings</span>
+                      <User size={16} className="dropdown-item-icon" />
+                      <span>Your Account</span>
                     </Link>
 
                     <Link

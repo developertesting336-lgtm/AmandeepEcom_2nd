@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
 import "./Register.css";
 
 interface RegisterForm {
@@ -75,18 +76,14 @@ const Register = () => {
 
       const data = await response.json();
 
-      if (!response.ok) {
+      if (!response.ok || data.success === false) {
         throw new Error(data.message || "Registration failed");
       }
 
-      console.log("Registration successful:", data);
-
-      setSuccess("Account created successfully.");
-
-   
-      setTimeout(() => {
-        navigate("/login");
-      }, 1000);
+      toast.success(data.message || "Verification OTP sent to your email!");
+      navigate(`/verify-register-otp?email=${encodeURIComponent(formData.email.trim().toLowerCase())}`, {
+        state: { email: formData.email.trim().toLowerCase(), name: formData.name.trim() },
+      });
 
     } catch (error) {
       if (error instanceof Error) {

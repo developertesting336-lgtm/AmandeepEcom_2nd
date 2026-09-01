@@ -6,7 +6,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 import connectDB from "./config/db.js";
 import authRoutes from './routes/auth.routes.js'
-import dashboard from './routes/dashboard.routes.js'
+import profile from './routes/profile.routes.js'
 import path from "path";
 import adminProducts from './routes/admin.products.routes.js'
 import userProducts from './routes/user.products.js'
@@ -74,7 +74,7 @@ app.get('/status', (req, res) => {
 
 app.use('/api/auth', authRoutes)
 app.use('/api/auth/google', googleAuth)
-app.use('/api/dashboard', dashboard)
+app.use('/api/profile', profile)
 app.use('/api/admin', adminProducts)
 app.use('/api', tagline)
 app.use('/api', cartRoutes)

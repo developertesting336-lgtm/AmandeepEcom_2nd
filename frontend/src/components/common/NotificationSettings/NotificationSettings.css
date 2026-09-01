@@ -138,11 +138,11 @@
 }
 
 .notification-toggle input:checked + .toggle-slider {
-  background-color: #2563eb;
+  background-color: #7257c2;
 }
 
 .notification-toggle input:focus + .toggle-slider {
-  box-shadow: 0 0 1px #2563eb;
+  box-shadow: 0 0 1px #7257c2;
 }
 
 .notification-toggle input:checked + .toggle-slider:before {
@@ -186,18 +186,18 @@
   padding: 8px 16px;
   font-size: 13px;
   font-weight: 600;
-  color: #2563eb;
-  background: #eff6ff;
-  border: 1px solid #bfdbfe;
+  color: #7257c2;
+  background: #f3effc;
+  border: 1px solid #d9cff5;
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .notification-test-btn:hover:not(:disabled) {
-  background: #dbeafe;
-  border-color: #93c5fd;
-  color: #1d4ed8;
+  background: #ede8fa;
+  border-color: #7257c2;
+  color: #5a3aa8;
 }
 
 .notification-test-btn:disabled {

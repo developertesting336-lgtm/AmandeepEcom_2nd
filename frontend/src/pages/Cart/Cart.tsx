@@ -2,7 +2,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { ShoppingCart, Trash2, ArrowRight, ArrowLeft, Plus, Minus } from "lucide-react";
 import { useCart } from "../../context/cartContext";
 import { useEffect } from 'react'
-import { useAuth } from "../../context/authContext";
+// import { useAuth } from "../../context/authContext";
 // import toast from "react-hot-toast";
 
 import Footer from "../Home/footersection";
@@ -25,7 +25,7 @@ const formatImageUrl = (image?: any, fallback: string = product1) => {
 const Cart = () => {
   const navigate = useNavigate();
 
-  const { isAuthenticated } = useAuth();
+  // const { isAuthenticated } = useAuth();
   const { cartItems, totalItems, subtotal, loading, updateQuantity, removeFromCart, fetchCart } = useCart();
 
   const isFreeShipping = subtotal >= 499;
@@ -33,12 +33,10 @@ const Cart = () => {
   const grandTotal = subtotal + shippingFee;
 
   useEffect(() => {
-    if (!isAuthenticated) {
-      navigate("/login");
-    } else {
-      fetchCart();
-    }
-  }, [isAuthenticated]);
+
+    fetchCart();
+
+  }, []);
 
   if (loading && cartItems.length === 0) {
     return (

@@ -6,7 +6,7 @@ import { Toaster } from "react-hot-toast";
 import About from "./pages/About/About";
 import Login from "./pages/Login/Login";
 import Register from "./pages/Register/Register";
-import Dashboard from "./pages/Dashboard/Dashboard";
+import Profile from "./pages/Profile/Profile";
 import AdminDashboard from "./pages/Admin/Dashboard/AdminDashboard";
 import AddProduct from "./pages/Admin/Products";
 import ProductList from "./pages/Admin/ProductList";
@@ -26,6 +26,9 @@ import PrivacyPolicy from "./pages/Legal/PrivacyPolicy";
 import TermsConditions from "./pages/Legal/TermsConditions";
 import ShippingPolicy from "./pages/Legal/ShippingPolicy";
 import OAuthSuccess from "./pages/Auth/OAuthSuccess";
+import ResetPasswordEmail from "./pages/Auth/ResetPasswordEmail";
+import VerifyOtpResetPassword from "./pages/Auth/VerifyOtpResetPassword";
+import VerifyRegisterOtp from "./pages/Auth/VerifyRegisterOtp";
 
 // ScrollToTop component to reset scroll position on route change
 const ScrollToTop = () => {
@@ -104,6 +107,10 @@ function App() {
         <Route path="/wishlist" element={<Wishlist />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/verify-register-otp" element={<VerifyRegisterOtp />} />
+        <Route path="/reset-password" element={<ResetPasswordEmail />} />
+        <Route path="/forgot-password" element={<ResetPasswordEmail />} />
+        <Route path="/verify-otp" element={<VerifyOtpResetPassword />} />
         <Route path="/oauth-success" element={<OAuthSuccess />} />
         <Route path="/privacy-policy" element={<PrivacyPolicy />} />
         <Route path="/terms" element={<TermsConditions />} />
@@ -112,7 +119,7 @@ function App() {
         <Route path="/admin/categories" element={<Categories />} />
         <Route path="/admin/orders" element={<Orders />} />
         <Route path="/admin/users" element={<Users />} />
-        <Route path="/profile" element={<Dashboard />} />
+        <Route path="/profile" element={<Profile />} />
         <Route path="/admin/add/product" element={<AddProduct />} />
         <Route path="/admin/products/edit/:productId" element={<EditProduct />} />
         <Route path="/admin/dashboard" element={<AdminDashboard />} />

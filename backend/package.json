@@ -19,9 +19,11 @@
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "googleapis": "^176.0.0",
+    "ioredis": "^6.0.0",
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.9.1",
     "multer": "^2.2.0",
+    "resend": "^6.25.0",
     "stripe": "^22.5.0",
     "web-push": "^3.6.7"
   },

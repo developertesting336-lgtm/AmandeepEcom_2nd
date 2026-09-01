@@ -149,9 +149,14 @@ const Login = () => {
           </div>
 
           <div className="form-group">
-            <label htmlFor="password">
-              Password
-            </label>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <label htmlFor="password">
+                Password
+              </label>
+              <Link to="/reset-password" style={{ fontSize: "12px", color: "#7257c2", fontWeight: 600, textDecoration: "none" }}>
+                Forgot password?
+              </Link>
+            </div>
 
             <input
               type="password"

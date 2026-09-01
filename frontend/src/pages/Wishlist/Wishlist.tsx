@@ -106,6 +106,7 @@ const Wishlist = () => {
         setTimeout(() => {
           setAddedCartSuccessId(null);
         }, 2000);
+        navigate('/cart')
       }
     } catch (err) {
       console.error("Add to cart error:", err);
@@ -320,9 +321,8 @@ const Wishlist = () => {
                     {/* Action Button: Add to Cart */}
                     <button
                       type="button"
-                      className={`wishlist-add-cart-btn ${
-                        isCartSuccess ? "success" : ""
-                      }`}
+                      className={`wishlist-add-cart-btn ${isCartSuccess ? "success" : ""
+                        }`}
                       onClick={(e) => handleAddToCart(product, e)}
                       disabled={isOutOfStock || isAddingCart}
                     >

@@ -9,6 +9,7 @@ import {
   MapPin,
   CreditCard,
   User as UserIcon,
+  Phone,
   Download,
   Check,
   RotateCcw,
@@ -43,8 +44,8 @@ const formatImageUrl = (image?: any): string => {
     typeof image === "string"
       ? image
       : image?.url ||
-        (Array.isArray(image) && image[0]?.url) ||
-        (Array.isArray(image) && typeof image[0] === "string" ? image[0] : null);
+      (Array.isArray(image) && image[0]?.url) ||
+      (Array.isArray(image) && typeof image[0] === "string" ? image[0] : null);
 
   if (!rawUrl || typeof rawUrl !== "string") return productFallback;
   if (rawUrl.startsWith("http://") || rawUrl.startsWith("https://")) {
@@ -101,7 +102,12 @@ const getPaymentStatusBadge = (paymentStatus?: string, isCod?: boolean) => {
   }
 };
 
-const UserOrders: React.FC = () => {
+export interface UserOrdersProps {
+  hideFooter?: boolean;
+  isEmbedded?: boolean;
+}
+
+const UserOrders: React.FC<UserOrdersProps> = ({ hideFooter = false, isEmbedded = false }) => {
   const { user, token } = useAuth();
   const { addToCart } = useCart();
   const navigate = useNavigate();
@@ -232,7 +238,7 @@ const UserOrders: React.FC = () => {
   const displayedOrders = orders.slice(0, visibleCount);
 
   return (
-    <div className="user-orders-page">
+    <div className={`user-orders-page ${isEmbedded ? "embedded" : ""}`}>
       {/* Toast Notification */}
       {toastMessage && (
         <div className="orders-toast">
@@ -291,21 +297,21 @@ const UserOrders: React.FC = () => {
                 typeof order.itemsTotal === "number"
                   ? order.itemsTotal
                   : productsList.reduce((sum, item) => {
-                      const price =
-                        item.purchasePrice ??
-                        item.price ??
-                        (typeof item.productId === "object" ? item.productId?.price : 0) ??
-                        0;
-                      return sum + price * (item.quantity || 1);
-                    }, 0);
+                    const price =
+                      item.purchasePrice ??
+                      item.price ??
+                      (typeof item.productId === "object" ? item.productId?.price : 0) ??
+                      0;
+                    return sum + price * (item.quantity || 1);
+                  }, 0);
 
               const deliveryCharges = typeof order.deliveryCharges === "number" ? order.deliveryCharges : 0;
               const orderTotal =
                 typeof order.orderTotal === "number"
                   ? order.orderTotal
                   : typeof order.totalAmount === "number"
-                  ? order.totalAmount
-                  : itemsTotal + deliveryCharges;
+                    ? order.totalAmount
+                    : itemsTotal + deliveryCharges;
 
               return (
                 <div key={order._id} className="pro-order-card">
@@ -390,8 +396,8 @@ const UserOrders: React.FC = () => {
                           typeof item.productId === "object"
                             ? item.productId
                             : typeof item.product === "object"
-                            ? item.product
-                            : null;
+                              ? item.product
+                              : null;
 
                         const prodId =
                           typeof item.productId === "string"
@@ -423,8 +429,8 @@ const UserOrders: React.FC = () => {
                         const quantity = item.quantity || 1;
                         const itemSubtotal = unitPrice * quantity;
 
-                        return (
-                          <div key={item._id || idx} className="pro-product-row">
+                        const productContent = (
+                          <>
                             <div className="product-thumb-wrap">
                               <img
                                 src={formatImageUrl(prodImgUrl)}
@@ -444,17 +450,21 @@ const UserOrders: React.FC = () => {
                                 <span className="total-highlight">Total: {formatCurrency(itemSubtotal)}</span>
                               </div>
                             </div>
+                          </>
+                        );
 
-                            <div className="product-row-actions">
-                              {paymentMode === "COD" && idx === 0 && (
-                                <span className="cod-badge-tag">PAY ON DELIVERY</span>
-                              )}
-                              {prodId && (
-                                <Link to={`/product/${prodId}`} className="view-product-btn">
-                                  View
-                                </Link>
-                              )}
-                            </div>
+                        return prodId ? (
+                          <Link
+                            key={item._id || idx}
+                            to={`/product/${prodId}`}
+                            className="pro-product-row pro-product-clickable"
+                            title={`View details for ${prodName}`}
+                          >
+                            {productContent}
+                          </Link>
+                        ) : (
+                          <div key={item._id || idx} className="pro-product-row">
+                            {productContent}
                           </div>
                         );
                       })
@@ -476,6 +486,15 @@ const UserOrders: React.FC = () => {
                             <UserIcon size={13} />
                             <strong>{address.fullname || address.fullName || address.name || user?.name || "Customer"}</strong>
                           </div>
+
+                          {/* Phone Number Display */}
+                          {(address.phone || user?.phoneNumber) && (
+                            <div className="recipient-phone">
+                              <Phone size={12} className="col-icon" />
+                              <span>{address.phone || user?.phoneNumber}</span>
+                            </div>
+                          )}
+
                           <p className="address-text-line">
                             {address.address || address.addressLine || address.street || ""}
                           </p>
@@ -672,7 +691,7 @@ const UserOrders: React.FC = () => {
         </div>
       )}
 
-      <Footer />
+      {!hideFooter && <Footer />}
     </div>
   );
 };

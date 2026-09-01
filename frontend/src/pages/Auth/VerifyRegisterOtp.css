@@ -1,0 +1,264 @@
+/* =========================================================
+   VERIFY REGISTRATION OTP STYLESHEET
+   Brand Theme: #7257c2
+========================================================= */
+
+@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap");
+
+.register-otp-page-wrapper {
+  min-height: calc(100vh - 72px);
+  background: #f8fafc;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px 80px;
+  font-family: "Plus Jakarta Sans", "Inter", system-ui, -apple-system, sans-serif;
+  color: #0f172a;
+}
+
+.register-otp-card {
+  width: 100%;
+  max-width: 480px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 20px;
+  padding: 36px 32px;
+  box-shadow: 0 16px 36px -4px rgba(114, 87, 194, 0.1), 0 4px 12px -2px rgba(0, 0, 0, 0.04);
+  animation: registerOtpCardFadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  box-sizing: border-box;
+}
+
+@keyframes registerOtpCardFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.register-otp-icon-bubble {
+  width: 68px;
+  height: 68px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #f3effc 0%, #ede8fa 100%);
+  border: 2px solid #d4c8f5;
+  color: #7257c2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 20px;
+  box-shadow: 0 4px 16px rgba(114, 87, 194, 0.2);
+}
+
+.register-otp-header {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.register-otp-title {
+  font-size: 22px;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0 0 8px;
+}
+
+.register-otp-subtitle {
+  font-size: 13.5px;
+  color: #64748b;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.register-otp-email-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  background: #f3effc;
+  border: 1px solid #d4c8f5;
+  border-radius: 20px;
+  color: #7257c2;
+  font-size: 13px;
+  font-weight: 600;
+  margin-top: 10px;
+}
+
+.register-change-email-btn {
+  background: none;
+  border: none;
+  color: #5e42ae;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 0;
+}
+
+.register-otp-error-alert {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  background: #fef2f2;
+  border: 1px solid #fee2e2;
+  color: #dc2626;
+  border-radius: 10px;
+  font-size: 13px;
+  margin-bottom: 20px;
+  font-weight: 500;
+}
+
+.register-otp-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.register-otp-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.register-otp-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.register-otp-label svg {
+  color: #7257c2;
+}
+
+.register-otp-input {
+  width: 100%;
+  padding: 14px 16px;
+  border: 2px solid #e2e8f0;
+  border-radius: 12px;
+  background: #ffffff;
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: 10px;
+  text-align: center;
+  color: #0f172a;
+  font-family: inherit;
+  transition: all 0.15s ease;
+  box-sizing: border-box;
+}
+
+.register-otp-input:focus {
+  outline: none;
+  border-color: #7257c2;
+  box-shadow: 0 0 0 4px rgba(114, 87, 194, 0.18);
+}
+
+.register-resend-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12.5px;
+  color: #64748b;
+  margin-top: 4px;
+}
+
+.register-resend-btn {
+  background: none;
+  border: none;
+  color: #7257c2;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0;
+  transition: color 0.15s ease;
+}
+
+.register-resend-btn:hover:not(:disabled) {
+  color: #5e42ae;
+  text-decoration: underline;
+}
+
+.register-resend-btn:disabled {
+  color: #94a3b8;
+  cursor: not-allowed;
+}
+
+.register-verify-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 13px 20px;
+  background: #7257c2;
+  color: #ffffff;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(114, 87, 194, 0.3);
+  transition: all 0.2s ease;
+}
+
+.register-verify-btn:hover:not(:disabled) {
+  background: #5e42ae;
+  transform: translateY(-1px);
+}
+
+.register-verify-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.register-otp-footer-nav {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.register-otp-back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #64748b;
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.register-otp-back-link:hover {
+  color: #7257c2;
+}
+
+.register-otp-login-link {
+  font-size: 13px;
+  font-weight: 700;
+  color: #7257c2;
+  text-decoration: none;
+}
+
+.register-otp-login-link:hover {
+  text-decoration: underline;
+}
+
+.spin-icon {
+  animation: registerSpin 0.8s linear infinite;
+}
+
+@keyframes registerSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
