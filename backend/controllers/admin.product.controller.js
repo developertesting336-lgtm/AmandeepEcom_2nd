@@ -2,6 +2,7 @@
 import Product from "../models/Product.js";
 import Category from "../models/Category.js";
 import uploadBufferToCloudinary from "../utils/uploadToCloudinary.js";
+import { trackView } from "../utils/trackView.js";
 
 
 export const toggleProductActive = async (req, res) => {
@@ -660,6 +661,15 @@ export const getProduct = async (req, res) => {
         message: "Product not found",
       });
     }
+
+
+    if (req.user) {
+      trackView(req.user._id, product._id).catch((err) =>
+        console.error("trackView failed:", err)
+      );
+    }
+
+
 
 
     return res.status(200).json({

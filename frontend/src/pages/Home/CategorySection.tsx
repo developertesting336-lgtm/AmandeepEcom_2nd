@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+// import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
 import "./CategorySection.css";
@@ -44,29 +44,32 @@ const getFallbackImage = (name: string, index: number) => {
 
 const CategorySection = () => {
   const navigate = useNavigate();
-  const [categories, setCategories] = useState<Category[]>(FALLBACK_CATEGORIES);
+  // const [categories, setCategories] = useState<Category[]>(FALLBACK_CATEGORIES);
+
+  const categories = FALLBACK_CATEGORIES
 
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
 
-  useEffect(() => {
-    const fetchCategories = async () => {
-      try {
-        const res = await fetch(`${API_BASE_URL}/api/categories`);
-        const result = await res.json();
-        const rawList = result.data || result.categories || (Array.isArray(result) ? result : []);
-        console.log(rawList)
+  // useEffect(() => {
+  //   const fetchCategories = async () => {
+  //     try {
+  //       const res = await fetch(`${API_BASE_URL}/api/categories`);
+  //       console.log("res" , res)
+  //       const result = await res.json();
+  //       const rawList = result.data || result.categories || (Array.isArray(result) ? result : []);
+  //       console.log(rawList)
 
-        if (res.ok && Array.isArray(rawList) && rawList.length > 0) {
-          setCategories(rawList);
-        }
-      } catch (err) {
-        console.log("Using fallback categories:", err);
-      }
-    };
+  //       if (res.ok && Array.isArray(rawList) && rawList.length > 0) {
+  //         setCategories(rawList);
+  //       }
+  //     } catch (err) {
+  //       console.log("Using fallback categories:", err);
+  //     }
+  //   };
 
-    fetchCategories();
+  //   fetchCategories();
 
-  }, []);
+  // }, []);
 
   const handleCategoryClick = (categoryName: string) => {
     navigate(`/products?category=${encodeURIComponent(categoryName)}`);

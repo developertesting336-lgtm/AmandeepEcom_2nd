@@ -1,6 +1,6 @@
 import express from "express";
 
-import { protect } from "../middlewares/auth.middleware.js";
+import { protect, optionalAuth } from "../middlewares/auth.middleware.js";
 import { adminOnly, userOnly } from "../middlewares/admin.middleware.js";
 import upload from "../middlewares/upload.middleware.js";
 import { addProduct, updateProduct, getProduct, getProducts, deleteProduct, toggleProductActive, toggleProductFeatured } from "../controllers/admin.product.controller.js";
@@ -24,6 +24,7 @@ router.post(
 router.get(
   "/product/:productId",
   // protect,
+  optionalAuth,
   // adminOnly,
   getProduct
 );

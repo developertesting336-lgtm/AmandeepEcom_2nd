@@ -1,7 +1,9 @@
 
+import mongoose from "mongoose";
 import Product from "../models/Product.js";
 import Category from "../models/Category.js";
 import Wishlist from "../models/Wishlist.js";
+import UserViewProfile from "../models/UserViewProfile.js";
 
 
 
@@ -451,6 +453,273 @@ export const getWishlist = async (req, res) => {
     });
   }
 };
+
+
+export const getRecommendedProducts = async (req, res) => {
+  try {
+    const userId = req.user?._id;
+
+    let products = [];
+
+    if (userId) {
+      const recommendations = await UserViewProfile.aggregate([
+        // 1. Get current user's profile
+        {
+          $match: {
+            user: new mongoose.Types.ObjectId(userId)
+          }
+        },
+
+        // 2. Get IDs of products already viewed
+        {
+          $set: {
+            viewedProductIds: "$viewedProducts.product"
+          }
+        },
+
+        // 3. Get strongest category
+        {
+          $set: {
+            topCategory: {
+              $arrayElemAt: [
+                {
+                  $sortArray: {
+                    input: "$categoryPreferences",
+                    sortBy: { viewCount: -1 }
+                  }
+                },
+                0
+              ]
+            }
+          }
+        },
+
+        // 4. Get strongest price range
+        {
+          $set: {
+            topPriceRange: {
+              $arrayElemAt: [
+                {
+                  $sortArray: {
+                    input: "$priceRangePreferences",
+                    sortBy: { viewCount: -1 }
+                  }
+                },
+                0
+              ]
+            }
+          }
+        },
+
+        // 5. Find recommended products
+        {
+          $lookup: {
+            from: "products",
+            let: {
+              categoryId: "$topCategory.category",
+              priceMin: "$topPriceRange.min",
+              priceMax: "$topPriceRange.max",
+              viewedIds: "$viewedProductIds"
+            },
+            pipeline: [
+              {
+                $match: {
+                  isActive: true,
+                  $expr: {
+                    $and: [
+                      // Same category
+                      {
+                        $eq: ["$category", "$$categoryId"]
+                      },
+
+                      // Don't recommend already viewed products
+                      {
+                        $not: {
+                          $in: ["$_id", "$$viewedIds"]
+                        }
+                      },
+
+                      // Price range
+                      {
+                        $gte: [
+                          { $ifNull: ["$salePrice", "$price"] },
+                          "$$priceMin"
+                        ]
+                      },
+                      {
+                        $lt: [
+                          { $ifNull: ["$salePrice", "$price"] },
+                          "$$priceMax"
+                        ]
+                      }
+                    ]
+                  }
+                }
+              },
+
+              // Only return required fields
+              {
+                $project: {
+                  name: 1,
+                  price: 1,
+                  salePrice: 1,
+                  images: 1,
+                  category: 1,
+                  subcategory: 1,
+                  brand: 1,
+                  stock: 1
+                }
+              },
+
+              {
+                $limit: 10
+              }
+            ],
+            as: "recommendations"
+          }
+        },
+
+        // 6. Return only recommendations
+        {
+          $project: {
+            _id: 0,
+            recommendations: 1
+          }
+        }
+      ]);
+
+      products = recommendations[0]?.recommendations || [];
+    }
+
+    // Fallback if guest or no recommendations found
+    if (products.length === 0) {
+      products = await Product.find({ isActive: true, isFeatured: true })
+        .select("name price salePrice images category subcategory brand stock")
+        .limit(10)
+        .lean();
+
+      if (products.length < 10) {
+        const remainingLimit = 10 - products.length;
+        const additional = await Product.find({
+          isActive: true,
+          _id: { $nin: products.map((p) => p._id) },
+        })
+          .select("name price salePrice images category subcategory brand stock")
+          .limit(remainingLimit)
+          .lean();
+
+        products.push(...additional);
+      }
+    }
+
+    return res.status(200).json({
+      success: true,
+      count: products.length,
+      data: {
+        products,
+      },
+    });
+  } catch (error) {
+    console.error("Get Recommended Products Error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch recommended products",
+      error: error.message,
+    });
+  }
+};
+
+
+export const getSimilarProducts = async (req, res) => {
+  try {
+    const { productId } = req.params;
+    const limit = Math.min(Math.max(Number(req.query.limit) || 10, 1), 50);
+
+    if (!productId || !mongoose.Types.ObjectId.isValid(productId)) {
+      return res.status(400).json({
+        success: false,
+        message: "A valid Product ID is required",
+      });
+    }
+
+    const product = await Product.findById(productId).lean();
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        message: "Product not found",
+      });
+    }
+
+    const effectivePrice = product.salePrice ?? product.price;
+    const minPrice = Math.max(0, effectivePrice * 0.7);
+    const maxPrice = effectivePrice * 1.3;
+
+    // Find similar products matching category, subcategory, brand, and price range
+    const similarProducts = await Product.find({
+      _id: { $ne: product._id },
+      isActive: true,
+      $or: [
+        { subcategory: product.subcategory },
+        {
+          category: product.category,
+          $or: [
+            { salePrice: { $gte: minPrice, $lte: maxPrice } },
+            { price: { $gte: minPrice, $lte: maxPrice } },
+          ],
+        },
+        { category: product.category },
+        { brand: product.brand },
+      ],
+    })
+      .select(
+        "name short_description price salePrice images brand stock sku highlights category subcategory isFeatured createdAt"
+      )
+      .populate("category", "name")
+      .populate("subcategory", "name")
+      .limit(limit)
+      .lean();
+
+    // Fallback/backfill if we haven't reached the limit
+    if (similarProducts.length < limit) {
+      const remaining = limit - similarProducts.length;
+      const existingIds = [product._id, ...similarProducts.map((p) => p._id)];
+
+      const additional = await Product.find({
+        _id: { $nin: existingIds },
+        isActive: true,
+        $or: [{ category: product.category }, { isFeatured: true }],
+      })
+        .select(
+          "name short_description price salePrice images brand stock sku highlights category subcategory isFeatured createdAt"
+        )
+        .populate("category", "name")
+        .populate("subcategory", "name")
+        .limit(remaining)
+        .lean();
+
+      similarProducts.push(...additional);
+    }
+
+    return res.status(200).json({
+      success: true,
+      count: similarProducts.length,
+      data: {
+        products: similarProducts,
+      },
+    });
+  } catch (error) {
+    console.error("Get Similar Products Error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch similar products",
+      error: error.message,
+    });
+  }
+};
+
+
 
 
 

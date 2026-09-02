@@ -46,6 +46,8 @@ export const protect = async (req, res, next) => {
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
+    // console.log(decoded)
+
 
     const user = await User.findById(decoded.id).select("-password");
 
@@ -91,3 +93,41 @@ export const protect = async (req, res, next) => {
     });
   }
 };
+
+export async function optionalAuth(req, res, next) {
+  const getToken = (req) => {
+    // 1. Check HTTP-only cookie
+    if (req.cookies?.token) {
+      return req.cookies.token;
+    }
+
+    // 2. Check Authorization header
+    const authHeader = req.headers.authorization;
+
+    if (authHeader?.startsWith("Bearer ")) {
+      return authHeader.split(" ")[1];
+    }
+
+    return null;
+  };
+
+
+  const token = getToken(req);
+
+
+  if (!token) {
+    req.user = null; // guest — proceed anyway
+    return next();
+  }
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(decoded.id).select("-password");
+    req.user = user
+    // console.log(req.user)
+  } catch (err) {
+    req.user = null; // invalid/expired token — treat as guest, don't block
+  }
+
+  next();
+}

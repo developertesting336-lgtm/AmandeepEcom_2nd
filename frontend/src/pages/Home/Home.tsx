@@ -2,6 +2,7 @@ import "./home.css";
 import PromoBar from "./PromoBar";
 // import Hero2 from "./hero2";
 import ProductSection from "./product";
+import RecommendedSection from "./RecommendedSection";
 import HomeProductsGrid from "./HomeProductsGrid";
 import OffersTrustSection from "./OffersTrustSection";
 import Footer from "./footersection";
@@ -17,6 +18,7 @@ const Home = () => {
       <ProductSection />
       {/* <FeaturedProducts /> */}
       <VideoSection />
+      <RecommendedSection />
       <PromoBar />
       <HomeProductsGrid />
       {/* <Hero2 /> */}

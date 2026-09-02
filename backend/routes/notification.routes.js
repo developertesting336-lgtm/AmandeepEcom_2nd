@@ -18,7 +18,7 @@ const router = express.Router();
 // Testing / Status routes
 // router.get("/vapid-status", checkVapidConfig);
 // router.get("/vapid-public-key", checkVapidConfig);
-router.post("/test", protect, sendTestNotification);
+// router.post("/test", protect, sendTestNotification);
 
 // Push Subscription routes
 router.post("/subscribe", protect, subscribePush);

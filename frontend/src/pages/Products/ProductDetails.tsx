@@ -15,6 +15,8 @@ import { useCart } from "../../context/cartContext";
 import { useAuth } from "../../context/authContext";
 import toast from "react-hot-toast";
 import Footer from "../Home/footersection";
+import SimilarProducts from "./SimilarProducts";
+import RecommendedSection from "../Home/RecommendedSection";
 import "./ProductDetails.css";
 
 import product1 from "../../assets/1.jpeg";
@@ -942,6 +944,9 @@ const ProductDetails = () => {
           )}
         </div>
       </div>
+
+      {productId && <SimilarProducts productId={productId} />}
+      <RecommendedSection />
 
       <Footer />
     </div>
