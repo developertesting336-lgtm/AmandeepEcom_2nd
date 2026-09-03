@@ -122,6 +122,13 @@ const Checkout: React.FC = () => {
     };
   }, [token]);
 
+  useEffect(() => {
+
+    fetchCart();
+
+  }, []);
+
+
   // Open form for adding new address
   const handleOpenAddForm = () => {
     if (addresses.length >= 3) {

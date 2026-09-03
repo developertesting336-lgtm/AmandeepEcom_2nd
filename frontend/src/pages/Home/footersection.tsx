@@ -40,7 +40,6 @@ const Footer = () => {
           <Link to="/">Home</Link>
           <Link to="/products">Products</Link>
           <Link to="/about">About Us</Link>
-          <Link to="/contact">Contact Us</Link>
 
         </div>
 
@@ -50,10 +49,9 @@ const Footer = () => {
 
           <h3>Customer Care</h3>
 
-          <Link to="/orders">My Orders</Link>
+          <Link to="/order">My Orders</Link>
           <Link to="/cart">Shopping Cart</Link>
           <Link to="/wishlist">Wishlist</Link>
-          <Link to="/faq">FAQs</Link>
 
         </div>
 

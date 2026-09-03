@@ -85,35 +85,37 @@ export const fetchUserAddresses = async (token?: string | null): Promise<Address
       headers["Authorization"] = `Bearer ${activeToken}`;
     }
 
-    const response = await fetch(`${API_BASE_URL}/api/user/addresses`, {
-      method: "GET",
-      headers,
-      credentials: "include",
-    });
-
-    if (response.ok) {
-      const data = await response.json();
-      const list = Array.isArray(data) ? data : data.addresses || [];
-      if (list.length > 0) {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(list.slice(0, 3)));
-        return list.slice(0, 3);
+    const cached = localStorage.getItem(STORAGE_KEY);
+    if (cached) {
+      try {
+        const parsed: Address[] = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed.slice(0, 3);
+        }
+      } catch {
+        // parse fallback
       }
     }
+
+    // const response = await fetch(`${API_BASE_URL}/api/user/addresses`, {
+    //   method: "GET",
+    //   headers,
+    //   credentials: "include",
+    // });
+
+    // if (response.ok) {
+    //   const data = await response.json();
+    //   const list = Array.isArray(data) ? data : data.addresses || [];
+    //   if (list.length > 0) {
+    //     localStorage.setItem(STORAGE_KEY, JSON.stringify(list.slice(0, 3)));
+    //     return list.slice(0, 3);
+    //   }
+    // }
   } catch (error) {
     console.warn("Using local storage fallback for addresses:", error);
   }
 
-  const cached = localStorage.getItem(STORAGE_KEY);
-  if (cached) {
-    try {
-      const parsed: Address[] = JSON.parse(cached);
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed.slice(0, 3);
-      }
-    } catch {
-      // parse fallback
-    }
-  }
+
 
   return [];
 };
