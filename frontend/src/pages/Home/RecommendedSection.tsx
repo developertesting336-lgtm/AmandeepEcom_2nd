@@ -1,12 +1,9 @@
 import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import {
-  Sparkles,
   Heart,
   ShoppingCart,
-  Star,
   ArrowRight,
-  TrendingUp,
 } from "lucide-react";
 import { useCart } from "../../context/cartContext";
 import { useAuth } from "../../context/authContext";
@@ -239,9 +236,6 @@ const RecommendedSection = () => {
         <div className="recommended-container">
           <div className="recommended-header">
             <div className="recommended-heading-wrap">
-              <span className="recommended-badge-pill">
-                <Sparkles size={14} className="sparkle-icon" /> AI Picked For You
-              </span>
               <h2 className="recommended-title">Recommended Products</h2>
             </div>
           </div>
@@ -271,15 +265,7 @@ const RecommendedSection = () => {
         {/* SECTION HEADER */}
         <div className="recommended-header">
           <div className="recommended-heading-wrap">
-            <span className="recommended-badge-pill">
-              <Sparkles size={14} className="sparkle-icon" /> Handpicked For You
-            </span>
-            <div className="recommended-title-row">
-              <h2 className="recommended-title">Recommended Products</h2>
-              <span className="recommended-badge-tag">
-                <TrendingUp size={13} /> Top Picks
-              </span>
-            </div>
+            <h2 className="recommended-title">Recommended Products</h2>
             <p className="recommended-subtitle">
               Curated picks tailored to your style, popular choices, and latest arrivals.
             </p>
@@ -307,8 +293,8 @@ const RecommendedSection = () => {
             const brand = prod.brand || categoryName || "Recommended";
             const imgUrl = formatImageUrl(prod.images?.[0], productFallback);
             const isLiked = !!wishlist[prod._id];
-            const ratingVal = prod.rating || 4.8;
-            const reviewsCount = prod.numReviews || 24 + (index * 7) % 50;
+            // const ratingVal = prod.rating || 4.8;
+            // const reviewsCount = prod.numReviews || 24 + (index * 7) % 50;
 
             return (
               <div
@@ -327,13 +313,6 @@ const RecommendedSection = () => {
                       (e.target as HTMLImageElement).src = productFallback;
                     }}
                   />
-
-                  {/* DISCOUNT BADGE ONLY (NO PER-CARD RECOMMENDED BADGE) */}
-                  {hasDiscount && (
-                    <div className="recommended-card-top-badges">
-                      <span className="recommended-discount-chip">-{discountPercent}%</span>
-                    </div>
-                  )}
 
                   {/* WISHLIST BUTTON */}
                   <button
@@ -354,11 +333,9 @@ const RecommendedSection = () => {
                 <div className="recommended-card-info">
                   <div className="recommended-meta-row">
                     <span className="recommended-category">{brand}</span>
-                    <div className="recommended-rating">
-                      <Star size={12} fill="#f59e0b" color="#f59e0b" />
-                      <span>{ratingVal.toFixed(1)}</span>
-                      <span className="rec-review-count">({reviewsCount})</span>
-                    </div>
+                    {hasDiscount && (
+                      <span className="recommended-discount-chip">-{discountPercent}%</span>
+                    )}
                   </div>
 
                   <h3 className="recommended-product-title" title={prod.name}>

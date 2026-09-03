@@ -210,32 +210,35 @@ const Users = () => {
                   : "—";
 
                 return (
-                  <tr key={u._id} className={!isUserActive ? "inactive-row" : ""}>
-                    <td>
+                  <tr key={u._id} className={`user-table-row ${!isUserActive ? "inactive-row" : ""}`}>
+                    <td className="cell-user-main">
                       <div className="user-cell">
                         <div className="user-avatar-box">{initial}</div>
-                        <div>
+                        <div className="user-info-group">
                           <strong>{u.name || "User"}</strong>
-                          {u.authProvider && u.authProvider !== "local" && (
-                            <span className="oauth-provider-badge">
-                              {u.authProvider}
-                            </span>
-                          )}
-                          <br />
-                          <span className="user-id-sub">#{u._id.substring(0, 8)}</span>
+                          <div className="user-meta-row">
+                            {u.authProvider && u.authProvider !== "local" && (
+                              <span className="oauth-provider-badge">
+                                {u.authProvider}
+                              </span>
+                            )}
+                            <span className="user-id-sub">#{u._id.substring(0, 8)}</span>
+                          </div>
                         </div>
                       </div>
                     </td>
 
-                    <td>{u.email}</td>
+                    <td className="cell-user-email">
+                      <span className="user-email-text">{u.email}</span>
+                    </td>
 
-                    <td>
+                    <td className="cell-user-role">
                       <span className={`role-badge ${u.role === "admin" ? "admin" : "user"}`}>
                         {u.role === "admin" ? "Admin" : "Customer"}
                       </span>
                     </td>
 
-                    <td>
+                    <td className="cell-user-status">
                       <span
                         className={`status-pill ${isUserActive ? "status-active" : "status-inactive"
                           }`}
@@ -254,9 +257,11 @@ const Users = () => {
                       </span>
                     </td>
 
-                    <td>{dateStr}</td>
+                    <td className="cell-user-date">
+                      <span className="user-date-text">{dateStr}</span>
+                    </td>
 
-                    <td>
+                    <td className="cell-user-actions">
                       <div className="user-actions">
                         <button
                           type="button"
@@ -279,7 +284,7 @@ const Users = () => {
                           ) : (
                             <ToggleLeft size={18} />
                           )}
-                          <span>{isUserActive ? "Active" : "Inactive"}</span>
+                          <span>{isUserActive ? "Active Access" : "Inactive Access"}</span>
                         </button>
                       </div>
                     </td>

@@ -444,9 +444,9 @@ const CategoryList = () => {
                 const categoryImgUrl = getImageUrl(category.image);
 
                 return (
-                  <tr key={category._id}>
+                  <tr key={category._id} className="category-table-row">
                     {/* Category */}
-                    <td>
+                    <td className="cell-cat-main">
                       <div className="category-name-wrapper">
                         <div className="category-image">
                           {categoryImgUrl ? (
@@ -465,14 +465,19 @@ const CategoryList = () => {
                           )}
                         </div>
 
-                        <div>
+                        <div className="category-name-group">
                           <strong>{category.name}</strong>
+                          {parentName && (
+                            <span className="cat-mobile-parent-badge">
+                              <FolderTree size={11} /> {parentName}
+                            </span>
+                          )}
                         </div>
                       </div>
                     </td>
 
                     {/* Parent / Type */}
-                    <td>
+                    <td className="cell-cat-parent">
                       {parentName ? (
                         <span className="category-parent-badge">
                           <FolderTree size={12} />
@@ -486,14 +491,14 @@ const CategoryList = () => {
                     </td>
 
                     {/* Description */}
-                    <td>
+                    <td className="cell-cat-desc">
                       <span className="category-description">
                         {category.description || "No description"}
                       </span>
                     </td>
 
                     {/* Status */}
-                    <td>
+                    <td className="cell-cat-status">
                       <span
                         className={`category-status ${
                           category.isActive !== false ? "active" : "inactive"
@@ -505,7 +510,7 @@ const CategoryList = () => {
                     </td>
 
                     {/* Created */}
-                    <td>
+                    <td className="cell-cat-date">
                       <span className="category-date">
                         {category.createdAt
                           ? new Date(category.createdAt).toLocaleDateString()
@@ -514,7 +519,7 @@ const CategoryList = () => {
                     </td>
 
                     {/* Actions */}
-                    <td>
+                    <td className="cell-cat-actions">
                       <div className="category-actions">
                         <button
                           type="button"
@@ -523,6 +528,7 @@ const CategoryList = () => {
                           title="Edit category"
                         >
                           <Edit size={16} />
+                          <span className="cat-btn-text-mobile">Edit</span>
                         </button>
 
                         <button
@@ -532,6 +538,7 @@ const CategoryList = () => {
                           title="Delete category"
                         >
                           <Trash2 size={16} />
+                          <span className="cat-btn-text-mobile">Delete</span>
                         </button>
                       </div>
                     </td>

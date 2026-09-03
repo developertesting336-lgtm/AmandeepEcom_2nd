@@ -70,7 +70,7 @@ const BLANK_ADDRESS_FORM: Omit<Address, "id"> = {
 
 const Checkout: React.FC = () => {
   const navigate = useNavigate();
-  const { user, token } = useAuth();
+  const { token } = useAuth();
   const { cartItems = [], totalItems = 0, subtotal = 0, loading = false, updateQuantity, fetchCart } = useCart();
 
   // Multi-step state: 1 = Address & Summary, 2 = Payment
@@ -130,7 +130,7 @@ const Checkout: React.FC = () => {
     }
     setEditingAddressId(null);
     setFormData({
-      fullName: user?.name || "",
+      fullName: "",
       phone: "",
       addressLine: "",
       city: "",
@@ -704,7 +704,7 @@ const Checkout: React.FC = () => {
                               className={`address-input-box ${formErrors.fullName ? "input-error" : ""}`}
                               value={formData.fullName || ""}
                               onChange={handleInputChange}
-                              placeholder="e.g. Amandeep Singh"
+                              placeholder="Enter full name"
                             />
                             {formErrors.fullName && (
                               <span className="error-text">{formErrors.fullName}</span>
@@ -786,7 +786,7 @@ const Checkout: React.FC = () => {
                               className={`address-input-box ${formErrors.pincode ? "input-error" : ""}`}
                               value={formData.pincode || ""}
                               onChange={handleInputChange}
-                              placeholder="e.g. 152022"
+                              placeholder="e.g. 140301"
                             />
                             {formErrors.pincode && (
                               <span className="error-text">{formErrors.pincode}</span>

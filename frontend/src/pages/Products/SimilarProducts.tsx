@@ -1,12 +1,9 @@
 import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import {
-  Sparkles,
   Heart,
   ShoppingCart,
-  Star,
   ArrowRight,
-  Layers,
 } from "lucide-react";
 import { useCart } from "../../context/cartContext";
 import { useAuth } from "../../context/authContext";
@@ -249,10 +246,7 @@ const SimilarProducts = ({ productId }: SimilarProductsProps) => {
         <div className="similar-products-container">
           <div className="similar-products-header">
             <div className="similar-heading-wrap">
-              <span className="similar-badge-pill">
-                <Sparkles size={14} className="sparkle-icon" /> Selected For You
-              </span>
-              <h2 className="similar-products-title">Similar Products For You</h2>
+              <h2 className="similar-products-title">More Products For You</h2>
             </div>
           </div>
           <div className="similar-products-grid">
@@ -281,18 +275,10 @@ const SimilarProducts = ({ productId }: SimilarProductsProps) => {
         {/* HEADER */}
         <div className="similar-products-header">
           <div className="similar-heading-wrap">
-            <span className="similar-badge-pill">
-              <Sparkles size={14} className="sparkle-icon" /> For You
-            </span>
-            <div className="similar-title-row">
-              <h2 className="similar-products-title">Similar Products For You</h2>
-              <span className="similar-badge-tag">
-                <Layers size={13} /> Related Matches
-              </span>
-            </div>
-            <p className="similar-products-subtitle">
+            <h2 className="similar-products-title">More Products For You</h2>
+            {/* <p className="similar-products-subtitle">
               Handpicked products closely matching this category, style, and price range.
-            </p>
+            </p> */}
           </div>
 
           <div className="similar-header-actions">
@@ -317,8 +303,6 @@ const SimilarProducts = ({ productId }: SimilarProductsProps) => {
             const brand = prod.brand || categoryName || "Similar Match";
             const imgUrl = formatImageUrl(prod.images?.[0], productFallback);
             const isLiked = !!wishlist[prod._id];
-            const ratingVal = prod.rating || 4.7;
-            const reviewsCount = prod.numReviews || 18 + (index * 5) % 40;
 
             return (
               <div
@@ -337,12 +321,6 @@ const SimilarProducts = ({ productId }: SimilarProductsProps) => {
                       (e.target as HTMLImageElement).src = productFallback;
                     }}
                   />
-
-                  {hasDiscount && (
-                    <div className="similar-card-top-badges">
-                      <span className="similar-discount-chip">-{discountPercent}%</span>
-                    </div>
-                  )}
 
                   {/* WISHLIST BUTTON */}
                   <button
@@ -363,11 +341,9 @@ const SimilarProducts = ({ productId }: SimilarProductsProps) => {
                 <div className="similar-card-info">
                   <div className="similar-meta-row">
                     <span className="similar-category">{brand}</span>
-                    <div className="similar-rating">
-                      <Star size={12} fill="#f59e0b" color="#f59e0b" />
-                      <span>{ratingVal.toFixed(1)}</span>
-                      <span className="sim-review-count">({reviewsCount})</span>
-                    </div>
+                    {hasDiscount && (
+                      <span className="similar-discount-chip">-{discountPercent}%</span>
+                    )}
                   </div>
 
                   <h3 className="similar-product-name" title={prod.name}>

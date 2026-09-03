@@ -35,7 +35,7 @@ export async function trackView(userId, productId) {
             }
         );
 
-        // 2. otherwise push new entry, capped at 200
+        // 2. otherwise push new entry, capped at 10
         if (!productUpdated) {
             await UserViewProfile.findOneAndUpdate(
                 { user: userId },

@@ -368,9 +368,9 @@ const Orders: React.FC = () => {
                 const canRefund = isOnline && payStatus === "paid";
 
                 return (
-                  <tr key={order._id} className={isCancelled ? "row-cancelled" : ""}>
+                  <tr key={order._id} className={`admin-order-row ${isCancelled ? "row-cancelled" : ""}`}>
                     {/* Order ID & Date */}
-                    <td>
+                    <td className="cell-order-id">
                       <div className="order-id-date-cell">
                         <span className="order-id-code">#{orderId}</span>
                         <span className="date-sub-text">
@@ -386,7 +386,7 @@ const Orders: React.FC = () => {
                     </td>
 
                     {/* Customer & Full Shipping Address */}
-                    <td>
+                    <td className="cell-order-cust">
                       <div className="customer-full-address-cell">
                         <div className="cust-title-row">
                           <strong>
@@ -404,7 +404,7 @@ const Orders: React.FC = () => {
                     </td>
 
                     {/* Products */}
-                    <td>
+                    <td className="cell-order-products">
                       <div className="items-summary-cell">
                         <div className="items-thumb-stack">
                           {productsList.slice(0, 3).map((item, idx) => {
@@ -441,7 +441,7 @@ const Orders: React.FC = () => {
                     </td>
 
                     {/* Order Total */}
-                    <td>
+                    <td className="cell-order-total">
                       <div className="total-cell">
                         <strong className="total-highlight-txt">{formatCurrency(orderTotal)}</strong>
                         {deliveryCharges > 0 ? (
@@ -453,7 +453,7 @@ const Orders: React.FC = () => {
                     </td>
 
                     {/* Payment Mode & Status Badge */}
-                    <td>
+                    <td className="cell-order-pay">
                       <div className="payment-cell">
                         <div className="pay-mode-row">
                           <span className={`pay-mode-badge ${isOnline ? "mode-online" : "mode-cod"}`}>
@@ -480,31 +480,34 @@ const Orders: React.FC = () => {
                     </td>
 
                     {/* Order Fulfillment Status */}
-                    <td>
-                      <select
-                        className={`admin-order-status-select status-${ordStatus}`}
-                        value={ordStatus}
-                        disabled={updatingOrderId === order._id}
-                        onChange={(e) => handleStatusChange(order, e.target.value)}
-                      >
-                        <option value="pending">Pending</option>
-                        <option value="confirmed">Confirmed</option>
-                        <option value="processing">Processing</option>
-                        <option value="shipped">Shipped</option>
-                        <option value="delivered">Delivered</option>
-                        <option value="cancelled">Cancelled</option>
-                      </select>
+                    <td className="cell-order-status">
+                      <div className="order-fulfillment-cell">
+                        <span className="mobile-cell-label">Status:</span>
+                        <select
+                          className={`admin-order-status-select status-${ordStatus}`}
+                          value={ordStatus}
+                          disabled={updatingOrderId === order._id}
+                          onChange={(e) => handleStatusChange(order, e.target.value)}
+                        >
+                          <option value="pending">Pending</option>
+                          <option value="confirmed">Confirmed</option>
+                          <option value="processing">Processing</option>
+                          <option value="shipped">Shipped</option>
+                          <option value="delivered">Delivered</option>
+                          <option value="cancelled">Cancelled</option>
+                        </select>
+                      </div>
                     </td>
 
                     {/* Actions */}
-                    <td style={{ textAlign: "center" }}>
+                    <td className="cell-order-actions">
                       <button
                         className="view-order-btn"
                         onClick={() => setSelectedOrder(order)}
                         title="View complete order details"
                       >
                         <Eye size={13} />
-                        <span>View</span>
+                        <span>View Details</span>
                       </button>
                     </td>
                   </tr>

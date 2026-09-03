@@ -82,35 +82,7 @@ const Footer = () => {
         </div>
 
 
-        {/* Newsletter */}
-        <div className="footer-newsletter">
 
-          <span className="footer-eyebrow">
-            STAY CONNECTED
-          </span>
-
-          <h3>Get updates & offers</h3>
-
-          <p>
-            Subscribe to receive new product updates,
-            exclusive offers and special deals.
-          </p>
-
-          <form className="newsletter-form">
-
-            <input
-              type="email"
-              placeholder="Your email address"
-              aria-label="Email address"
-            />
-
-            <button type="submit">
-              →
-            </button>
-
-          </form>
-
-        </div>
 
       </div>
 

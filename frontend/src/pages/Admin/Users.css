@@ -389,3 +389,212 @@
     transform: rotate(360deg);
   }
 }
+
+/* =====================================================
+   RESPONSIVE (MOBILE & TABLET <= 860px)
+===================================================== */
+
+@media (max-width: 1024px) {
+  .admin-users-section {
+    padding: 24px 4% 60px;
+  }
+
+  .users-header h1 {
+    font-size: 30px;
+  }
+}
+
+@media (max-width: 860px) {
+  .admin-users-section {
+    padding: 16px 12px 40px;
+  }
+
+  .users-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+
+  .users-header h1 {
+    font-size: 26px;
+  }
+
+  .users-refresh-btn {
+    width: 100%;
+    height: 40px;
+    justify-content: center;
+  }
+
+  .users-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .users-search-box {
+    max-width: 100%;
+  }
+
+  .users-count {
+    align-self: flex-end;
+  }
+
+  /* Table-to-Card Responsive Transformation */
+  .users-table-wrapper {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    overflow: visible;
+  }
+
+  .users-table {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    min-width: 0;
+    width: 100%;
+    border: none;
+  }
+
+  .users-table thead {
+    display: none;
+  }
+
+  .users-table tbody {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    width: 100%;
+  }
+
+  .users-table tbody tr.user-table-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 14px;
+    gap: 10px 12px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+
+  .users-table tbody tr.user-table-row:hover {
+    border-color: #cbd5e1;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  }
+
+  /* 1. User Main (Avatar + Name + ID) */
+  .users-table td.cell-user-main {
+    grid-column: 1 / -1;
+    padding: 0 0 10px;
+    border-bottom: 1px solid #f1f5f9;
+  }
+
+  .user-cell {
+    gap: 12px;
+  }
+
+  .user-avatar-box {
+    width: 44px;
+    height: 44px;
+    font-size: 16px;
+  }
+
+  .user-info-group strong {
+    font-size: 14.5px;
+  }
+
+  .user-meta-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 2px;
+  }
+
+  /* 2. Email Address */
+  .users-table td.cell-user-email {
+    grid-column: 1 / -1;
+    padding: 2px 0;
+    border: none;
+    font-size: 13px;
+    color: #475569;
+    word-break: break-all;
+  }
+
+  .user-email-text {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .user-email-text::before {
+    content: "✉ ";
+    color: #94a3b8;
+  }
+
+  /* 3. Role Badge (Left) */
+  .users-table td.cell-user-role {
+    grid-column: 1 / 2;
+    padding: 4px 0;
+    border: none;
+    display: flex;
+    align-items: center;
+  }
+
+  /* 4. Status Pill (Right) */
+  .users-table td.cell-user-status {
+    grid-column: 2 / 3;
+    padding: 4px 0;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+  }
+
+  /* 5. Date Joined */
+  .users-table td.cell-user-date {
+    grid-column: 1 / -1;
+    padding: 6px 0 0;
+    border: none;
+    border-top: 1px solid #f1f5f9;
+    font-size: 11.5px;
+    color: #94a3b8;
+  }
+
+  .user-date-text::before {
+    content: "Joined: ";
+    font-weight: 600;
+    color: #64748b;
+  }
+
+  /* 6. Action Button (Full Width Bottom) */
+  .users-table td.cell-user-actions {
+    grid-column: 1 / -1;
+    padding: 8px 0 0;
+    border: none;
+    border-top: 1px solid #f1f5f9;
+    width: 100%;
+  }
+
+  .user-actions {
+    width: 100%;
+  }
+
+  .user-toggle-btn {
+    width: 100%;
+    height: 38px;
+    justify-content: center;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    gap: 6px;
+  }
+}
+
+@media (max-width: 480px) {
+  .users-header h1 {
+    font-size: 22px;
+  }
+}

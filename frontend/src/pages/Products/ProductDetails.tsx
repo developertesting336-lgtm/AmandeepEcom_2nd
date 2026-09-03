@@ -505,9 +505,6 @@ const ProductDetails = () => {
           {/* LEFT: GALLERY ZONE */}
           <div className="pdp-gallery-zone">
             <div className="pdp-main-image-wrap">
-              {hasDiscount && (
-                <div className="pdp-discount-badge">{discountPercent}% OFF</div>
-              )}
               <button
                 type="button"
                 className={`pdp-wishlist-btn ${isWishlisted ? "active" : ""}`}
