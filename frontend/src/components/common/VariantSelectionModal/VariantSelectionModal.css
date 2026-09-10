@@ -1,0 +1,471 @@
+/* =====================================================
+   VARIANT SELECTION MODAL
+===================================================== */
+.vsm-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background-color: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  animation: vsmFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-sizing: border-box;
+}
+
+@keyframes vsmFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.vsm-dialog {
+  position: relative;
+  width: 100%;
+  max-width: 540px;
+  background-color: #ffffff;
+  border-radius: 20px;
+  box-shadow:
+    0 20px 25px -5px rgba(0, 0, 0, 0.15),
+    0 8px 10px -6px rgba(0, 0, 0, 0.1),
+    0 0 0 1px rgba(226, 232, 240, 0.8);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  max-height: 90vh;
+  animation: vsmScaleIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  box-sizing: border-box;
+}
+
+@keyframes vsmScaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* CLOSE BUTTON */
+.vsm-close-btn {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #f1f5f9;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  z-index: 10;
+}
+
+.vsm-close-btn:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+  transform: rotate(90deg);
+}
+
+/* HEADER WITH PRODUCT SUMMARY */
+.vsm-product-header {
+  display: flex;
+  gap: 16px;
+  padding: 20px 24px;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border-bottom: 1px solid #e2e8f0;
+  align-items: center;
+  box-sizing: border-box;
+}
+
+.vsm-image-wrap {
+  width: 76px;
+  height: 76px;
+  min-width: 76px;
+  border-radius: 12px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+  box-sizing: border-box;
+}
+
+.vsm-product-img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.vsm-header-details {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.vsm-brand-badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #2563eb;
+  background: #eff6ff;
+  padding: 2px 8px;
+  border-radius: 4px;
+  width: fit-content;
+}
+
+.vsm-product-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: #0f172a;
+  line-height: 1.35;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.vsm-price-box {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 2px;
+}
+
+.vsm-current-price {
+  font-size: 18px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.vsm-old-price {
+  font-size: 13px;
+  color: #94a3b8;
+  text-decoration: line-through;
+}
+
+.vsm-discount-tag {
+  font-size: 11px;
+  font-weight: 700;
+  color: #16a34a;
+  background: #dcfce7;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.vsm-savings-note {
+  font-size: 12px;
+  font-weight: 600;
+  color: #16a34a;
+}
+
+/* MODAL BODY */
+.vsm-body {
+  padding: 22px 24px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  box-sizing: border-box;
+}
+
+.vsm-loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 30px;
+  gap: 12px;
+  color: #64748b;
+  font-size: 14px;
+}
+
+.vsm-spinner {
+  width: 28px;
+  height: 28px;
+  border: 3px solid #e2e8f0;
+  border-top-color: #2563eb;
+  border-radius: 50%;
+  animation: vsmSpin 0.7s linear infinite;
+}
+
+@keyframes vsmSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.vsm-variants-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.vsm-section-label-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.vsm-section-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #334155;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.vsm-selected-summary {
+  font-size: 13px;
+  font-weight: 600;
+  color: #2563eb;
+}
+
+.vsm-variants-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 10px;
+}
+
+.vsm-variant-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 12px;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  outline: none;
+}
+
+.vsm-variant-card:hover {
+  border-color: #93c5fd;
+  background: #f8fafc;
+  transform: translateY(-1px);
+}
+
+.vsm-variant-card.selected {
+  border-color: #2563eb;
+  background: #eff6ff;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
+}
+
+.vsm-variant-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.vsm-variant-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1e293b;
+  line-height: 1.3;
+}
+
+.vsm-variant-card.selected .vsm-variant-name {
+  color: #1d4ed8;
+}
+
+.vsm-check-icon {
+  color: #2563eb;
+  flex-shrink: 0;
+}
+
+.vsm-variant-price {
+  font-size: 13px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.vsm-variant-card.selected .vsm-variant-price {
+  color: #1e40af;
+}
+
+.vsm-no-variants {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px;
+  background: #f8fafc;
+  border-radius: 10px;
+  color: #64748b;
+  font-size: 13.5px;
+}
+
+/* QUANTITY SECTION */
+.vsm-qty-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 14px;
+  border-top: 1px solid #f1f5f9;
+}
+
+.vsm-qty-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.vsm-qty-stepper {
+  display: flex;
+  align-items: center;
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.vsm-qty-btn {
+  width: 38px;
+  height: 38px;
+  border: none;
+  background: transparent;
+  font-size: 18px;
+  font-weight: 600;
+  color: #334155;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s ease;
+}
+
+.vsm-qty-btn:hover:not(:disabled) {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+.vsm-qty-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.vsm-qty-val {
+  min-width: 36px;
+  text-align: center;
+  font-size: 15px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+/* FOOTER */
+.vsm-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 18px 24px;
+  border-top: 1px solid #e2e8f0;
+  background: #ffffff;
+}
+
+.vsm-cancel-btn {
+  padding: 11px 20px;
+  border-radius: 10px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #475569;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.vsm-cancel-btn:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.vsm-submit-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex: 1;
+  padding: 12px 24px;
+  border-radius: 10px;
+  border: none;
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+  transition: all 0.2s ease;
+}
+
+.vsm-submit-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.35);
+}
+
+.vsm-submit-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.vsm-submit-btn.added {
+  background: #16a34a;
+  box-shadow: 0 4px 12px rgba(22, 163, 74, 0.25);
+}
+
+.vsm-btn-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-top-color: #ffffff;
+  border-radius: 50%;
+  animation: vsmSpin 0.7s linear infinite;
+}
+
+@media (max-width: 640px) {
+  .vsm-dialog {
+    max-height: 95vh;
+    border-radius: 16px;
+  }
+
+  .vsm-product-header {
+    padding: 16px;
+  }
+
+  .vsm-body {
+    padding: 16px;
+    gap: 16px;
+  }
+
+  .vsm-footer {
+    padding: 14px 16px;
+  }
+
+  .vsm-variants-grid {
+    grid-template-columns: 1fr;
+  }
+}

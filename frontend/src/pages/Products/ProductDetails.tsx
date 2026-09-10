@@ -17,6 +17,7 @@ import toast from "react-hot-toast";
 import Footer from "../Home/footersection";
 import SimilarProducts from "./SimilarProducts";
 import RecommendedSection from "../Home/RecommendedSection";
+import VariantSelectionModal, { isProductWithVariants, parseVariants } from "../../components/common/VariantSelectionModal/VariantSelectionModal";
 import "./ProductDetails.css";
 
 import product1 from "../../assets/1.jpeg";
@@ -26,6 +27,34 @@ type ProductImageItem = string | { public_id?: string; url?: string; _id?: strin
 interface CategoryRef {
   _id: string;
   name: string;
+}
+
+export interface VariantAttribute {
+  name: string;
+  value: string;
+}
+
+export interface ProductVariant {
+  _id?: string;
+  price: number;
+  salePrice?: number | null;
+  attributes: VariantAttribute[];
+  isActive?: boolean;
+}
+
+export interface ProductDetailsSpec {
+  size?: string;
+  material?: string;
+  weight?: {
+    value?: number | null | string;
+    unit?: string;
+  };
+  dimensions?: {
+    length?: number | null | string;
+    width?: number | null | string;
+    height?: number | null | string;
+    unit?: string;
+  };
 }
 
 interface Product {
@@ -38,13 +67,15 @@ interface Product {
   highlights?: string[] | string;
   price: number;
   salePrice: number | null;
-  sku: string;
   stock: number;
   category: CategoryRef | string | null;
   subcategory?: CategoryRef | string | null;
   brand: string;
   images: ProductImageItem[];
   isFeatured: boolean;
+  hasVariants?: boolean;
+  variants?: ProductVariant[];
+  details?: ProductDetailsSpec | string;
   manufacturer?:
   | string
   | {
@@ -76,27 +107,7 @@ interface Product {
     conditions?: string;
     description?: string;
   };
-  attributes?:
-  | string
-  | {
-    color?: string;
-    size?: string;
-    material?: string;
-    screenSize?: string;
-    weight?: { value?: number | null | string; unit?: string };
-    weightValue?: string | number;
-    weightUnit?: string;
-    dimensions?: {
-      length?: number | null | string;
-      width?: number | null | string;
-      height?: number | null | string;
-      unit?: string;
-    };
-    length?: string | number;
-    width?: string | number;
-    height?: string | number;
-    dimUnit?: string;
-  };
+  attributes?: any;
 }
 
 const safeParse = (val: any) => {
@@ -123,9 +134,11 @@ const ProductDetails = () => {
   const [loading, setLoading] = useState(true);
   const [quantity, setQuantity] = useState(1);
   const [selectedImgIndex, setSelectedImgIndex] = useState(0);
+  const [selectedVariantIndex, setSelectedVariantIndex] = useState<number>(-1);
   const [activeTab, setActiveTab] = useState<"specifications" | "description" | "warranty">("specifications");
   const [addedNotice, setAddedNotice] = useState(false);
   const [isWishlisted, setIsWishlisted] = useState(false);
+  const [isVariantModalOpen, setIsVariantModalOpen] = useState(false);
 
   useEffect(() => {
     const fetchWishlist = async () => {
@@ -189,6 +202,7 @@ const ProductDetails = () => {
 
         if (fetchedProduct && typeof fetchedProduct === "object" && fetchedProduct._id) {
           setProduct(fetchedProduct);
+          setSelectedVariantIndex(-1);
         } else {
           setProduct(null);
         }
@@ -205,6 +219,18 @@ const ProductDetails = () => {
     }
   }, [productId]);
 
+  // Active variants handling
+  const parsedVariants = parseVariants(product?.variants);
+  const hasProductVariants = isProductWithVariants(product);
+  const activeVariants = (hasProductVariants && parsedVariants.length > 0)
+    ? parsedVariants.filter((v) => v && (v.isActive === true || v.isActive === undefined || v.isActive === null || String(v.isActive) !== "false"))
+    : [];
+
+  const hasActiveVariants = Boolean(hasProductVariants && activeVariants.length > 0);
+  const selectedVariant = hasActiveVariants && selectedVariantIndex >= 0
+    ? activeVariants[selectedVariantIndex] || null
+    : null;
+
   const handleAddToCart = async () => {
     if (!product?._id) return;
     if (!isAuthenticated) {
@@ -213,13 +239,23 @@ const ProductDetails = () => {
       return;
     }
 
+    if (hasActiveVariants && !selectedVariant?._id) {
+      setIsVariantModalOpen(true);
+      return;
+    }
+
     try {
-      toast.success(`${quantity} x "${product.name}" added to cart!`);
-      const success = await addToCart(product._id, quantity);
-      if (success) {
+      const res = await addToCart(product._id, quantity, selectedVariant?._id);
+      if (res.requiresVariant) {
+        setIsVariantModalOpen(true);
+        return;
+      }
+      if (res.success) {
+        const variantSuffix = selectedVariant && selectedVariant.attributes && selectedVariant.attributes.length > 0
+          ? ` (${selectedVariant.attributes.map(a => a.value).join(" / ")})`
+          : "";
+        toast.success(`${quantity} x "${product.name}${variantSuffix}" added to cart!`);
         setAddedNotice(true);
-      } else {
-        toast.error("Failed to add product to cart");
       }
     } catch (error: any) {
       toast.error("Failed to add product to cart");
@@ -234,16 +270,25 @@ const ProductDetails = () => {
       return;
     }
 
+    if (hasActiveVariants && !selectedVariant?._id) {
+      setIsVariantModalOpen(true);
+      return;
+    }
+
     const toastId = toast.loading("Processing checkout...");
     try {
-      const success = await addToCart(product._id, quantity);
-      if (success) {
+      const res = await addToCart(product._id, quantity, selectedVariant?._id);
+      if (res.requiresVariant) {
+        toast.dismiss(toastId);
+        setIsVariantModalOpen(true);
+        return;
+      }
+      if (res.success) {
         toast.dismiss(toastId);
         navigate("/checkout");
-      } else {
-        toast.error("Failed to proceed to checkout");
       }
     } catch (error: any) {
+      toast.dismiss(toastId);
       toast.error("Failed to proceed to checkout");
     }
   };
@@ -338,12 +383,18 @@ const ProductDetails = () => {
     );
   }
 
-  const currentPrice = product.salePrice ? product.salePrice : product.price;
-  const hasDiscount = Boolean(product.salePrice && product.salePrice < product.price);
+  // Dynamic pricing based on selected variant or root product
+  const basePrice = selectedVariant ? Number(selectedVariant.price) || 0 : Number(product.price) || 0;
+  const rawSalePrice = selectedVariant
+    ? (selectedVariant.salePrice !== undefined && selectedVariant.salePrice !== null ? Number(selectedVariant.salePrice) : null)
+    : (product.salePrice !== undefined && product.salePrice !== null ? Number(product.salePrice) : null);
+
+  const currentPrice = rawSalePrice && rawSalePrice < basePrice ? rawSalePrice : basePrice;
+  const hasDiscount = Boolean(rawSalePrice && rawSalePrice < basePrice);
   const discountPercent = hasDiscount
-    ? Math.round(((product.price - (product.salePrice || 0)) / product.price) * 100)
+    ? Math.round(((basePrice - (rawSalePrice || 0)) / basePrice) * 100)
     : 0;
-  const savingsAmount = hasDiscount ? product.price - (product.salePrice || 0) : 0;
+  const savingsAmount = hasDiscount ? basePrice - (rawSalePrice || 0) : 0;
 
   const rawImages =
     product.images && product.images.length > 0
@@ -390,7 +441,7 @@ const ProductDetails = () => {
   const parsedWarranty = safeParse(product.warranty);
   const parsedReturnPolicy = safeParse(product.returnPolicy);
   const parsedManufacturer = safeParse(product.manufacturer);
-  const parsedAttributes = safeParse(product.attributes);
+  const parsedDetails = safeParse(product.details) || safeParse(product.attributes);
 
   // Warranty availability from backend
   const hasWarranty = Boolean(
@@ -447,33 +498,32 @@ const ProductDetails = () => {
           ? "Eligible for replacement under policy conditions"
           : "Eligible for return as per store policy");
 
-  // Specs extraction helpers from parsed backend attributes
-  const colorVal = parsedAttributes?.color?.trim();
-  const sizeVal = (parsedAttributes?.size || parsedAttributes?.screenSize)?.trim();
-  const materialVal = parsedAttributes?.material?.trim();
+  // Specs extraction helpers from parsed backend details
+  const sizeVal = parsedDetails?.size?.trim();
+  const materialVal = parsedDetails?.material?.trim();
 
   const weightVal =
-    parsedAttributes?.weight?.value !== undefined && parsedAttributes?.weight?.value !== null && String(parsedAttributes.weight.value).trim() !== ""
-      ? `${parsedAttributes.weight.value} ${parsedAttributes.weight.unit || "g"}`
-      : parsedAttributes?.weightValue !== undefined && parsedAttributes?.weightValue !== null && String(parsedAttributes.weightValue).trim() !== ""
-        ? `${parsedAttributes.weightValue} ${parsedAttributes.weightUnit || "g"}`
+    parsedDetails?.weight?.value !== undefined && parsedDetails?.weight?.value !== null && String(parsedDetails.weight.value).trim() !== ""
+      ? `${parsedDetails.weight.value} ${parsedDetails.weight.unit || "g"}`
+      : parsedDetails?.weightValue !== undefined && parsedDetails?.weightValue !== null && String(parsedDetails.weightValue).trim() !== ""
+        ? `${parsedDetails.weightValue} ${parsedDetails.weightUnit || "g"}`
         : undefined;
 
   const dimVal =
-    parsedAttributes?.dimensions?.length ||
-      parsedAttributes?.dimensions?.width ||
-      parsedAttributes?.dimensions?.height
+    parsedDetails?.dimensions?.length ||
+      parsedDetails?.dimensions?.width ||
+      parsedDetails?.dimensions?.height
       ? `${[
-        parsedAttributes.dimensions.length,
-        parsedAttributes.dimensions.width,
-        parsedAttributes.dimensions.height,
+        parsedDetails.dimensions.length,
+        parsedDetails.dimensions.width,
+        parsedDetails.dimensions.height,
       ]
         .filter(Boolean)
-        .join(" x ")} ${parsedAttributes.dimensions.unit || "cm"}`
-      : parsedAttributes?.length || parsedAttributes?.width || parsedAttributes?.height
-        ? `${[parsedAttributes.length, parsedAttributes.width, parsedAttributes.height]
+        .join(" x ")} ${parsedDetails.dimensions.unit || "cm"}`
+      : parsedDetails?.length || parsedDetails?.width || parsedDetails?.height
+        ? `${[parsedDetails.length, parsedDetails.width, parsedDetails.height]
           .filter(Boolean)
-          .join(" x ")} ${parsedAttributes.dimUnit || "cm"}`
+          .join(" x ")} ${parsedDetails.dimUnit || "cm"}`
         : undefined;
 
   return (
@@ -552,14 +602,8 @@ const ProductDetails = () => {
             {/* PRODUCT TITLE */}
             <h2 className="pdp-product-title">{product.name}</h2>
 
-            {/* SKU & STOCK STATUS */}
+            {/* STOCK STATUS */}
             <div className="pdp-meta-row">
-              {Boolean(product.sku) && (
-                <>
-                  <span className="pdp-sku-text">SKU: {product.sku}</span>
-                  <span className="pdp-meta-dot">•</span>
-                </>
-              )}
               <span className="pdp-stock-text">
                 {product.stock > 0 ? (
                   <>
@@ -574,6 +618,42 @@ const ProductDetails = () => {
               </span>
             </div>
 
+            {/* VARIANT SELECTOR */}
+            {hasActiveVariants && (
+              <div className="pdp-variants-section">
+                <div className="pdp-variants-header">
+                  <span className="pdp-variants-label">Select Option:</span>
+                  {selectedVariant && selectedVariant.attributes && selectedVariant.attributes.length > 0 ? (
+                    <span className="pdp-selected-variant-summary">
+                      {selectedVariant.attributes.map((a) => `${a.name}: ${a.value}`).join(" • ")}
+                    </span>
+                  ) : (
+                    <span className="pdp-selected-variant-summary" style={{ color: "#2563eb", fontWeight: 500 }}>
+                      (Please choose an option)
+                    </span>
+                  )}
+                </div>
+                <div className="pdp-variants-grid">
+                  {activeVariants.map((variant, idx) => {
+                    const isSelected = idx === selectedVariantIndex;
+                    const attrSummary = variant.attributes?.map((a) => a.value).join(" / ") || `Option ${idx + 1}`;
+                    const vPrice = (variant.salePrice && variant.salePrice < variant.price) ? variant.salePrice : variant.price;
+                    return (
+                      <button
+                        key={variant._id || idx}
+                        type="button"
+                        className={`pdp-variant-chip ${isSelected ? "active" : ""}`}
+                        onClick={() => setSelectedVariantIndex(idx)}
+                      >
+                        <span className="pdp-variant-chip-name">{attrSummary}</span>
+                        <span className="pdp-variant-chip-price">₹{Number(vPrice).toLocaleString("en-IN")}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             {/* PRICE BANNER */}
             <div className="pdp-price-box">
               <span className="pdp-current-price">
@@ -582,7 +662,7 @@ const ProductDetails = () => {
               {hasDiscount && (
                 <>
                   <span className="pdp-old-price">
-                    ₹{product.price.toLocaleString("en-IN")}
+                    ₹{basePrice.toLocaleString("en-IN")}
                   </span>
                   <span className="pdp-save-text">
                     Save ₹{savingsAmount.toLocaleString("en-IN")} ({discountPercent}% OFF)
@@ -735,18 +815,6 @@ const ProductDetails = () => {
                     </span>
                   </div>
                 )}
-                {Boolean(product.sku) && (
-                  <div className="pdp-spec-cell row-odd">
-                    <span className="pdp-spec-key">Model SKU</span>
-                    <span className="pdp-spec-val">{product.sku}</span>
-                  </div>
-                )}
-                {Boolean(colorVal) && (
-                  <div className="pdp-spec-cell row-odd">
-                    <span className="pdp-spec-key">Color</span>
-                    <span className="pdp-spec-val">{colorVal}</span>
-                  </div>
-                )}
                 {Boolean(sizeVal) && (
                   <div className="pdp-spec-cell row-even">
                     <span className="pdp-spec-key">Size</span>
@@ -771,6 +839,16 @@ const ProductDetails = () => {
                     <span className="pdp-spec-val">{dimVal}</span>
                   </div>
                 )}
+                {hasActiveVariants && (
+                  <div className="pdp-spec-cell row-odd" style={{ gridColumn: "1 / -1" }}>
+                    <span className="pdp-spec-key">Available Options</span>
+                    <span className="pdp-spec-val">
+                      {activeVariants
+                        .map((v) => v.attributes.map((a) => `${a.name}: ${a.value}`).join(", "))
+                        .join(" | ")}
+                    </span>
+                  </div>
+                )}
                 {Boolean(parsedManufacturer?.name) && (
                   <div className="pdp-spec-cell row-even">
                     <span className="pdp-spec-key">Manufacturer</span>
@@ -783,9 +861,9 @@ const ProductDetails = () => {
                     <span className="pdp-spec-val">{parsedManufacturer.country}</span>
                   </div>
                 )}
-                {!product.brand && !categoryName && !colorVal && !sizeVal && !materialVal && !weightVal && !dimVal && (
+                {!product.brand && !categoryName && !sizeVal && !materialVal && !weightVal && !dimVal && !hasActiveVariants && (
                   <div className="pdp-spec-cell row-even" style={{ gridColumn: "1 / -1" }}>
-                    <span className="pdp-spec-key">No specific attributes configured for this product.</span>
+                    <span className="pdp-spec-key">No specific specifications configured for this product.</span>
                   </div>
                 )}
               </div>
@@ -944,6 +1022,20 @@ const ProductDetails = () => {
 
       {productId && <SimilarProducts productId={productId} />}
       <RecommendedSection />
+
+      {product && (
+        <VariantSelectionModal
+          isOpen={isVariantModalOpen}
+          onClose={() => setIsVariantModalOpen(false)}
+          product={product}
+          onSuccess={(vIdx) => {
+            setAddedNotice(true);
+            if (typeof vIdx === "number") {
+              setSelectedVariantIndex(vIdx);
+            }
+          }}
+        />
+      )}
 
       <Footer />
     </div>

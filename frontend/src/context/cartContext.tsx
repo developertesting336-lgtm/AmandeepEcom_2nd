@@ -6,8 +6,7 @@ import {
   type ReactNode,
 } from "react";
 import { useAuth } from "./authContext";
-// import { useNavigate } from "react-router-dom";
-
+import toast from "react-hot-toast";
 
 export interface CartProduct {
   _id: string;
@@ -20,11 +19,28 @@ export interface CartProduct {
   brand?: string;
 }
 
+export interface CartItemVariant {
+  _id?: string;
+  price?: number;
+  salePrice?: number | null;
+  attributes?: Array<{ name: string; value: string }>;
+  isActive?: boolean;
+}
+
 export interface CartItem {
   _id?: string;
   product: CartProduct;
+  variantId?: string | null;
+  variant?: CartItemVariant | null;
   quantity: number;
   price?: number;
+  lineTotal?: number;
+}
+
+export interface AddToCartResult {
+  success: boolean;
+  requiresVariant?: boolean;
+  message?: string;
 }
 
 interface CartContextType {
@@ -32,13 +48,22 @@ interface CartContextType {
   totalItems: number;
   subtotal: number;
   loading: boolean;
-  addToCart: (productId: string, quantity?: number) => Promise<boolean>;
-  updateQuantity: (productId: string, quantity: number) => Promise<boolean>;
-  removeFromCart: (productId: string) => Promise<boolean>;
+  addToCart: (
+    productId: string,
+    quantity?: number,
+    variantId?: string | null
+  ) => Promise<AddToCartResult>;
+  updateQuantity: (
+    productId: string,
+    quantity: number,
+    variantId?: string | null
+  ) => Promise<boolean>;
+  removeFromCart: (
+    productId: string,
+    variantId?: string | null
+  ) => Promise<boolean>;
   fetchCart: () => Promise<void>;
 }
-
-//  const navigate = useNavigate();
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
@@ -60,10 +85,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   // ==========================================
 
   const calculateTotals = (items: CartItem[]) => {
-    const total = items.reduce(
-      (acc, item) => acc + item.quantity,
-      0
-    );
+    const total = items.reduce((acc, item) => acc + item.quantity, 0);
 
     const subTotal = items.reduce(
       (acc, item) =>
@@ -91,70 +113,56 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       Array.isArray(rawItems) ? rawItems : []
     ).map((item: any) => {
       const productObj = item.product || item.productId || item;
-
       const qty = item.quantity || 1;
+      const itemVariant = item.variant || null;
+      const variantId =
+        item.variantId || (itemVariant ? itemVariant._id : null);
 
       const itemPrice =
         item.price ??
-        (productObj.salePrice &&
-          productObj.salePrice < productObj.price
+        (itemVariant
+          ? itemVariant.salePrice && itemVariant.salePrice > 0
+            ? itemVariant.salePrice
+            : itemVariant.price
+          : productObj.salePrice && productObj.salePrice < productObj.price
           ? productObj.salePrice
           : productObj.price || 0);
 
-      return {
-        _id: item._id || productObj._id,
+      const uniqueKey =
+        item._id ||
+        (variantId
+          ? `${productObj._id || item.productId}_${variantId}`
+          : productObj._id || item.productId);
 
+      return {
+        _id: uniqueKey,
         product: {
           _id: productObj._id || item.productId,
           name: productObj.name || "Product",
           price: productObj.price || 0,
           salePrice: productObj.salePrice || null,
           images: productObj.images || [],
-          stock: productObj.stock ?? 10,
-          category: productObj.category || "General",
+          stock: productObj.stock || 0,
+          category: productObj.category,
           brand: productObj.brand || "",
         },
-
+        variantId: variantId || undefined,
+        variant: itemVariant,
         quantity: qty,
         price: itemPrice,
+        lineTotal: item.lineTotal ?? itemPrice * qty,
       };
     });
 
     setCartItems(formattedItems);
-
-    const calculatedTotalItems =
-      data.totalItems ??
-      data.data?.totalItems ??
-      formattedItems.reduce(
-        (acc, item) => acc + item.quantity,
-        0
-      );
-
-    const calculatedSubtotal =
-      data.subtotal ??
-      data.data?.subtotal ??
-      formattedItems.reduce(
-        (acc, item) =>
-          acc +
-          (item.price ?? item.product.price) * item.quantity,
-        0
-      );
-
-    setTotalItems(calculatedTotalItems);
-    setSubtotal(calculatedSubtotal);
+    calculateTotals(formattedItems);
   };
 
   // ==========================================
-  // FETCH CART
+  // FETCH CART WHEN USER LOGS IN
   // ==========================================
 
   const fetchCart = async () => {
-
-    // console.log("isAuthenticated : ", isAuthenticated)
-    // if (!isAuthenticated) {
-    //   await logout();
-    // }
-
     if (!isAuthenticated || user?.role === "admin") {
       return;
     }
@@ -175,11 +183,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       if (res.ok) {
         parseCartResponse(result.data || result);
       } else {
-        console.warn(
-          "Cart fetch returned non-ok status:",
-          result.message
-        );
-
+        console.warn("Cart fetch returned non-ok status:", result.message);
         if (res.status === 401) {
           await logout();
         }
@@ -190,10 +194,6 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       setLoading(false);
     }
   };
-
-  // ==========================================
-  // FETCH CART WHEN USER LOGS IN
-  // ==========================================
 
   useEffect(() => {
     if (isAuthenticated && user?.role !== "admin") {
@@ -211,54 +211,64 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
   const addToCart = async (
     productId: string,
-    quantity: number = 1
-  ): Promise<boolean> => {
-
-    // Update count immediately
+    quantity: number = 1,
+    variantId?: string | null
+  ): Promise<AddToCartResult> => {
+    // Update count optimistically
     setTotalItems((prev) => prev + quantity);
     try {
       setLoading(true);
 
+      const payload: {
+        productId: string;
+        quantity: number;
+        variantId?: string;
+      } = {
+        productId,
+        quantity,
+      };
+
+      if (variantId) {
+        payload.variantId = variantId;
+      }
+
       const res = await fetch(API_CART, {
         method: "POST",
         credentials: "include",
-
         headers: {
           "Content-Type": "application/json",
         },
-
-        body: JSON.stringify({
-          productId,
-          quantity,
-        }),
+        body: JSON.stringify(payload),
       });
 
       const result = await res.json();
 
       if (res.ok && result.success !== false) {
-        // Adding a product can change an existing cart item,
-        // so fetch the latest cart after successful addition.
-        // await fetchCart();
-
-        return true;
+        await fetchCart();
+        return { success: true };
       }
+
+      // Roll back optimistic total count
+      setTotalItems((prev) => Math.max(0, prev - quantity));
 
       if (res.status === 401) {
-        alert("Your session has expired. Please log in again.");
-
-        await logout(); // backend clears cookie + frontend clears user
-
-        // navigate("/login", { replace: true });
-
-        return false;
+        toast.error("Your session has expired. Please log in again.");
+        await logout();
+        return { success: false, message: "Unauthorized" };
       }
 
-      alert(result.message || "Failed to add product to cart.");
-      return false;
+      const msg = result.message || "";
+      if (res.status === 400 && msg.toLowerCase().includes("variant")) {
+        return { success: false, requiresVariant: true, message: msg };
+      }
+
+      toast.error(msg || "Failed to add product to cart.");
+      return { success: false, message: msg };
     } catch (err) {
       console.error("Add to cart error:", err);
-      alert("An error occurred while adding to cart.");
-      return false;
+      setTotalItems((prev) => Math.max(0, prev - quantity));
+      toast.error("An error occurred while adding to cart.");
+      return { success: false, message: "An error occurred while adding to cart." };
     } finally {
       setLoading(false);
     }
@@ -270,97 +280,68 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
   const updateQuantity = async (
     productId: string,
-    quantity: number
+    quantity: number,
+    variantId?: string | null
   ): Promise<boolean> => {
     if (!isAuthenticated) {
       return false;
     }
 
     if (quantity <= 0) {
-      return removeFromCart(productId);
+      return removeFromCart(productId, variantId);
     }
-
-    // ------------------------------------------
-    // Save previous state for rollback
-    // ------------------------------------------
 
     const previousItems = cartItems;
     const previousTotalItems = totalItems;
     const previousSubtotal = subtotal;
 
-    // ------------------------------------------
-    // Update UI immediately
-    // ------------------------------------------
-
-    const updatedItems = cartItems.map((item) =>
-      item.product._id === productId
-        ? {
-          ...item,
-          quantity,
-        }
-        : item
-    );
+    const updatedItems = cartItems.map((item) => {
+      const match =
+        item.product._id === productId &&
+        (!variantId || item.variantId === variantId);
+      return match ? { ...item, quantity } : item;
+    });
 
     setCartItems(updatedItems);
     calculateTotals(updatedItems);
 
-    // ------------------------------------------
-    // Send API request in background
-    // ------------------------------------------
-
     try {
+      const payload: { quantity: number; variantId?: string } = { quantity };
+      if (variantId) {
+        payload.variantId = variantId;
+      }
+
       const res = await fetch(`${API_CART}/${productId}`, {
         method: "PATCH",
         credentials: "include",
-
         headers: {
           "Content-Type": "application/json",
         },
-
-        body: JSON.stringify({
-          quantity,
-        }),
+        body: JSON.stringify(payload),
       });
 
       const result = await res.json();
 
-      // ------------------------------------------
-      // API SUCCESS
-      // ------------------------------------------
-
       if (res.ok && result.success !== false) {
-        // Don't call fetchCart().
-        // UI is already updated.
         return true;
       }
-
-      // ------------------------------------------
-      // API FAILURE → ROLLBACK
-      // ------------------------------------------
 
       setCartItems(previousItems);
       setTotalItems(previousTotalItems);
       setSubtotal(previousSubtotal);
 
       if (res.status === 401) {
-        alert("Your session has expired. Please log in again.");
+        toast.error("Your session has expired. Please log in again.");
         return false;
       }
 
-      alert(result.message || "Failed to update quantity.");
-
+      toast.error(result.message || "Failed to update quantity.");
       return false;
     } catch (err) {
       console.error("Update cart quantity error:", err);
-
-      // ------------------------------------------
-      // NETWORK ERROR → ROLLBACK
-      // ------------------------------------------
-
       setCartItems(previousItems);
       setTotalItems(previousTotalItems);
       setSubtotal(previousSubtotal);
-
       return false;
     }
   };
@@ -370,80 +351,61 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   // ==========================================
 
   const removeFromCart = async (
-    productId: string
+    productId: string,
+    variantId?: string | null
   ): Promise<boolean> => {
     if (!isAuthenticated) {
       return false;
     }
 
-    // ------------------------------------------
-    // Save previous state for rollback
-    // ------------------------------------------
-
     const previousItems = cartItems;
     const previousTotalItems = totalItems;
     const previousSubtotal = subtotal;
 
-    // ------------------------------------------
-    // Remove from UI immediately
-    // ------------------------------------------
-
-    const updatedItems = cartItems.filter(
-      (item) => item.product._id !== productId
-    );
+    const updatedItems = cartItems.filter((item) => {
+      if (variantId) {
+        return !(
+          item.product._id === productId && item.variantId === variantId
+        );
+      }
+      return item.product._id !== productId;
+    });
 
     setCartItems(updatedItems);
     calculateTotals(updatedItems);
 
-    // ------------------------------------------
-    // Send DELETE request in background
-    // ------------------------------------------
-
     try {
-      const res = await fetch(`${API_CART}/${productId}`, {
+      const deleteUrl = variantId
+        ? `${API_CART}/${productId}?variantId=${encodeURIComponent(variantId)}`
+        : `${API_CART}/${productId}`;
+
+      const res = await fetch(deleteUrl, {
         method: "DELETE",
         credentials: "include",
       });
 
       const result = await res.json();
 
-      // ------------------------------------------
-      // API SUCCESS
-      // ------------------------------------------
-
       if (res.ok && result.success !== false) {
-        // Don't call fetchCart().
-        // UI is already updated.
         return true;
       }
-
-      // ------------------------------------------
-      // API FAILURE → ROLLBACK
-      // ------------------------------------------
 
       setCartItems(previousItems);
       setTotalItems(previousTotalItems);
       setSubtotal(previousSubtotal);
 
       if (res.status === 401) {
-        alert("Your session has expired. Please log in again.");
+        toast.error("Your session has expired. Please log in again.");
         return false;
       }
 
-      alert(result.message || "Failed to remove item from cart.");
-
+      toast.error(result.message || "Failed to remove item from cart.");
       return false;
     } catch (err) {
       console.error("Remove from cart error:", err);
-
-      // ------------------------------------------
-      // NETWORK ERROR → ROLLBACK
-      // ------------------------------------------
-
       setCartItems(previousItems);
       setTotalItems(previousTotalItems);
       setSubtotal(previousSubtotal);
-
       return false;
     }
   };
@@ -478,9 +440,7 @@ export const useCart = () => {
   const context = useContext(CartContext);
 
   if (!context) {
-    throw new Error(
-      "useCart must be used within a CartProvider"
-    );
+    throw new Error("useCart must be used within a CartProvider");
   }
 
   return context;

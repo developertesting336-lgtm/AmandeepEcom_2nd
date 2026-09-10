@@ -3,6 +3,7 @@ import Product from "../models/Product.js";
 import Category from "../models/Category.js";
 import uploadBufferToCloudinary from "../utils/uploadToCloudinary.js";
 import { trackView } from "../utils/trackView.js";
+import mongoose from "mongoose";
 
 
 export const toggleProductActive = async (req, res) => {
@@ -102,13 +103,12 @@ export const addProduct = async (req, res) => {
       manufacturer,
       warranty,
       returnPolicy,
-      attributes,
+      details,
+      hasVariants,
+      variants,
       isFeatured,
       isActive,
     } = req.body;
-
-
-
 
     if (
       !name ||
@@ -127,9 +127,6 @@ export const addProduct = async (req, res) => {
       });
     }
 
-
-
-
     const categoryExists = await Category.findOne({
       _id: category,
       parent: null,
@@ -142,9 +139,6 @@ export const addProduct = async (req, res) => {
         message: "Category not found or inactive",
       });
     }
-
-
-
 
     const subcategoryExists = await Category.findOne({
       _id: subcategory,
@@ -159,8 +153,6 @@ export const addProduct = async (req, res) => {
       });
     }
 
-
-
     const productPrice = Number(price);
 
     if (isNaN(productPrice) || productPrice < 0) {
@@ -169,9 +161,6 @@ export const addProduct = async (req, res) => {
         message: "Invalid product price",
       });
     }
-
-
-
 
     let productSalePrice = null;
 
@@ -193,8 +182,6 @@ export const addProduct = async (req, res) => {
       }
     }
 
-
-
     const productStock =
       stock !== undefined && stock !== ""
         ? Number(stock)
@@ -206,8 +193,6 @@ export const addProduct = async (req, res) => {
         message: "Invalid stock value",
       });
     }
-
-
 
     const cleanSku = sku.trim().toUpperCase();
 
@@ -222,18 +207,12 @@ export const addProduct = async (req, res) => {
       });
     }
 
-    // console.log(req.files)
-
-
     if (!req.files || req.files.length === 0) {
       return res.status(400).json({
         success: false,
         message: "At least one product image is required",
       });
     }
-
-
-
 
     const images = [];
 
@@ -245,10 +224,6 @@ export const addProduct = async (req, res) => {
 
       images.push(image);
     }
-
-
-
-
 
     let parsedHighlights = [];
 
@@ -264,13 +239,12 @@ export const addProduct = async (req, res) => {
       }
     }
 
-
-
-
     let parsedManufacturer = null;
     let parsedWarranty = null;
     let parsedReturnPolicy = null;
-    let parsedAttributes = {};
+    let parsedDetails = {};
+    let parsedVariants = [];
+    const isVariantProduct = hasVariants === true || hasVariants === "true";
 
     try {
       if (
@@ -333,76 +307,134 @@ export const addProduct = async (req, res) => {
       }
 
       if (
-        attributes &&
-        attributes !== "null" &&
-        attributes !== "undefined"
+        details &&
+        details !== "null" &&
+        details !== "undefined"
       ) {
         const parsed =
-          typeof attributes === "string"
-            ? JSON.parse(attributes)
-            : attributes;
+          typeof details === "string"
+            ? JSON.parse(details)
+            : details;
 
         if (parsed && typeof parsed === "object") {
-          parsedAttributes = parsed;
+          parsedDetails = parsed;
+        }
+      }
+
+      if (isVariantProduct && variants) {
+        const rawVariants =
+          typeof variants === "string"
+            ? JSON.parse(variants)
+            : variants;
+
+        if (!Array.isArray(rawVariants) || rawVariants.length === 0) {
+          return res.status(400).json({
+            success: false,
+            message: "At least one variant is required when variants are enabled",
+          });
+        }
+
+        for (let i = 0; i < rawVariants.length; i++) {
+          const v = rawVariants[i];
+
+          if (!v || typeof v !== "object") {
+            return res.status(400).json({
+              success: false,
+              message: `Variant #${i + 1} must be an object`,
+            });
+          }
+
+          const vPrice = Number(v.price);
+          if (isNaN(vPrice) || vPrice < 0) {
+            return res.status(400).json({
+              success: false,
+              message: `Variant #${i + 1} price must be a non-negative number`,
+            });
+          }
+
+          let vSalePrice = null;
+          if (v.salePrice !== undefined && v.salePrice !== null && v.salePrice !== "") {
+            vSalePrice = Number(v.salePrice);
+            if (isNaN(vSalePrice) || vSalePrice < 0) {
+              return res.status(400).json({
+                success: false,
+                message: `Variant #${i + 1} sale price must be a non-negative number`,
+              });
+            }
+            if (vSalePrice > vPrice) {
+              return res.status(400).json({
+                success: false,
+                message: `Variant #${i + 1} sale price cannot be greater than regular price`,
+              });
+            }
+          }
+
+          if (!Array.isArray(v.attributes) || v.attributes.length === 0) {
+            return res.status(400).json({
+              success: false,
+              message: `Variant #${i + 1} must have at least one attribute`,
+            });
+          }
+
+          const cleanedAttributes = v.attributes.map((attr, aIdx) => {
+            if (!attr || typeof attr !== "object") {
+              throw new Error(`Variant #${i + 1}, attribute #${aIdx + 1} is invalid`);
+            }
+            const attrName = String(attr.name || "").trim();
+            const attrVal = String(attr.value || "").trim();
+
+            if (!attrName || !attrVal) {
+              throw new Error(`Variant #${i + 1} attribute name and value cannot be empty`);
+            }
+
+            return {
+              name: attrName,
+              value: attrVal,
+            };
+          });
+
+          parsedVariants.push({
+            price: vPrice,
+            salePrice: vSalePrice,
+            attributes: cleanedAttributes,
+            isActive: v.isActive !== false && v.isActive !== "false",
+          });
         }
       }
     } catch (error) {
       return res.status(400).json({
         success: false,
         message:
-          "Invalid manufacturer, warranty, return policy or attributes data",
+          error.message ||
+          "Invalid manufacturer, warranty, return policy, details or variants data",
       });
     }
 
-
-
-
     const product = await Product.create({
       name: name.trim(),
-
-      short_description:
-        short_description.trim(),
-
-      full_description:
-        full_description.trim(),
-
+      short_description: short_description.trim(),
+      full_description: full_description.trim(),
       highlights: parsedHighlights,
-
       category,
-
       subcategory,
-
       brand: brand.trim(),
-
       price: productPrice,
-
       salePrice: productSalePrice,
-
       sku: cleanSku,
-
       stock: productStock,
-
       manufacturer: parsedManufacturer,
-
       warranty: parsedWarranty,
-
       returnPolicy: parsedReturnPolicy,
-
-      attributes: parsedAttributes,
-
+      details: parsedDetails,
+      hasVariants: isVariantProduct,
+      variants: parsedVariants,
       images,
-
-      isFeatured:
-        isFeatured === true ||
-        isFeatured === "true",
-
+      isFeatured: isFeatured === true || isFeatured === "true",
       isActive:
         isActive === undefined
           ? true
-          : isActive === true ||
-          isActive === "true",
+          : isActive === true || isActive === "true",
     });
-
 
     return res.status(201).json({
       success: true,
@@ -411,7 +443,6 @@ export const addProduct = async (req, res) => {
         product,
       },
     });
-
   } catch (error) {
     console.error("Add Product Error:", error);
 
@@ -422,7 +453,6 @@ export const addProduct = async (req, res) => {
     });
   }
 };
-
 
 
 
@@ -712,14 +742,27 @@ export const updateProduct = async (req, res) => {
       manufacturer,
       warranty,
       returnPolicy,
-      attributes,
+      details,
+      hasVariants,
+      variants,
       isFeatured,
       isActive,
     } = req.body;
 
+    // --------------------------------------------------
+    // PRODUCT ID VALIDATION
+    // --------------------------------------------------
 
-    // console.log("files", req.files)
-    // console.log("body", req.body)
+    if (!mongoose.Types.ObjectId.isValid(productId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid product ID",
+      });
+    }
+
+    // --------------------------------------------------
+    // FIND PRODUCT
+    // --------------------------------------------------
 
     const product = await Product.findById(productId);
 
@@ -730,8 +773,9 @@ export const updateProduct = async (req, res) => {
       });
     }
 
-
-
+    // --------------------------------------------------
+    // CATEGORY / SUBCATEGORY
+    // --------------------------------------------------
 
     const finalCategory =
       category !== undefined
@@ -743,12 +787,24 @@ export const updateProduct = async (req, res) => {
         ? subcategory
         : product.subcategory;
 
-
-
     if (
       category !== undefined ||
       subcategory !== undefined
     ) {
+      if (!mongoose.Types.ObjectId.isValid(finalCategory)) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid category ID",
+        });
+      }
+
+      if (!mongoose.Types.ObjectId.isValid(finalSubcategory)) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid subcategory ID",
+        });
+      }
+
       const categoryExists = await Category.findOne({
         _id: finalCategory,
         parent: null,
@@ -762,13 +818,11 @@ export const updateProduct = async (req, res) => {
         });
       }
 
-
-      const subcategoryExists =
-        await Category.findOne({
-          _id: finalSubcategory,
-          parent: finalCategory,
-          isActive: true,
-        });
+      const subcategoryExists = await Category.findOne({
+        _id: finalSubcategory,
+        parent: finalCategory,
+        isActive: true,
+      });
 
       if (!subcategoryExists) {
         return res.status(400).json({
@@ -778,23 +832,28 @@ export const updateProduct = async (req, res) => {
         });
       }
 
-
       product.category = finalCategory;
       product.subcategory = finalSubcategory;
     }
 
-
+    // --------------------------------------------------
+    // SKU
+    // --------------------------------------------------
 
     if (sku !== undefined) {
-      const cleanSku = sku.trim().toUpperCase();
+      const cleanSku = String(sku).trim().toUpperCase();
 
-      const existingProduct =
-        await Product.findOne({
-          sku: cleanSku,
-          _id: {
-            $ne: productId,
-          },
+      if (!cleanSku) {
+        return res.status(400).json({
+          success: false,
+          message: "SKU cannot be empty",
         });
+      }
+
+      const existingProduct = await Product.findOne({
+        sku: cleanSku,
+        _id: { $ne: productId },
+      });
 
       if (existingProduct) {
         return res.status(409).json({
@@ -807,49 +866,81 @@ export const updateProduct = async (req, res) => {
       product.sku = cleanSku;
     }
 
-
+    // --------------------------------------------------
+    // BASIC INFORMATION
+    // --------------------------------------------------
 
     if (name !== undefined) {
-      if (!name.trim()) {
+      if (!String(name).trim()) {
         return res.status(400).json({
           success: false,
           message: "Product name cannot be empty",
         });
       }
 
-      product.name = name.trim();
+      product.name = String(name).trim();
     }
-
 
     if (short_description !== undefined) {
-      product.short_description =
-        short_description.trim();
-    }
+      if (!String(short_description).trim()) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "Product short description cannot be empty",
+        });
+      }
 
+      product.short_description =
+        String(short_description).trim();
+    }
 
     if (full_description !== undefined) {
+      if (!String(full_description).trim()) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "Product full description cannot be empty",
+        });
+      }
+
       product.full_description =
-        full_description.trim();
+        String(full_description).trim();
     }
 
-
-
+    // --------------------------------------------------
+    // HIGHLIGHTS
+    // --------------------------------------------------
 
     if (highlights !== undefined) {
-      if (Array.isArray(highlights)) {
-        product.highlights = highlights;
-      } else {
-        try {
-          product.highlights =
-            JSON.parse(highlights);
-        } catch {
-          product.highlights = [highlights];
-        }
+      let parsedHighlights;
+
+      try {
+        parsedHighlights =
+          typeof highlights === "string"
+            ? JSON.parse(highlights)
+            : highlights;
+      } catch {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid highlights data",
+        });
       }
+
+      if (!Array.isArray(parsedHighlights)) {
+        return res.status(400).json({
+          success: false,
+          message: "Highlights must be an array",
+        });
+      }
+
+      product.highlights = parsedHighlights
+        .map((item) => String(item).trim())
+        .filter(Boolean);
     }
 
-
-
+    // --------------------------------------------------
+    // PRICE
+    // --------------------------------------------------
 
     if (price !== undefined) {
       const newPrice = Number(price);
@@ -864,13 +955,15 @@ export const updateProduct = async (req, res) => {
       product.price = newPrice;
     }
 
-
-
+    // --------------------------------------------------
+    // SALE PRICE
+    // --------------------------------------------------
 
     if (salePrice !== undefined) {
       if (
         salePrice === "" ||
-        salePrice === null
+        salePrice === null ||
+        salePrice === "null"
       ) {
         product.salePrice = null;
       } else {
@@ -886,9 +979,7 @@ export const updateProduct = async (req, res) => {
           });
         }
 
-        if (
-          newSalePrice > product.price
-        ) {
+        if (newSalePrice > product.price) {
           return res.status(400).json({
             success: false,
             message:
@@ -900,6 +991,9 @@ export const updateProduct = async (req, res) => {
       }
     }
 
+    // --------------------------------------------------
+    // STOCK
+    // --------------------------------------------------
 
     if (stock !== undefined) {
       const newStock = Number(stock);
@@ -917,126 +1011,322 @@ export const updateProduct = async (req, res) => {
       product.stock = newStock;
     }
 
-
-
+    // --------------------------------------------------
+    // BRAND
+    // --------------------------------------------------
 
     if (brand !== undefined) {
-      if (!brand.trim()) {
+      if (!String(brand).trim()) {
         return res.status(400).json({
           success: false,
           message: "Brand cannot be empty",
         });
       }
 
-      product.brand = brand.trim();
+      product.brand = String(brand).trim();
     }
 
+    // --------------------------------------------------
+    // MANUFACTURER
+    // --------------------------------------------------
 
-
-
-    try {
-      if (
-        !manufacturer ||
-        manufacturer === "null" ||
-        manufacturer === "undefined"
-      ) {
-        product.manufacturer = null;
-      } else {
-        const parsed =
-          typeof manufacturer === "string"
-            ? JSON.parse(manufacturer)
-            : manufacturer;
-
+    if (manufacturer !== undefined) {
+      try {
         if (
-          parsed &&
-          typeof parsed === "object" &&
-          Object.values(parsed).some(
-            (v) => v !== null && v !== undefined && String(v).trim() !== ""
-          )
+          manufacturer === null ||
+          manufacturer === "" ||
+          manufacturer === "null" ||
+          manufacturer === "undefined"
         ) {
-          product.manufacturer = parsed;
-        } else {
           product.manufacturer = null;
-        }
-      }
-
-      if (
-        !warranty ||
-        warranty === "null" ||
-        warranty === "undefined"
-      ) {
-        product.warranty = null;
-      } else {
-        const parsed =
-          typeof warranty === "string"
-            ? JSON.parse(warranty)
-            : warranty;
-
-        if (
-          parsed &&
-          typeof parsed === "object" &&
-          (parsed.available === true || parsed.available === "true")
-        ) {
-          product.warranty = parsed;
         } else {
-          product.warranty = null;
-        }
-      }
+          const parsedManufacturer =
+            typeof manufacturer === "string"
+              ? JSON.parse(manufacturer)
+              : manufacturer;
 
-      if (
-        !returnPolicy ||
-        returnPolicy === "null" ||
-        returnPolicy === "undefined"
-      ) {
-        product.returnPolicy = null;
-      } else {
-        const parsed =
-          typeof returnPolicy === "string"
-            ? JSON.parse(returnPolicy)
-            : returnPolicy;
-
-        if (
-          parsed &&
-          typeof parsed === "object" &&
-          (parsed.eligible === true || parsed.eligible === "true")
-        ) {
-          product.returnPolicy = parsed;
-        } else {
-          product.returnPolicy = null;
-        }
-      }
-
-      if (attributes !== undefined) {
-        if (
-          attributes === null ||
-          attributes === "" ||
-          attributes === "null" ||
-          attributes === "undefined"
-        ) {
-          product.attributes = {};
-        } else {
-          const parsed =
-            typeof attributes === "string"
-              ? JSON.parse(attributes)
-              : attributes;
-
-          if (parsed && typeof parsed === "object") {
-            product.attributes = parsed;
+          if (
+            parsedManufacturer &&
+            typeof parsedManufacturer === "object" &&
+            !Array.isArray(parsedManufacturer)
+          ) {
+            product.manufacturer =
+              parsedManufacturer;
           } else {
-            product.attributes = {};
+            product.manufacturer = null;
           }
         }
+      } catch {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid manufacturer data",
+        });
       }
-    } catch {
-      return res.status(400).json({
-        success: false,
-        message:
-          "Invalid manufacturer, warranty, return policy or attributes data",
-      });
     }
 
+    // --------------------------------------------------
+    // WARRANTY
+    // --------------------------------------------------
 
+    if (warranty !== undefined) {
+      try {
+        if (
+          warranty === null ||
+          warranty === "" ||
+          warranty === "null" ||
+          warranty === "undefined"
+        ) {
+          product.warranty = null;
+        } else {
+          const parsedWarranty =
+            typeof warranty === "string"
+              ? JSON.parse(warranty)
+              : warranty;
 
+          if (
+            parsedWarranty &&
+            typeof parsedWarranty === "object" &&
+            !Array.isArray(parsedWarranty)
+          ) {
+            const isAvailable =
+              parsedWarranty.available === true ||
+              parsedWarranty.available === "true";
+
+            product.warranty = isAvailable
+              ? parsedWarranty
+              : null;
+          } else {
+            product.warranty = null;
+          }
+        }
+      } catch {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid warranty data",
+        });
+      }
+    }
+
+    // --------------------------------------------------
+    // RETURN POLICY
+    // --------------------------------------------------
+
+    if (returnPolicy !== undefined) {
+      try {
+        if (
+          returnPolicy === null ||
+          returnPolicy === "" ||
+          returnPolicy === "null" ||
+          returnPolicy === "undefined"
+        ) {
+          product.returnPolicy = null;
+        } else {
+          const parsedReturnPolicy =
+            typeof returnPolicy === "string"
+              ? JSON.parse(returnPolicy)
+              : returnPolicy;
+
+          if (
+            parsedReturnPolicy &&
+            typeof parsedReturnPolicy === "object" &&
+            !Array.isArray(parsedReturnPolicy)
+          ) {
+            const isEligible =
+              parsedReturnPolicy.eligible === true ||
+              parsedReturnPolicy.eligible === "true";
+
+            product.returnPolicy = isEligible
+              ? parsedReturnPolicy
+              : null;
+          } else {
+            product.returnPolicy = null;
+          }
+        }
+      } catch {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid return policy data",
+        });
+      }
+    }
+
+    // --------------------------------------------------
+    // FIXED PRODUCT DETAILS
+    //
+    // details:
+    // {
+    //   size,
+    //   material,
+    //   weight,
+    //   dimensions
+    // }
+    // --------------------------------------------------
+
+    if (details !== undefined) {
+      try {
+        if (
+          details === null ||
+          details === "" ||
+          details === "null" ||
+          details === "undefined"
+        ) {
+          product.details = {};
+        } else {
+          const parsedDetails =
+            typeof details === "string"
+              ? JSON.parse(details)
+              : details;
+
+          if (
+            !parsedDetails ||
+            typeof parsedDetails !== "object" ||
+            Array.isArray(parsedDetails)
+          ) {
+            return res.status(400).json({
+              success: false,
+              message: "Details must be an object",
+            });
+          }
+
+          product.details = parsedDetails;
+        }
+      } catch {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid details data",
+        });
+      }
+    }
+
+    // --------------------------------------------------
+    // VARIANTS & ATTRIBUTE PRICING
+    // --------------------------------------------------
+
+    if (hasVariants !== undefined) {
+      product.hasVariants =
+        hasVariants === true || hasVariants === "true";
+    }
+
+    if (variants !== undefined) {
+      try {
+        if (
+          variants === null ||
+          variants === "" ||
+          variants === "null" ||
+          variants === "undefined"
+        ) {
+          product.variants = [];
+        } else {
+          const parsedVariants =
+            typeof variants === "string"
+              ? JSON.parse(variants)
+              : variants;
+
+          if (!Array.isArray(parsedVariants)) {
+            return res.status(400).json({
+              success: false,
+              message: "Variants must be an array",
+            });
+          }
+
+          if (product.hasVariants && parsedVariants.length === 0) {
+            return res.status(400).json({
+              success: false,
+              message:
+                "At least one variant is required when variants are enabled",
+            });
+          }
+
+          const cleanedVariants = [];
+
+          for (let i = 0; i < parsedVariants.length; i++) {
+            const v = parsedVariants[i];
+
+            if (!v || typeof v !== "object") {
+              return res.status(400).json({
+                success: false,
+                message: `Variant #${i + 1} must be an object`,
+              });
+            }
+
+            const vPrice = Number(v.price);
+            if (isNaN(vPrice) || vPrice < 0) {
+              return res.status(400).json({
+                success: false,
+                message: `Variant #${i + 1} price must be a non-negative number`,
+              });
+            }
+
+            let vSalePrice = null;
+            if (
+              v.salePrice !== undefined &&
+              v.salePrice !== null &&
+              v.salePrice !== ""
+            ) {
+              vSalePrice = Number(v.salePrice);
+              if (isNaN(vSalePrice) || vSalePrice < 0) {
+                return res.status(400).json({
+                  success: false,
+                  message: `Variant #${i + 1} sale price must be a non-negative number`,
+                });
+              }
+              if (vSalePrice > vPrice) {
+                return res.status(400).json({
+                  success: false,
+                  message: `Variant #${i + 1} sale price cannot be greater than regular price`,
+                });
+              }
+            }
+
+            if (!Array.isArray(v.attributes) || v.attributes.length === 0) {
+              return res.status(400).json({
+                success: false,
+                message: `Variant #${i + 1} must have at least one attribute`,
+              });
+            }
+
+            const cleanedAttributes = v.attributes.map((attr, aIdx) => {
+              if (!attr || typeof attr !== "object") {
+                throw new Error(
+                  `Variant #${i + 1}, attribute #${aIdx + 1} is invalid`
+                );
+              }
+              const attrName = String(attr.name || "").trim();
+              const attrVal = String(attr.value || "").trim();
+
+              if (!attrName || !attrVal) {
+                throw new Error(
+                  `Variant #${i + 1} attribute name and value cannot be empty`
+                );
+              }
+
+              return {
+                name: attrName,
+                value: attrVal,
+              };
+            });
+
+            cleanedVariants.push({
+              price: vPrice,
+              salePrice: vSalePrice,
+              attributes: cleanedAttributes,
+              isActive: v.isActive !== false && v.isActive !== "false",
+            });
+          }
+
+          product.variants = cleanedVariants;
+        }
+      } catch (error) {
+        return res.status(400).json({
+          success: false,
+          message: error.message || "Invalid variants data",
+        });
+      }
+    }
+
+    // --------------------------------------------------
+    // STATUS
+    // --------------------------------------------------
 
     if (isFeatured !== undefined) {
       product.isFeatured =
@@ -1044,21 +1334,23 @@ export const updateProduct = async (req, res) => {
         isFeatured === "true";
     }
 
-
     if (isActive !== undefined) {
       product.isActive =
         isActive === true ||
         isActive === "true";
     }
 
+    // --------------------------------------------------
+    // IMAGES
+    // --------------------------------------------------
 
-
-
-    if (req.files && req.files.length > 0) {
+    if (
+      req.files &&
+      req.files.length > 0
+    ) {
       const images = [];
 
       for (const file of req.files) {
-        // console.log(file)
         const image =
           await uploadBufferToCloudinary(
             file.buffer,
@@ -1071,12 +1363,15 @@ export const updateProduct = async (req, res) => {
       product.images = images;
     }
 
-    // console.log(images)
-
-
+    // --------------------------------------------------
+    // SAVE
+    // --------------------------------------------------
 
     await product.save();
 
+    // --------------------------------------------------
+    // RESPONSE
+    // --------------------------------------------------
 
     return res.status(200).json({
       success: true,
@@ -1085,9 +1380,11 @@ export const updateProduct = async (req, res) => {
         product,
       },
     });
-
   } catch (error) {
-    console.error("Update Product Error:", error);
+    console.error(
+      "Update Product Error:",
+      error
+    );
 
     return res.status(500).json({
       success: false,

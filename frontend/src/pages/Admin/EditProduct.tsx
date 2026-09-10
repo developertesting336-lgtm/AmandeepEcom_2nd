@@ -10,6 +10,18 @@ interface Category {
   isActive?: boolean;
 }
 
+export interface VariantAttribute {
+  name: string;
+  value: string;
+}
+
+export interface ProductVariantItem {
+  price: string;
+  salePrice: string;
+  attributes: VariantAttribute[];
+  isActive: boolean;
+}
+
 interface ManufacturerState {
   name: string;
   address: string;
@@ -42,7 +54,7 @@ interface ReturnPolicyState {
   description: string;
 }
 
-interface AttributesState {
+interface DetailsState {
   color: string;
   size: string;
   material: string;
@@ -71,8 +83,8 @@ const formatImageUrl = (image: string | ProductImageItem | undefined): string =>
     return rawUrl;
   }
   const cleanPath = rawUrl.replace(/\\/g, "/");
-  const formattedPath = cleanPath.startsWith("/") ? cleanPath : `/${cleanPath}`;
-  return `${API_BASE_URL}${formattedPath}`;
+  const formattedPath = cleanPath.startsWith("/") ? cleanPath : "/" + cleanPath;
+  return API_BASE_URL + formattedPath;
 };
 
 const fetchImageAsFile = async (url: string, filename: string): Promise<File | null> => {
@@ -89,7 +101,7 @@ const fetchImageAsFile = async (url: string, filename: string): Promise<File | n
     console.warn("Direct image fetch failed, trying Image Canvas fallback:", err);
   }
 
-  return new Promise<File | null>((resolve) => {
+  return new Promise((resolve) => {
     const img = new Image();
     img.crossOrigin = "anonymous";
     img.onload = () => {
@@ -144,6 +156,10 @@ const EditProduct = () => {
   const [isFeatured, setIsFeatured] = useState(false);
   const [isActive, setIsActive] = useState(true);
 
+  // Variants
+  const [hasVariants, setHasVariants] = useState(false);
+  const [variants, setVariants] = useState<ProductVariantItem[]>([]);
+
   // Manufacturer
   const [manufacturer, setManufacturer] = useState<ManufacturerState>({
     name: "",
@@ -175,8 +191,8 @@ const EditProduct = () => {
     description: "",
   });
 
-  // Attributes
-  const [attributes, setAttributes] = useState<AttributesState>({
+  // Details (Specs)
+  const [details, setDetails] = useState<DetailsState>({
     color: "",
     size: "",
     material: "",
@@ -202,16 +218,15 @@ const EditProduct = () => {
         const token = localStorage.getItem("token");
         const headers: Record<string, string> = {};
         if (token) {
-          headers["Authorization"] = `Bearer ${token}`;
+          headers["Authorization"] = "Bearer " + token;
         }
 
-        // 1. Fetch Product details from possible endpoints
         let productResponse: Response | null = null;
         const productEndpoints = [
-          `${API_BASE_URL}/api/admin/product/${productId}`,
-          `${API_BASE_URL}/api/products/${productId}`,
-          `${API_BASE_URL}/api/product/${productId}`,
-          `${API_BASE_URL}/api/admin/products/${productId}`,
+          API_BASE_URL + "/api/admin/product/" + productId,
+          API_BASE_URL + "/api/products/" + productId,
+          API_BASE_URL + "/api/product/" + productId,
+          API_BASE_URL + "/api/admin/products/" + productId,
         ];
 
         for (const endpoint of productEndpoints) {
@@ -222,7 +237,7 @@ const EditProduct = () => {
               break;
             }
           } catch (err) {
-            console.warn(`Failed fetching product from ${endpoint}:`, err);
+            console.warn("Failed fetching product from " + endpoint + ":", err);
           }
         }
 
@@ -232,11 +247,10 @@ const EditProduct = () => {
 
         const productData = await productResponse.json();
 
-        // 2. Fetch Categories list
         const categoryEndpoints = [
-          `${API_BASE_URL}/api/admin/categories/all`,
-          `${API_BASE_URL}/api/categories`,
-          `${API_BASE_URL}/api/admin/categories`,
+          API_BASE_URL + "/api/admin/categories/all",
+          API_BASE_URL + "/api/categories",
+          API_BASE_URL + "/api/admin/categories",
         ];
 
         for (const endpoint of categoryEndpoints) {
@@ -255,11 +269,10 @@ const EditProduct = () => {
               }
             }
           } catch (err) {
-            console.warn(`Failed fetching categories from ${endpoint}:`, err);
+            console.warn("Failed fetching categories from " + endpoint + ":", err);
           }
         }
 
-        // 3. Extract Product object safely
         const rawData = productData.data || productData.product || productData;
         const prod =
           Array.isArray(rawData)
@@ -328,6 +341,24 @@ const EditProduct = () => {
           prod.stock !== undefined && prod.stock !== null ? String(prod.stock) : "0"
         );
 
+        setHasVariants(Boolean(prod.hasVariants));
+        if (Array.isArray(prod.variants) && prod.variants.length > 0) {
+          const loadedVariants: ProductVariantItem[] = prod.variants.map((v: any) => ({
+            price: v.price !== undefined && v.price !== null ? String(v.price) : "",
+            salePrice: v.salePrice !== undefined && v.salePrice !== null ? String(v.salePrice) : "",
+            attributes: Array.isArray(v.attributes) && v.attributes.length > 0
+              ? v.attributes.map((a: any) => ({
+                name: String(a.name || ""),
+                value: String(a.value || ""),
+              }))
+              : [{ name: "", value: "" }],
+            isActive: v.isActive !== false,
+          }));
+          setVariants(loadedVariants);
+        } else {
+          setVariants([]);
+        }
+
         if (prod.manufacturer) {
           const m =
             typeof prod.manufacturer === "string"
@@ -395,28 +426,28 @@ const EditProduct = () => {
           });
         }
 
-        if (prod.attributes) {
-          const a =
-            typeof prod.attributes === "string"
+        if (prod.details) {
+          const d =
+            typeof prod.details === "string"
               ? (() => {
                 try {
-                  return JSON.parse(prod.attributes);
+                  return JSON.parse(prod.details);
                 } catch {
                   return {};
                 }
               })()
-              : prod.attributes;
+              : prod.details;
 
-          setAttributes({
-            color: a?.color || "",
-            size: a?.size || "",
-            material: a?.material || "",
-            weightValue: a?.weight?.value ? String(a.weight.value) : "",
-            weightUnit: a?.weight?.unit || "g",
-            length: a?.dimensions?.length ? String(a.dimensions.length) : "",
-            width: a?.dimensions?.width ? String(a.dimensions.width) : "",
-            height: a?.dimensions?.height ? String(a.dimensions.height) : "",
-            dimUnit: a?.dimensions?.unit || "cm",
+          setDetails({
+            color: d?.color || "",
+            size: d?.size || "",
+            material: d?.material || "",
+            weightValue: d?.weight?.value ? String(d.weight.value) : "",
+            weightUnit: d?.weight?.unit || "g",
+            length: d?.dimensions?.length ? String(d.dimensions.length) : "",
+            width: d?.dimensions?.width ? String(d.dimensions.width) : "",
+            height: d?.dimensions?.height ? String(d.dimensions.height) : "",
+            dimUnit: d?.dimensions?.unit || "cm",
           });
         }
 
@@ -427,9 +458,9 @@ const EditProduct = () => {
         const formattedImgList: ProductImageItem[] = Array.isArray(rawImages)
           ? rawImages.map((img: any, i: number) =>
             typeof img === "string"
-              ? { public_id: `img_${i}`, url: img }
+              ? { public_id: "img_" + i, url: img }
               : {
-                public_id: img.public_id || img._id || img.url || `img_${i}`,
+                public_id: img.public_id || img._id || img.url || "img_" + i,
                 url: img.url || img.path || img.secure_url || "",
                 alt: img.alt || prod.name,
                 isPrimary: Boolean(img.isPrimary || i === 0),
@@ -456,7 +487,6 @@ const EditProduct = () => {
     };
   }, [newImagePreviews]);
 
-  // Main categories (no parent)
   const mainCategories = categories.filter(
     (c) =>
       !c.parent ||
@@ -465,7 +495,6 @@ const EditProduct = () => {
       (typeof c.parent === "object" && !(c.parent as any)._id && !(c.parent as any).id)
   );
 
-  // Subcategories matching selected category
   const availableSubcategories = categories.filter((c) => {
     if (!c.parent || !category) return false;
     if (typeof c.parent === "object" && c.parent !== null) {
@@ -478,8 +507,23 @@ const EditProduct = () => {
   });
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    if (!files.length) return;
+    const rawFiles = Array.from(e.target.files || []);
+    if (!rawFiles.length) return;
+
+    const validImageFiles = rawFiles.filter(
+      (file) =>
+        file.type.startsWith("image/") ||
+        /\.(png|jpe?g|webp|gif|svg)$/i.test(file.name)
+    );
+
+    if (validImageFiles.length !== rawFiles.length) {
+      setError("Some selected files were skipped because they are not valid images.");
+    }
+
+    if (!validImageFiles.length) {
+      e.target.value = "";
+      return;
+    }
 
     const currentTotal = existingImages.length + newImages.length;
     const remainingSlots = Math.max(0, 5 - currentTotal);
@@ -489,7 +533,7 @@ const EditProduct = () => {
       return;
     }
 
-    const filesToUpload = files.slice(0, remainingSlots);
+    const filesToUpload = validImageFiles.slice(0, remainingSlots);
     const newPreviews = filesToUpload.map((file) => URL.createObjectURL(file));
 
     setNewImages((prev) => [...prev, ...filesToUpload]);
@@ -523,6 +567,84 @@ const EditProduct = () => {
 
   const removeHighlightField = (index: number) => {
     setHighlights((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  // Variant Handlers
+  const handleAddVariant = () => {
+    const newVariant: ProductVariantItem = {
+      price: price || "",
+      salePrice: salePrice || "",
+      attributes: [{ name: "", value: "" }],
+      isActive: true,
+    };
+    setVariants((prev) => [...prev, newVariant]);
+  };
+
+  const handleRemoveVariant = (vIdx: number) => {
+    setVariants((prev) => prev.filter((_, i) => i !== vIdx));
+  };
+
+  const handleVariantPriceChange = (
+    vIdx: number,
+    field: "price" | "salePrice",
+    val: string
+  ) => {
+    setVariants((prev) => {
+      const updated = [...prev];
+      updated[vIdx] = { ...updated[vIdx], [field]: val };
+      return updated;
+    });
+  };
+
+  const handleVariantActiveToggle = (vIdx: number, checked: boolean) => {
+    setVariants((prev) => {
+      const updated = [...prev];
+      updated[vIdx] = { ...updated[vIdx], isActive: checked };
+      return updated;
+    });
+  };
+
+  const handleVariantAttributeChange = (
+    vIdx: number,
+    aIdx: number,
+    field: "name" | "value",
+    val: string
+  ) => {
+    setVariants((prev) => {
+      const updatedVariants = [...prev];
+      const updatedAttrs = [...updatedVariants[vIdx].attributes];
+      updatedAttrs[aIdx] = { ...updatedAttrs[aIdx], [field]: val };
+      updatedVariants[vIdx] = {
+        ...updatedVariants[vIdx],
+        attributes: updatedAttrs,
+      };
+      return updatedVariants;
+    });
+  };
+
+  const handleAddAttributeToVariant = (vIdx: number) => {
+    setVariants((prev) => {
+      const updatedVariants = [...prev];
+      updatedVariants[vIdx] = {
+        ...updatedVariants[vIdx],
+        attributes: [...updatedVariants[vIdx].attributes, { name: "", value: "" }],
+      };
+      return updatedVariants;
+    });
+  };
+
+  const handleRemoveAttributeFromVariant = (vIdx: number, aIdx: number) => {
+    setVariants((prev) => {
+      const updatedVariants = [...prev];
+      const updatedAttrs = updatedVariants[vIdx].attributes.filter(
+        (_, i) => i !== aIdx
+      );
+      updatedVariants[vIdx] = {
+        ...updatedVariants[vIdx],
+        attributes: updatedAttrs.length > 0 ? updatedAttrs : [{ name: "", value: "" }],
+      };
+      return updatedVariants;
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -561,7 +683,7 @@ const EditProduct = () => {
     }
 
     if (!price || Number(price) < 0) {
-      setError("Valid product price is required.");
+      setError("Valid base product price is required.");
       return;
     }
 
@@ -575,12 +697,61 @@ const EditProduct = () => {
       return;
     }
 
+    let cleanedVariantsPayload: any[] = [];
+    if (hasVariants) {
+      if (variants.length === 0) {
+        setError("Please add at least one variant or uncheck variants.");
+        return;
+      }
+
+      for (let i = 0; i < variants.length; i++) {
+        const v = variants[i];
+        const vPrice = Number(v.price);
+        if (isNaN(vPrice) || vPrice < 0 || v.price === "") {
+          setError("Variant #" + (i + 1) + " must have a valid price.");
+          return;
+        }
+
+        let vSalePrice = null;
+        if (v.salePrice !== "" && v.salePrice !== undefined && v.salePrice !== null) {
+          vSalePrice = Number(v.salePrice);
+          if (isNaN(vSalePrice) || vSalePrice < 0) {
+            setError("Variant #" + (i + 1) + " has an invalid sale price.");
+            return;
+          }
+          if (vSalePrice > vPrice) {
+            setError("Variant #" + (i + 1) + " sale price cannot exceed regular price.");
+            return;
+          }
+        }
+
+        const validAttrs = v.attributes.filter(
+          (a) => a.name.trim() && a.value.trim()
+        );
+
+        if (validAttrs.length === 0) {
+          setError("Variant #" + (i + 1) + " must have at least one attribute name and value.");
+          return;
+        }
+
+        cleanedVariantsPayload.push({
+          price: vPrice,
+          salePrice: vSalePrice,
+          attributes: validAttrs.map((a) => ({
+            name: a.name.trim(),
+            value: a.value.trim(),
+          })),
+          isActive: v.isActive,
+        });
+      }
+    }
+
     try {
       setSaving(true);
 
       const token = localStorage.getItem("token");
+      const formattedHighlights = highlights.filter((h) => h.trim().length > 0);
 
-      // Construct FormData for multipart/form-data request (req.files)
       const formData = new FormData();
       formData.append("name", name.trim());
       formData.append("short_description", shortDescription.trim());
@@ -597,7 +768,12 @@ const EditProduct = () => {
       formData.append("isFeatured", String(isFeatured));
       formData.append("isActive", String(isActive));
 
-      formData.append("highlights", JSON.stringify(highlights.filter((h) => h.trim().length > 0)));
+      formData.append("hasVariants", String(hasVariants));
+      if (hasVariants) {
+        formData.append("variants", JSON.stringify(cleanedVariantsPayload));
+      }
+
+      formData.append("highlights", JSON.stringify(formattedHighlights));
       formData.append("manufacturer", JSON.stringify({
         name: manufacturer.name.trim(),
         address: manufacturer.address.trim(),
@@ -628,46 +804,43 @@ const EditProduct = () => {
           description: returnPolicy.description.trim(),
         }));
       }
-      formData.append("attributes", JSON.stringify({
-        color: attributes.color.trim(),
-        size: attributes.size.trim(),
-        material: attributes.material.trim(),
+      formData.append("details", JSON.stringify({
+        size: details.size.trim(),
+        material: details.material.trim(),
         weight: {
-          value: attributes.weightValue ? Number(attributes.weightValue) : null,
-          unit: attributes.weightUnit,
+          value: details.weightValue ? Number(details.weightValue) : null,
+          unit: details.weightUnit,
         },
         dimensions: {
-          length: attributes.length ? Number(attributes.length) : null,
-          width: attributes.width ? Number(attributes.width) : null,
-          height: attributes.height ? Number(attributes.height) : null,
-          unit: attributes.dimUnit,
+          length: details.length ? Number(details.length) : null,
+          width: details.width ? Number(details.width) : null,
+          height: details.height ? Number(details.height) : null,
+          unit: details.dimUnit,
         },
       }));
       formData.append("existingImages", JSON.stringify(existingImages));
 
-      // Convert existing unremoved images to binary File objects so req.files on backend receives ALL files (old + new)
       for (let i = 0; i < existingImages.length; i++) {
         const img = existingImages[i];
         const imgUrl = formatImageUrl(img);
         if (imgUrl) {
-          const file = await fetchImageAsFile(imgUrl, `existing_image_${i + 1}.jpg`);
+          const file = await fetchImageAsFile(imgUrl, "existing_image_" + (i + 1) + ".jpg");
           if (file) {
             formData.append("images", file);
           }
         }
       }
 
-      // Append newly selected binary files for multer middleware under 'images' field (populates req.files)
       newImages.forEach((file) => {
         formData.append("images", file);
       });
 
       const response = await fetch(
-        `${API_BASE_URL}/api/admin/product/${productId}`,
+        API_BASE_URL + "/api/admin/product/" + productId,
         {
           method: "PUT",
           headers: {
-            Authorization: `Bearer ${token}`,
+            Authorization: "Bearer " + token,
           },
           credentials: "include",
           body: formData,
@@ -719,45 +892,45 @@ const EditProduct = () => {
         <h2>Edit Product</h2>
       </div>
 
-      {/* Alerts */}
       {error && <div className="edit-alert edit-alert-error">{error}</div>}
       {success && <div className="edit-alert edit-alert-success">{success}</div>}
 
       <form onSubmit={handleSubmit} className="edit-product-form">
-        <div className="edit-form-main">
+        <div className="edit-main">
           {/* Basic Info */}
           <div className="edit-card">
             <h3 className="edit-card-title">Basic Information</h3>
 
             <div className="edit-group">
-              <label htmlFor="edit-name">Product Name *</label>
+              <label>Product Name *</label>
               <input
-                id="edit-name"
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
+                placeholder="Product name"
                 required
               />
             </div>
 
             <div className="edit-group">
-              <label htmlFor="edit-short-desc">Short Description *</label>
+              <label>Short Description *</label>
               <textarea
-                id="edit-short-desc"
-                maxLength={500}
                 value={shortDescription}
                 onChange={(e) => setShortDescription(e.target.value)}
+                placeholder="Brief summary..."
+                maxLength={500}
+                rows={2}
                 required
               />
             </div>
 
             <div className="edit-group">
-              <label htmlFor="edit-full-desc">Full Description (HTML) *</label>
+              <label>Full Description (Rich HTML) *</label>
               <textarea
-                id="edit-full-desc"
-                rows={6}
                 value={fullDescription}
                 onChange={(e) => setFullDescription(e.target.value)}
+                placeholder="Detailed specifications, features, HTML..."
+                rows={6}
                 required
               />
             </div>
@@ -766,100 +939,82 @@ const EditProduct = () => {
           {/* Highlights */}
           <div className="edit-card">
             <h3 className="edit-card-title">Product Highlights</h3>
+
             {highlights.map((item, index) => (
-              <div key={index} style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+              <div key={index} className="highlight-input-row">
                 <input
                   type="text"
-                  placeholder={`Highlight bullet #${index + 1}`}
+                  placeholder={"Highlight bullet #" + (index + 1) + "..."}
                   value={item}
                   onChange={(e) => handleHighlightChange(index, e.target.value)}
-                  style={{ flex: 1 }}
                 />
                 {highlights.length > 1 && (
                   <button
                     type="button"
+                    className="btn-remove-highlight"
                     onClick={() => removeHighlightField(index)}
-                    style={{
-                      background: "#fef2f2",
-                      border: "1px solid #fecaca",
-                      color: "#dc2626",
-                      borderRadius: 6,
-                      padding: "6px 10px",
-                      cursor: "pointer",
-                    }}
                   >
-                    <Trash2 size={14} />
+                    <Trash2 size={16} />
                   </button>
                 )}
               </div>
             ))}
+
             <button
               type="button"
+              className="btn-add-highlight"
               onClick={addHighlightField}
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 4,
-                padding: "8px 12px",
-                borderRadius: 6,
-                background: "#f8fafc",
-                border: "1px solid #cbd5e1",
-                cursor: "pointer",
-                fontWeight: 600,
-                fontSize: 13,
-              }}
             >
-              <Plus size={14} /> Add Highlight
+              <Plus size={14} /> Add Highlight Bullet
             </button>
           </div>
 
-          {/* Pricing & Stock */}
+          {/* Base Pricing & Inventory */}
           <div className="edit-card">
-            <h3 className="edit-card-title">Pricing & Stock</h3>
+            <h3 className="edit-card-title">Pricing & Inventory</h3>
 
             <div className="edit-row">
               <div className="edit-group">
-                <label htmlFor="edit-price">Regular Price (₹) *</label>
+                <label>{hasVariants ? "Base Price (₹) *" : "Price (₹) *"}</label>
                 <input
-                  id="edit-price"
                   type="number"
                   step="0.01"
                   min="0"
                   value={price}
                   onChange={(e) => setPrice(e.target.value)}
+                  placeholder="0.00"
                   required
                 />
               </div>
 
               <div className="edit-group">
-                <label htmlFor="edit-saleprice">Sale Price (₹)</label>
+                <label>{hasVariants ? "Base Sale Price (₹)" : "Sale Price (₹)"}</label>
                 <input
-                  id="edit-saleprice"
                   type="number"
                   step="0.01"
                   min="0"
                   value={salePrice}
                   onChange={(e) => setSalePrice(e.target.value)}
+                  placeholder="Leave empty if no discount"
                 />
               </div>
             </div>
 
             <div className="edit-row">
               <div className="edit-group">
-                <label htmlFor="edit-sku">SKU *</label>
+                <label>SKU *</label>
                 <input
-                  id="edit-sku"
                   type="text"
                   value={sku}
                   onChange={(e) => setSku(e.target.value.toUpperCase())}
+                  placeholder="e.g. ELEC-001"
                   required
                 />
               </div>
 
               <div className="edit-group">
-                <label htmlFor="edit-stock">Stock Quantity *</label>
+                <label>Stock Quantity *</label>
                 <input
-                  id="edit-stock"
                   type="number"
                   min="0"
                   value={stock}
@@ -870,29 +1025,176 @@ const EditProduct = () => {
             </div>
           </div>
 
-          {/* Attributes */}
+          {/* Product Variants */}
           <div className="edit-card">
-            <h3 className="edit-card-title">Product Attributes</h3>
+            <h3 className="edit-card-title">Product Variants</h3>
 
-            <div className="edit-row-3">
-              <div className="edit-group">
-                <label>Color</label>
+            <div className="edit-group">
+              <label className="edit-checkbox-label">
                 <input
-                  type="text"
-                  value={attributes.color}
+                  type="checkbox"
+                  checked={hasVariants}
                   onChange={(e) =>
-                    setAttributes((prev) => ({ ...prev, color: e.target.value }))
+                    setHasVariants(e.target.checked)
                   }
                 />
-              </div>
+                This product has variants (attribute-based pricing)
+              </label>
+            </div>
 
+            {hasVariants && (
+              <div className="variants-container">
+                {variants.map((variant, vIdx) => (
+                  <div key={vIdx} className="variant-card-box">
+                    <div className="variant-card-topbar">
+                      <span className="variant-number-label">
+                        Variant #{vIdx + 1}
+                      </span>
+                      <div className="variant-topbar-right">
+                        <label className="edit-checkbox-label" style={{ fontSize: "13px" }}>
+                          <input
+                            type="checkbox"
+                            checked={variant.isActive}
+                            onChange={(e) =>
+                              handleVariantActiveToggle(vIdx, e.target.checked)
+                            }
+                          />
+                          Active
+                        </label>
+                        <button
+                          type="button"
+                          className="btn-clear-variant"
+                          onClick={() => handleRemoveVariant(vIdx)}
+                          title="Remove variant"
+                        >
+                          <X size={16} />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Variant Attributes */}
+                    <div className="variant-attributes-block">
+                      <label className="variant-subheading">Attributes</label>
+                      {variant.attributes.map((attr, aIdx) => (
+                        <div key={aIdx} className="variant-attr-input-line">
+                          <input
+                            type="text"
+                            placeholder="Attribute (e.g. Storage, Color)"
+                            value={attr.name}
+                            onChange={(e) =>
+                              handleVariantAttributeChange(
+                                vIdx,
+                                aIdx,
+                                "name",
+                                e.target.value
+                              )
+                            }
+                            required
+                          />
+                          <input
+                            type="text"
+                            placeholder="Value (e.g. 256 GB, Red)"
+                            value={attr.value}
+                            onChange={(e) =>
+                              handleVariantAttributeChange(
+                                vIdx,
+                                aIdx,
+                                "value",
+                                e.target.value
+                              )
+                            }
+                            required
+                          />
+                          {variant.attributes.length > 1 && (
+                            <button
+                              type="button"
+                              className="btn-clear-attr"
+                              onClick={() =>
+                                handleRemoveAttributeFromVariant(vIdx, aIdx)
+                              }
+                              title="Remove attribute"
+                            >
+                              <X size={14} />
+                            </button>
+                          )}
+                        </div>
+                      ))}
+
+                      <button
+                        type="button"
+                        className="btn-add-attr-link"
+                        onClick={() => handleAddAttributeToVariant(vIdx)}
+                      >
+                        <Plus size={13} /> Add another attribute to this variant
+                      </button>
+                    </div>
+
+                    {/* Variant Pricing */}
+                    <div className="edit-row" style={{ marginTop: 10 }}>
+                      <div className="edit-group">
+                        <label>Variant Price (₹) *</label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          placeholder="0.00"
+                          value={variant.price}
+                          onChange={(e) =>
+                            handleVariantPriceChange(
+                              vIdx,
+                              "price",
+                              e.target.value
+                            )
+                          }
+                          required
+                        />
+                      </div>
+                      <div className="edit-group">
+                        <label>Variant Sale Price (₹)</label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          placeholder="Leave empty if none"
+                          value={variant.salePrice}
+                          onChange={(e) =>
+                            handleVariantPriceChange(
+                              vIdx,
+                              "salePrice",
+                              e.target.value
+                            )
+                          }
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+
+                <button
+                  type="button"
+                  className="btn-add-highlight"
+                  onClick={handleAddVariant}
+                  style={{ marginTop: 8 }}
+                >
+                  <Plus size={14} /> Add Variant
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Physical Details & Specs */}
+          <div className="edit-card">
+            <h3 className="edit-card-title">Product details</h3>
+
+            <div className="edit-row-3">
               <div className="edit-group">
                 <label>Size</label>
                 <input
                   type="text"
-                  value={attributes.size}
+                  placeholder="e.g. Medium / XL / 6.1 inch"
+                  value={details.size}
                   onChange={(e) =>
-                    setAttributes((prev) => ({ ...prev, size: e.target.value }))
+                    setDetails((prev) => ({ ...prev, size: e.target.value }))
                   }
                 />
               </div>
@@ -901,9 +1203,10 @@ const EditProduct = () => {
                 <label>Material</label>
                 <input
                   type="text"
-                  value={attributes.material}
+                  placeholder="e.g. Aluminum / Titanium / Leather"
+                  value={details.material}
                   onChange={(e) =>
-                    setAttributes((prev) => ({
+                    setDetails((prev) => ({
                       ...prev,
                       material: e.target.value,
                     }))
@@ -912,15 +1215,18 @@ const EditProduct = () => {
               </div>
             </div>
 
+            <div className="edit-section-title">Weight</div>
             <div className="edit-row">
               <div className="edit-group">
                 <label>Weight Value</label>
                 <input
                   type="number"
                   step="0.01"
-                  value={attributes.weightValue}
+                  min="0"
+                  placeholder="e.g. 250"
+                  value={details.weightValue}
                   onChange={(e) =>
-                    setAttributes((prev) => ({
+                    setDetails((prev) => ({
                       ...prev,
                       weightValue: e.target.value,
                     }))
@@ -931,9 +1237,9 @@ const EditProduct = () => {
               <div className="edit-group">
                 <label>Weight Unit</label>
                 <select
-                  value={attributes.weightUnit}
+                  value={details.weightUnit}
                   onChange={(e) =>
-                    setAttributes((prev) => ({
+                    setDetails((prev) => ({
                       ...prev,
                       weightUnit: e.target.value as any,
                     }))
@@ -946,25 +1252,103 @@ const EditProduct = () => {
                 </select>
               </div>
             </div>
+
+            <div className="edit-section-title">Dimensions</div>
+            <div className="edit-row-3">
+              <div className="edit-group">
+                <label>Length</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  placeholder="Length"
+                  value={details.length}
+                  onChange={(e) =>
+                    setDetails((prev) => ({
+                      ...prev,
+                      length: e.target.value,
+                    }))
+                  }
+                />
+              </div>
+
+              <div className="edit-group">
+                <label>Width</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  placeholder="Width"
+                  value={details.width}
+                  onChange={(e) =>
+                    setDetails((prev) => ({
+                      ...prev,
+                      width: e.target.value,
+                    }))
+                  }
+                />
+              </div>
+
+              <div className="edit-group">
+                <label>Height</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  placeholder="Height"
+                  value={details.height}
+                  onChange={(e) =>
+                    setDetails((prev) => ({
+                      ...prev,
+                      height: e.target.value,
+                    }))
+                  }
+                />
+              </div>
+            </div>
+
+            <div className="edit-group" style={{ marginTop: 10 }}>
+              <label>Dimension Unit</label>
+              <select
+                value={details.dimUnit}
+                onChange={(e) =>
+                  setDetails((prev) => ({
+                    ...prev,
+                    dimUnit: e.target.value as any,
+                  }))
+                }
+              >
+                <option value="cm">Centimeters (cm)</option>
+                <option value="mm">Millimeters (mm)</option>
+                <option value="m">Meters (m)</option>
+                <option value="inch">Inches (inch)</option>
+              </select>
+            </div>
           </div>
 
-          {/* Warranty Details */}
+          {/* Warranty & Return Policy */}
           <div className="edit-card">
-            <h3 className="edit-card-title">Warranty Details</h3>
+            <h3 className="edit-card-title">Warranty & Return Policy</h3>
 
-            <label className="edit-toggle" style={{ marginBottom: warranty.available ? 16 : 0 }}>
-              <span>Warranty Available</span>
-              <input
-                type="checkbox"
-                checked={warranty.available}
-                onChange={(e) =>
-                  setWarranty((prev) => ({ ...prev, available: e.target.checked }))
-                }
-              />
-            </label>
+            <div className="edit-section-title">Warranty</div>
+            <div className="edit-group">
+              <label className="edit-checkbox-label">
+                <input
+                  type="checkbox"
+                  checked={warranty.available}
+                  onChange={(e) =>
+                    setWarranty((prev) => ({
+                      ...prev,
+                      available: e.target.checked,
+                    }))
+                  }
+                />
+                Warranty Available
+              </label>
+            </div>
 
             {warranty.available && (
-              <div style={{ display: "flex", flexDirection: "column", gap: 14, marginTop: 12 }}>
+              <>
                 <div className="edit-row">
                   <div className="edit-group">
                     <label>Warranty Type</label>
@@ -977,7 +1361,9 @@ const EditProduct = () => {
                         }))
                       }
                     >
-                      <option value="Manufacturer Warranty">Manufacturer Warranty</option>
+                      <option value="Manufacturer Warranty">
+                        Manufacturer Warranty
+                      </option>
                       <option value="Seller Warranty">Seller Warranty</option>
                       <option value="Brand Warranty">Brand Warranty</option>
                       <option value="No Warranty">No Warranty</option>
@@ -985,42 +1371,44 @@ const EditProduct = () => {
                   </div>
 
                   <div className="edit-group">
-                    <label>Duration & Unit</label>
-                    <div style={{ display: "flex", gap: 6 }}>
-                      <input
-                        type="number"
-                        min="1"
-                        placeholder="e.g. 12"
-                        value={warranty.duration}
-                        onChange={(e) =>
-                          setWarranty((prev) => ({
-                            ...prev,
-                            duration: e.target.value,
-                          }))
-                        }
-                      />
-                      <select
-                        value={warranty.unit}
-                        onChange={(e) =>
-                          setWarranty((prev) => ({
-                            ...prev,
-                            unit: e.target.value as any,
-                          }))
-                        }
-                      >
-                        <option value="days">Days</option>
-                        <option value="months">Months</option>
-                        <option value="years">Years</option>
-                      </select>
-                    </div>
+                    <label>Duration</label>
+                    <input
+                      type="number"
+                      min="0"
+                      placeholder="e.g. 12"
+                      value={warranty.duration}
+                      onChange={(e) =>
+                        setWarranty((prev) => ({
+                          ...prev,
+                          duration: e.target.value,
+                        }))
+                      }
+                    />
+                  </div>
+
+                  <div className="edit-group">
+                    <label>Unit</label>
+                    <select
+                      value={warranty.unit}
+                      onChange={(e) =>
+                        setWarranty((prev) => ({
+                          ...prev,
+                          unit: e.target.value as any,
+                        }))
+                      }
+                    >
+                      <option value="days">Days</option>
+                      <option value="months">Months</option>
+                      <option value="years">Years</option>
+                    </select>
                   </div>
                 </div>
 
                 <div className="edit-group">
-                  <label>Warranty Description & Terms</label>
-                  <textarea
-                    rows={3}
-                    placeholder="Provide details about what is covered under warranty..."
+                  <label>Warranty Description</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. 1 Year Official Brand Warranty"
                     value={warranty.description}
                     onChange={(e) =>
                       setWarranty((prev) => ({
@@ -1030,99 +1418,114 @@ const EditProduct = () => {
                     }
                   />
                 </div>
-              </div>
+
+                <div className="edit-group">
+                  <label>Warranty Terms</label>
+                  <textarea
+                    rows={2}
+                    placeholder="Covers manufacturing defects only..."
+                    value={warranty.terms}
+                    onChange={(e) =>
+                      setWarranty((prev) => ({
+                        ...prev,
+                        terms: e.target.value,
+                      }))
+                    }
+                  />
+                </div>
+              </>
             )}
-          </div>
 
-          {/* Return Policy */}
-          <div className="edit-card">
-            <h3 className="edit-card-title">Return Policy</h3>
-
-            <label className="edit-toggle" style={{ marginBottom: returnPolicy.eligible ? 16 : 0 }}>
-              <span>Eligible for Return / Replacement</span>
-              <input
-                type="checkbox"
-                checked={returnPolicy.eligible}
-                onChange={(e) =>
-                  setReturnPolicy((prev) => ({ ...prev, eligible: e.target.checked }))
-                }
-              />
-            </label>
+            <div className="edit-section-title" style={{ marginTop: 20 }}>
+              Return Policy
+            </div>
+            <div className="edit-group">
+              <label className="edit-checkbox-label">
+                <input
+                  type="checkbox"
+                  checked={returnPolicy.eligible}
+                  onChange={(e) =>
+                    setReturnPolicy((prev) => ({
+                      ...prev,
+                      eligible: e.target.checked,
+                    }))
+                  }
+                />
+                Eligible for Return / Replacement
+              </label>
+            </div>
 
             {returnPolicy.eligible && (
-              <div style={{ display: "flex", flexDirection: "column", gap: 14, marginTop: 12 }}>
+              <>
                 <div className="edit-row">
                   <div className="edit-group">
                     <label>Return Window</label>
-                    <div style={{ display: "flex", gap: 6 }}>
-                      <input
-                        type="number"
-                        min="1"
-                        placeholder="e.g. 7 or 30"
-                        value={returnPolicy.returnWindow}
-                        onChange={(e) =>
-                          setReturnPolicy((prev) => ({
-                            ...prev,
-                            returnWindow: e.target.value,
-                          }))
-                        }
-                      />
-                      <select
-                        value={returnPolicy.returnWindowUnit}
-                        onChange={(e) =>
-                          setReturnPolicy((prev) => ({
-                            ...prev,
-                            returnWindowUnit: e.target.value as any,
-                          }))
-                        }
-                      >
-                        <option value="days">Days</option>
-                        <option value="months">Months</option>
-                      </select>
-                    </div>
+                    <input
+                      type="number"
+                      min="0"
+                      placeholder="e.g. 7"
+                      value={returnPolicy.returnWindow}
+                      onChange={(e) =>
+                        setReturnPolicy((prev) => ({
+                          ...prev,
+                          returnWindow: e.target.value,
+                        }))
+                      }
+                    />
                   </div>
 
                   <div className="edit-group">
-                    <label>Return Options</label>
-                    <div style={{ display: "flex", gap: 18, marginTop: 8 }}>
-                      <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, cursor: "pointer" }}>
-                        <input
-                          type="checkbox"
-                          checked={returnPolicy.refundAvailable}
-                          onChange={(e) =>
-                            setReturnPolicy((prev) => ({
-                              ...prev,
-                              refundAvailable: e.target.checked,
-                            }))
-                          }
-                          style={{ width: 16, height: 16, accentColor: "#2563eb" }}
-                        />
-                        <span>Refund Available</span>
-                      </label>
-
-                      <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, cursor: "pointer" }}>
-                        <input
-                          type="checkbox"
-                          checked={returnPolicy.replacementAvailable}
-                          onChange={(e) =>
-                            setReturnPolicy((prev) => ({
-                              ...prev,
-                              replacementAvailable: e.target.checked,
-                            }))
-                          }
-                          style={{ width: 16, height: 16, accentColor: "#2563eb" }}
-                        />
-                        <span>Replacement Available</span>
-                      </label>
-                    </div>
+                    <label>Unit</label>
+                    <select
+                      value={returnPolicy.returnWindowUnit}
+                      onChange={(e) =>
+                        setReturnPolicy((prev) => ({
+                          ...prev,
+                          returnWindowUnit: e.target.value as any,
+                        }))
+                      }
+                    >
+                      <option value="days">Days</option>
+                      <option value="months">Months</option>
+                    </select>
                   </div>
+                </div>
+
+                <div className="edit-row">
+                  <label className="edit-checkbox-label">
+                    <input
+                      type="checkbox"
+                      checked={returnPolicy.replacementAvailable}
+                      onChange={(e) =>
+                        setReturnPolicy((prev) => ({
+                          ...prev,
+                          replacementAvailable: e.target.checked,
+                        }))
+                      }
+                    />
+                    Replacement Available
+                  </label>
+
+                  <label className="edit-checkbox-label">
+                    <input
+                      type="checkbox"
+                      checked={returnPolicy.refundAvailable}
+                      onChange={(e) =>
+                        setReturnPolicy((prev) => ({
+                          ...prev,
+                          refundAvailable: e.target.checked,
+                        }))
+                      }
+                    />
+                    Refund Available
+                  </label>
                 </div>
 
                 <div className="edit-group">
                   <label>Return Conditions</label>
                   <input
                     type="text"
-                    placeholder="e.g. Unused, in original packaging with all tags intact"
+                    placeholder="e.g. Unused condition with original tags"
                     value={returnPolicy.conditions}
                     onChange={(e) =>
                       setReturnPolicy((prev) => ({
@@ -1134,10 +1537,10 @@ const EditProduct = () => {
                 </div>
 
                 <div className="edit-group">
-                  <label>Policy Description / Instructions</label>
+                  <label>Return Description</label>
                   <textarea
-                    rows={3}
-                    placeholder="Detailed return terms and process for customers..."
+                    rows={2}
+                    placeholder="Brief description of the return policy..."
                     value={returnPolicy.description}
                     onChange={(e) =>
                       setReturnPolicy((prev) => ({
@@ -1147,23 +1550,26 @@ const EditProduct = () => {
                     }
                   />
                 </div>
-              </div>
+              </>
             )}
           </div>
 
           {/* Manufacturer Information */}
           <div className="edit-card">
-            <h3 className="edit-card-title">Manufacturer Information</h3>
+            <h3 className="edit-card-title">Manufacturer Details</h3>
 
             <div className="edit-row">
               <div className="edit-group">
                 <label>Manufacturer Name</label>
                 <input
                   type="text"
-                  placeholder="e.g. Acme Corp"
+                  placeholder="e.g. Sony Electronics Ltd."
                   value={manufacturer.name}
                   onChange={(e) =>
-                    setManufacturer((prev) => ({ ...prev, name: e.target.value }))
+                    setManufacturer((prev) => ({
+                      ...prev,
+                      name: e.target.value,
+                    }))
                   }
                 />
               </div>
@@ -1172,10 +1578,13 @@ const EditProduct = () => {
                 <label>Country of Origin</label>
                 <input
                   type="text"
-                  placeholder="e.g. India"
+                  placeholder="e.g. Japan / India / USA"
                   value={manufacturer.country}
                   onChange={(e) =>
-                    setManufacturer((prev) => ({ ...prev, country: e.target.value }))
+                    setManufacturer((prev) => ({
+                      ...prev,
+                      country: e.target.value,
+                    }))
                   }
                 />
               </div>
@@ -1183,54 +1592,47 @@ const EditProduct = () => {
 
             <div className="edit-row">
               <div className="edit-group">
-                <label>Contact Phone / Hotline</label>
+                <label>Contact Phone</label>
                 <input
                   type="text"
-                  placeholder="Customer support number"
+                  placeholder="+1 (800) 555-0199"
                   value={manufacturer.contact}
                   onChange={(e) =>
-                    setManufacturer((prev) => ({ ...prev, contact: e.target.value }))
+                    setManufacturer((prev) => ({
+                      ...prev,
+                      contact: e.target.value,
+                    }))
                   }
                 />
               </div>
 
               <div className="edit-group">
-                <label>Support Email</label>
+                <label>Contact Email</label>
                 <input
                   type="email"
-                  placeholder="support@company.com"
+                  placeholder="support@manufacturer.com"
                   value={manufacturer.email}
                   onChange={(e) =>
-                    setManufacturer((prev) => ({ ...prev, email: e.target.value }))
+                    setManufacturer((prev) => ({
+                      ...prev,
+                      email: e.target.value,
+                    }))
                   }
                 />
               </div>
-            </div>
-
-            <div className="edit-group">
-              <label>Address</label>
-              <input
-                type="text"
-                placeholder="Full address of manufacturer"
-                value={manufacturer.address}
-                onChange={(e) =>
-                  setManufacturer((prev) => ({ ...prev, address: e.target.value }))
-                }
-              />
             </div>
           </div>
         </div>
 
         {/* Sidebar */}
-        <div className="edit-form-sidebar">
+        <div className="edit-sidebar">
           {/* Classification */}
           <div className="edit-card">
             <h3 className="edit-card-title">Classification</h3>
 
             <div className="edit-group">
-              <label htmlFor="edit-category">Main Category *</label>
+              <label>Category *</label>
               <select
-                id="edit-category"
                 value={category}
                 onChange={(e) => {
                   setCategory(e.target.value);
@@ -1248,11 +1650,8 @@ const EditProduct = () => {
             </div>
 
             <div className="edit-group">
-              <label htmlFor="edit-subcategory">
-                Subcategory {availableSubcategories.length > 0 ? "*" : ""}
-              </label>
+              <label>Subcategory {availableSubcategories.length > 0 ? "*" : ""}</label>
               <select
-                id="edit-subcategory"
                 value={subcategory}
                 onChange={(e) => setSubcategory(e.target.value)}
                 disabled={!category || availableSubcategories.length === 0}
@@ -1274,24 +1673,25 @@ const EditProduct = () => {
             </div>
 
             <div className="edit-group">
-              <label htmlFor="edit-brand">Brand *</label>
+              <label>Brand *</label>
               <input
-                id="edit-brand"
                 type="text"
                 value={brand}
                 onChange={(e) => setBrand(e.target.value)}
+                placeholder="e.g. Sony, Apple, Nike"
                 required
               />
             </div>
           </div>
 
-          {/* Product Images */}
+          {/* Images */}
           <div className="edit-card">
             <h3 className="edit-card-title">Product Images (Max 5)</h3>
 
-            <label className="edit-image-dropzone">
+            <label className="image-dropzone">
               <UploadCloud size={24} />
               <span>Choose Device Files</span>
+              <small>PNG, JPG, WebP up to 5MB each</small>
               <input
                 type="file"
                 accept="image/*"
@@ -1301,69 +1701,82 @@ const EditProduct = () => {
               />
             </label>
 
-            {/* Existing & New Image Grid */}
-            <div className="edit-image-grid" style={{ marginTop: 12 }}>
-              {existingImages.map((img, i) => (
-                <div className="edit-image-item" key={`exist_${i}`}>
-                  <img src={formatImageUrl(img)} alt={`Img ${i}`} />
-                  <button
-                    type="button"
-                    className="edit-image-remove"
-                    onClick={() => removeExistingImage(i)}
-                  >
-                    <X size={12} />
-                  </button>
-                </div>
-              ))}
+            {(existingImages.length > 0 || newImagePreviews.length > 0) && (
+              <div className="image-preview-grid">
+                {existingImages.map((img, i) => (
+                  <div className="image-preview" key={"exist_" + i}>
+                    <img src={formatImageUrl(img)} alt={img.alt || "Product image"} />
+                    {i === 0 && <span className="primary-badge">Primary</span>}
+                    <button
+                      type="button"
+                      className="image-remove-btn"
+                      onClick={() => removeExistingImage(i)}
+                      title="Remove image"
+                    >
+                      <X size={12} />
+                    </button>
+                  </div>
+                ))}
 
-              {newImagePreviews.map((src, i) => (
-                <div className="edit-image-item" key={`new_${i}`}>
-                  <img src={src} alt={`New Img ${i}`} />
-                  <button
-                    type="button"
-                    className="edit-image-remove"
-                    onClick={() => removeNewImage(i)}
-                  >
-                    <X size={12} />
-                  </button>
-                </div>
-              ))}
-            </div>
+                {newImagePreviews.map((src, i) => (
+                  <div className="image-preview" key={"new_" + i}>
+                    <img src={src} alt={"New upload " + (i + 1)} />
+                    {existingImages.length === 0 && i === 0 && (
+                      <span className="primary-badge">Primary</span>
+                    )}
+                    <button
+                      type="button"
+                      className="image-remove-btn"
+                      onClick={() => removeNewImage(i)}
+                      title="Remove image"
+                    >
+                      <X size={12} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
-          {/* Status */}
+          {/* Visibility & Status */}
           <div className="edit-card">
-            <h3 className="edit-card-title">Visibility</h3>
+            <h3 className="edit-card-title">Visibility & Status</h3>
 
-            <label className="edit-toggle">
-              <span>Active in Store</span>
+            <label className="toggle-row">
+              <span>Active (Visible in Store)</span>
               <input
                 type="checkbox"
                 checked={isActive}
                 onChange={(e) => setIsActive(e.target.checked)}
               />
+              <span className="toggle-track">
+                <span className="toggle-thumb" />
+              </span>
             </label>
 
-            <label className="edit-toggle" style={{ marginTop: 8 }}>
+            <label className="toggle-row">
               <span>Featured Product</span>
               <input
                 type="checkbox"
                 checked={isFeatured}
                 onChange={(e) => setIsFeatured(e.target.checked)}
               />
+              <span className="toggle-track">
+                <span className="toggle-thumb" />
+              </span>
             </label>
           </div>
 
           <button
             type="submit"
-            className="btn-save"
+            className="btn-submit"
             disabled={saving}
             style={{ width: "100%" }}
           >
             {saving ? (
               <>
                 <Loader2 size={18} className="spin" />
-                Updating...
+                Saving Changes...
               </>
             ) : (
               "Save Changes"

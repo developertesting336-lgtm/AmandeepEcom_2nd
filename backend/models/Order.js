@@ -30,6 +30,18 @@ const orderSchema = new mongoose.Schema(
                     required: true,
                 },
 
+                variantId: {
+                    type: mongoose.Schema.Types.ObjectId,
+                    default: null,
+                },
+
+                variantAttributes: [
+                    {
+                        name: { type: String },
+                        value: { type: String },
+                    },
+                ],
+
                 quantity: {
                     type: Number,
                     required: true,

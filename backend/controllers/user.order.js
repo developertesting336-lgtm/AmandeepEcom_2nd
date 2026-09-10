@@ -12,13 +12,6 @@ export const cod = async (req, res) => {
     try {
         const { products, address, paymentMode } = req.body;
 
-
-
-        // console.log("userID", req.user._id)
-        // console.log('produsts', products)
-        // console.log('address', address.fullName)
-        // console.log('paymentmode', paymentMode)
-
         if (paymentMode !== "COD") {
             return res.status(400).json({
                 success: false,
@@ -26,124 +19,117 @@ export const cod = async (req, res) => {
             });
         }
 
-
-        if (!products || products.length === 0) {
+        if (!products || !Array.isArray(products) || products.length === 0) {
             return res.status(400).json({
                 success: false,
                 message: "No products found",
             });
         }
 
-
-        const productIds = products.map((item) => item.productId);
-
+        const uniqueProductIds = [
+            ...new Set(products.map((item) => item.productId).filter(Boolean)),
+        ];
 
         const dbProducts = await Product.find({
-            _id: { $in: productIds },
+            _id: { $in: uniqueProductIds },
+            isActive: true,
         });
 
+        const isEveryProductFound = products.every((item) =>
+            dbProducts.some((p) => p._id.toString() === item.productId?.toString())
+        );
 
-        if (dbProducts.length !== products.length) {
+        if (!isEveryProductFound) {
             return res.status(400).json({
                 success: false,
-                message: "One or more products not found",
+                message: "One or more products not found or inactive",
             });
         }
 
-
         let itemsTotal = 0;
-        let purchasePrice = 0
 
         const orderProducts = products.map((item) => {
             const product = dbProducts.find(
-                (p) => p._id.toString() === item.productId
+                (p) => p._id.toString() === item.productId.toString()
             );
 
+            const quantity = Number(item.quantity) || 1;
+            let purchasePrice =
+                product.salePrice && product.salePrice > 0
+                    ? product.salePrice
+                    : product.price;
+            let variantId = null;
+            let variantAttributes = [];
 
+            // If variant product
+            if (product.hasVariants && item.variantId && Array.isArray(product.variants)) {
+                const variant = product.variants.find(
+                    (v) => v._id.toString() === item.variantId.toString()
+                );
+                if (variant) {
+                    variantId = variant._id;
+                    variantAttributes = variant.attributes || [];
+                    purchasePrice =
+                        variant.salePrice && variant.salePrice > 0
+                            ? variant.salePrice
+                            : variant.price;
+                }
+            }
 
-            const quantity = Number(item.quantity);
-
-            const price = product.salePrice ?? product.price;
-
-            purchasePrice = price
-
-            const itemTotal = price * quantity;
-
+            const itemTotal = purchasePrice * quantity;
             itemsTotal += itemTotal;
 
             return {
                 productId: product._id,
+                variantId,
+                variantAttributes,
                 purchasePrice,
                 quantity,
             };
         });
 
-        // console.log("purchasePrice", purchasePrice)
-        // console.log("itemsTotal", itemsTotal)
-
-        let deliveryCharges = 0
-
+        let deliveryCharges = 0;
         if (itemsTotal < 499) {
-
             deliveryCharges = 99;
         }
 
-        // console.log("deliveryCharges", deliveryCharges)
-
-
-
-
-
-
         const orderTotal = itemsTotal + deliveryCharges;
-
-        // console.log("orderTotal", orderTotal)
-
-        // console.log(Date.now())
-
 
         const order = await Order.create({
             orderId: `ORD-${Date.now()}`,
-
-
             user: req.user?._id,
-
             products: orderProducts,
-
             itemsTotal,
             deliveryCharges,
             orderTotal,
-
             shippingAddress: {
-                fullname: address.fullName,
-                phone: address.phone,
-                address: address.addressLine,
-                city: address.city,
-                state: address.state,
-                postalCode: address.pincode,
-                country: "India",
+                fullname: address?.fullName || address?.fullname,
+                phone: address?.phone,
+                address: address?.addressLine || address?.address,
+                city: address?.city,
+                state: address?.state,
+                postalCode: address?.pincode || address?.postalCode,
+                country: address?.country || "India",
             },
-
             paymentStatus: "pending",
             paymentMode: "cod",
             stripeCheckoutSessionId: null,
             stripePaymentIntentId: null,
         });
 
-        const clearcart = await Cart.updateOne(
+        // Clear cart for ordered items
+        await Cart.updateOne(
             { user: req.user._id },
             {
                 $pull: {
                     items: {
                         product: {
-                            $in: products.map((item) => item.productId),
+                            $in: uniqueProductIds,
                         },
                     },
                 },
             }
         );
-
-        console.log(order)
 
         return res.status(201).json({
             success: true,
@@ -152,127 +138,26 @@ export const cod = async (req, res) => {
         });
     } catch (error) {
         console.error("Create COD order error:", error);
-
         return res.status(500).json({
             success: false,
             message: "Failed to create COD order",
             error: error.message,
         });
     }
-}
+};
 
 export const getUserOrders = async (req, res) => {
     try {
         const userId = req.user._id;
 
-        const orders = await Order.aggregate([
-            // 1. Get orders for the user
-            {
-                $match: {
-                    user: new mongoose.Types.ObjectId(userId),
-                },
-            },
-
-            // 2. Get product details
-            {
-                $lookup: {
-                    from: "products",
-                    localField: "products.productId",
-                    foreignField: "_id",
-                    as: "productDetails",
-                },
-            },
-
-            // 3. Combine order product data with current product data
-            {
-                $addFields: {
-                    products: {
-                        $map: {
-                            input: "$products",
-                            as: "orderProduct",
-
-                            in: {
-                                productId: "$$orderProduct.productId",
-
-                                // From Order
-                                quantity: "$$orderProduct.quantity",
-                                purchasePrice: "$$orderProduct.purchasePrice",
-                                itemTotal: "$$orderProduct.itemTotal",
-
-                                // From Product collection
-                                name: {
-                                    $let: {
-                                        vars: {
-                                            product: {
-                                                $arrayElemAt: [
-                                                    {
-                                                        $filter: {
-                                                            input: "$productDetails",
-                                                            as: "product",
-                                                            cond: {
-                                                                $eq: [
-                                                                    "$$product._id",
-                                                                    "$$orderProduct.productId",
-                                                                ],
-                                                            },
-                                                        },
-                                                    },
-                                                    0,
-                                                ],
-                                            },
-                                        },
-
-                                        in: "$$product.name",
-                                    },
-                                },
-
-                                images: {
-                                    $let: {
-                                        vars: {
-                                            product: {
-                                                $arrayElemAt: [
-                                                    {
-                                                        $filter: {
-                                                            input: "$productDetails",
-                                                            as: "product",
-                                                            cond: {
-                                                                $eq: [
-                                                                    "$$product._id",
-                                                                    "$$orderProduct.productId",
-                                                                ],
-                                                            },
-                                                        },
-                                                    },
-                                                    0,
-                                                ],
-                                            },
-                                        },
-
-                                        in: "$$product.images",
-                                    },
-                                },
-                            },
-                        },
-                    },
-                },
-            },
-
-            // 4. Remove temporary productDetails
-            {
-                $project: {
-                    productDetails: 0,
-                },
-            },
-
-            // 5. Latest orders first
-            {
-                $sort: {
-                    createdAt: -1,
-                },
-            },
-        ]);
-
-        // console.log(orders[1].products)
+        const orders = await Order.find({
+            user: userId,
+        })
+            .populate({
+                path: "products.productId",
+                select: "name images price salePrice brand category",
+            })
+            .sort({ createdAt: -1 });
 
         return res.status(200).json({
             success: true,
@@ -281,7 +166,6 @@ export const getUserOrders = async (req, res) => {
         });
     } catch (error) {
         console.error("Get user orders error:", error);
-
         return res.status(500).json({
             success: false,
             message: "Failed to fetch orders",
@@ -291,303 +175,213 @@ export const getUserOrders = async (req, res) => {
 };
 
 export const getOrderById = async (req, res) => {
+    try {
+        const order = await Order.findOne({
+            orderId: req.params.orderId,
+            user: req.user._id,
+        }).populate({
+            path: "products.productId",
+            select: "name images price salePrice brand category",
+        });
 
-    const order = await Order.aggregate([
-        {
-            $match: {
-                orderId: req.params.orderId,
-                user: new mongoose.Types.ObjectId(req.user._id),
-            },
-        },
+        if (!order) {
+            return res.status(404).json({
+                success: false,
+                message: "Order not found",
+            });
+        }
 
-        {
-            $lookup: {
-                from: "products",
-                localField: "products.productId",
-                foreignField: "_id",
-                as: "productDetails",
-            },
-        },
-
-        {
-            $addFields: {
-                products: {
-                    $map: {
-                        input: "$products",
-                        as: "orderProduct",
-
-                        in: {
-                            $let: {
-                                vars: {
-                                    product: {
-                                        $arrayElemAt: [
-                                            {
-                                                $filter: {
-                                                    input: "$productDetails",
-                                                    as: "p",
-                                                    cond: {
-                                                        $eq: [
-                                                            "$$p._id",
-                                                            "$$orderProduct.productId",
-                                                        ],
-                                                    },
-                                                },
-                                            },
-                                            0,
-                                        ],
-                                    },
-                                },
-
-                                in: {
-                                    productId: "$$orderProduct.productId",
-                                    quantity: "$$orderProduct.quantity",
-                                    name: "$$product.name",
-                                    price: "$$product.price",
-                                    salePrice: "$$product.salePrice",
-                                    image: "$$product.image",
-                                },
-                            },
-                        },
-                    },
-                },
-            },
-        },
-
-        {
-            $project: {
-                productDetails: 0,
-            },
-        },
-    ]);
-}
+        return res.status(200).json({
+            success: true,
+            order,
+        });
+    } catch (error) {
+        console.error("Get order by id error:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Failed to fetch order",
+            error: error.message,
+        });
+    }
+};
 
 export const stripePayments = async (req, res) => {
     try {
+        const { products, address } = req.body;
 
-        const { products, address, paymentMode } = req.body;
-
-        // console.log(req.body.paymentMode)
-
-
-
-        if (!products || products.length === 0) {
+        if (!products || !Array.isArray(products) || products.length === 0) {
             return res.status(400).json({
                 success: false,
                 message: "No products found",
             });
         }
 
-
-        const productIds = products.map((item) => item.productId);
-
+        const uniqueProductIds = [
+            ...new Set(products.map((item) => item.productId).filter(Boolean)),
+        ];
 
         const dbProducts = await Product.find({
-            _id: { $in: productIds },
+            _id: { $in: uniqueProductIds },
+            isActive: true,
         });
 
-        // console.log(dbProducts)
+        const isEveryProductFound = products.every((item) =>
+            dbProducts.some((p) => p._id.toString() === item.productId?.toString())
+        );
 
-
-        if (dbProducts.length !== products.length) {
+        if (!isEveryProductFound) {
             return res.status(400).json({
                 success: false,
-                message: "One or more products not found",
+                message: "One or more products not found or inactive",
             });
         }
 
-
         let itemsTotal = 0;
-        let purchasePrice = 0
 
         const orderProducts = products.map((item) => {
             const product = dbProducts.find(
-                (p) => p._id.toString() === item.productId
+                (p) => p._id.toString() === item.productId.toString()
             );
 
+            const quantity = Number(item.quantity) || 1;
+            let purchasePrice =
+                product.salePrice && product.salePrice > 0
+                    ? product.salePrice
+                    : product.price;
+            let variantId = null;
+            let variantAttributes = [];
 
+            // If variant product
+            if (product.hasVariants && item.variantId && Array.isArray(product.variants)) {
+                const variant = product.variants.find(
+                    (v) => v._id.toString() === item.variantId.toString()
+                );
+                if (variant) {
+                    variantId = variant._id;
+                    variantAttributes = variant.attributes || [];
+                    purchasePrice =
+                        variant.salePrice && variant.salePrice > 0
+                            ? variant.salePrice
+                            : variant.price;
+                }
+            }
 
-            const quantity = Number(item.quantity);
-
-            const price = product.salePrice ?? product.price;
-
-            purchasePrice = price
-
-            const itemTotal = price * quantity;
-
+            const itemTotal = purchasePrice * quantity;
             itemsTotal += itemTotal;
 
             return {
                 productId: product._id,
+                variantId,
+                variantAttributes,
                 purchasePrice,
                 quantity,
             };
         });
 
-        // console.log("purchasePrice", purchasePrice)
-        // console.log("itemsTotal", itemsTotal)
-
-        let deliveryCharges = 0
-
+        let deliveryCharges = 0;
         if (itemsTotal < 499) {
-
             deliveryCharges = 99;
         }
 
-        // console.log("deliveryCharges", deliveryCharges)
-
         const orderTotal = itemsTotal + deliveryCharges;
-
-
 
         const order = await Order.create({
             orderId: `ORD-${Date.now()}`,
-
-
             user: req.user?._id,
-
             products: orderProducts,
-
             itemsTotal,
             deliveryCharges,
             orderTotal,
-
             shippingAddress: {
-                fullname: address.fullName,
-                phone: address.phone,
-                address: address.addressLine,
-                city: address.city,
-                state: address.state,
-                postalCode: address.pincode,
-                country: "India",
+                fullname: address?.fullName || address?.fullname,
+                phone: address?.phone,
+                address: address?.addressLine || address?.address,
+                city: address?.city,
+                state: address?.state,
+                postalCode: address?.pincode || address?.postalCode,
+                country: address?.country || "India",
             },
-
             paymentStatus: "pending",
             paymentMode: "online",
             stripeCheckoutSessionId: null,
-
             stripePaymentIntentId: null,
         });
 
         // =========================
         // CREATE STRIPE LINE ITEMS
         // =========================
-
         const lineItems = orderProducts.map((item) => {
             const product = dbProducts.find(
                 (p) => p._id.toString() === item.productId.toString()
             );
 
+            let itemName = product.name;
+            if (item.variantAttributes && item.variantAttributes.length > 0) {
+                const attrText = item.variantAttributes.map((a) => a.value).join(" / ");
+                itemName = `${product.name} (${attrText})`;
+            }
+
             return {
                 price_data: {
                     currency: "inr",
-
                     product_data: {
-                        name: product.name,
+                        name: itemName,
                     },
-
-                    unit_amount: Math.round(
-                        item.purchasePrice * 100
-                    ),
+                    unit_amount: Math.round(item.purchasePrice * 100),
                 },
-
                 quantity: item.quantity,
             };
         });
-
-
 
         // Add delivery charge if required
         if (deliveryCharges > 0) {
             lineItems.push({
                 price_data: {
                     currency: "inr",
-
                     product_data: {
                         name: "Delivery Charges",
                     },
-
-                    unit_amount: Math.round(
-                        deliveryCharges * 100
-                    ),
+                    unit_amount: Math.round(deliveryCharges * 100),
                 },
-
                 quantity: 1,
             });
         }
 
-        // console.log(lineItems)
-
         // =========================
         // CREATE STRIPE SESSION
         // =========================
-
-
-        //         const session = await stripe.checkout.sessions.create({
-        //     mode: "payment",
-
-        //     line_items: [
-        //         {
-        //             price_data: {
-        //                 currency: "inr",
-        //                 product_data: {
-        //                     name: "Test Payment",
-        //                 },
-        //                 unit_amount: 56400,
-        //             },
-        //             quantity: 1,
-        //         },
-        //     ],
-
-        //     success_url: "http://localhost:5173/payment-success",
-        //     cancel_url: "http://localhost:5173/payment-cancelled",
-        // });
-
+        const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
         const session = await stripe.checkout.sessions.create({
             mode: "payment",
-
-            payment_method_types: ["upi", "card"],
-
             line_items: lineItems,
-
-            success_url:
-                `${process.env.FRONTEND_URL}/payment-success`,
-
-            cancel_url:
-                `${process.env.FRONTEND_URL}/payment-cancelled`,
-
+            success_url: `${frontendUrl}/payment-success`,
+            cancel_url: `${frontendUrl}/payment-cancelled`,
             metadata: {
                 orderId: order.orderId,
                 orderMongoId: order._id.toString(),
                 userId: req.user._id.toString(),
             },
         });
-        // console.log(session)
-
-        // =========================
-        // UPDATE ORDER
-        // =========================
 
         order.stripeCheckoutSessionId = session.id;
-
         await order.save();
-
-        // return res.json({ "orderProdcuts": orderProducts, "lineItems": lineItems })
 
         return res.status(201).json({
             success: true,
             message: "Stripe checkout session created",
-
             orderId: order.orderId,
-
             sessionId: session.id,
-
             checkoutUrl: session.url,
         });
+    } catch (error) {
+        console.error("Stripe Payments Error:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Failed to create Stripe payment session",
+            error: error.message,
+        });
     }
-    catch (error) {
-
-    }
-}
+};
 
 
 export const stripeWebhook = async (req, res) => {

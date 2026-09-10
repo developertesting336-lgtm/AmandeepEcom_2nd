@@ -11,6 +11,18 @@ interface Category {
   isActive?: boolean;
 }
 
+export interface VariantAttribute {
+  name: string;
+  value: string;
+}
+
+export interface ProductVariantItem {
+  price: string;
+  salePrice: string;
+  attributes: VariantAttribute[];
+  isActive: boolean;
+}
+
 interface ManufacturerState {
   name: string;
   address: string;
@@ -43,7 +55,7 @@ interface ReturnPolicyState {
   description: string;
 }
 
-interface AttributesState {
+interface DetailsState {
   color: string;
   size: string;
   material: string;
@@ -67,10 +79,12 @@ interface ProductFormState {
   salePrice: string;
   sku: string;
   stock: string;
+  hasVariants: boolean;
+  variants: ProductVariantItem[];
   manufacturer: ManufacturerState;
   warranty: WarrantyState;
   returnPolicy: ReturnPolicyState;
-  attributes: AttributesState;
+  details: DetailsState;
   isFeatured: boolean;
   isActive: boolean;
 }
@@ -87,6 +101,8 @@ const INITIAL_STATE: ProductFormState = {
   salePrice: "",
   sku: "",
   stock: "0",
+  hasVariants: false,
+  variants: [],
   manufacturer: {
     name: "",
     address: "",
@@ -112,7 +128,7 @@ const INITIAL_STATE: ProductFormState = {
     conditions: "",
     description: "",
   },
-  attributes: {
+  details: {
     color: "",
     size: "",
     material: "",
@@ -152,16 +168,16 @@ const AddProduct = () => {
         setLoadingCategories(true);
         setError("");
 
-        const token = localStorage.getItem("token");
+        const storedToken = localStorage.getItem("token") || token;
         const headers: Record<string, string> = {};
-        if (token) {
-          headers["Authorization"] = `Bearer ${token}`;
+        if (storedToken) {
+          headers["Authorization"] = "Bearer " + storedToken;
         }
 
         const categoryEndpoints = [
-          `${API_BASE}/api/admin/categories/all`,
-          `${API_BASE}/api/categories`,
-          `${API_BASE}/api/admin/categories`,
+          API_BASE + "/api/admin/categories/all",
+          API_BASE + "/api/categories",
+          API_BASE + "/api/admin/categories",
         ];
 
         let fetchedList: Category[] = [];
@@ -185,7 +201,7 @@ const AddProduct = () => {
               }
             }
           } catch (err) {
-            console.warn(`Failed fetching categories from ${endpoint}:`, err);
+            console.warn("Failed fetching categories from " + endpoint + ":", err);
           }
         }
 
@@ -201,7 +217,7 @@ const AddProduct = () => {
     };
 
     fetchCategories();
-  }, []);
+  }, [token]);
 
   useEffect(() => {
     return () => {
@@ -229,8 +245,23 @@ const AddProduct = () => {
   });
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    if (!files.length) return;
+    const rawFiles = Array.from(e.target.files || []);
+    if (!rawFiles.length) return;
+
+    const validImageFiles = rawFiles.filter(
+      (file) =>
+        file.type.startsWith("image/") ||
+        /\.(png|jpe?g|webp|gif|svg)$/i.test(file.name)
+    );
+
+    if (validImageFiles.length !== rawFiles.length) {
+      setError("Some selected files were skipped because they are not valid images.");
+    }
+
+    if (!validImageFiles.length) {
+      e.target.value = "";
+      return;
+    }
 
     const remainingSlots = Math.max(0, 5 - images.length);
     if (remainingSlots <= 0) {
@@ -239,7 +270,7 @@ const AddProduct = () => {
       return;
     }
 
-    const filesToUpload = files.slice(0, remainingSlots);
+    const filesToUpload = validImageFiles.slice(0, remainingSlots);
     const newPreviews = filesToUpload.map((file) => URL.createObjectURL(file));
 
     setImages((prev) => [...prev, ...filesToUpload]);
@@ -273,6 +304,98 @@ const AddProduct = () => {
       highlights: prev.highlights.filter((_, i) => i !== index),
     }));
   };
+
+  // ===================================================
+  // VARIANT HANDLERS
+  // ===================================================
+
+  const handleAddVariant = () => {
+    const newVariant: ProductVariantItem = {
+      price: form.price || "",
+      salePrice: form.salePrice || "",
+      attributes: [{ name: "", value: "" }],
+      isActive: true,
+    };
+
+    setForm((prev) => ({
+      ...prev,
+      variants: [...prev.variants, newVariant],
+    }));
+  };
+
+  const handleRemoveVariant = (vIdx: number) => {
+    setForm((prev) => ({
+      ...prev,
+      variants: prev.variants.filter((_, i) => i !== vIdx),
+    }));
+  };
+
+  const handleVariantPriceChange = (
+    vIdx: number,
+    field: "price" | "salePrice",
+    val: string
+  ) => {
+    setForm((prev) => {
+      const updated = [...prev.variants];
+      updated[vIdx] = { ...updated[vIdx], [field]: val };
+      return { ...prev, variants: updated };
+    });
+  };
+
+  const handleVariantActiveToggle = (vIdx: number, checked: boolean) => {
+    setForm((prev) => {
+      const updated = [...prev.variants];
+      updated[vIdx] = { ...updated[vIdx], isActive: checked };
+      return { ...prev, variants: updated };
+    });
+  };
+
+  const handleVariantAttributeChange = (
+    vIdx: number,
+    aIdx: number,
+    field: "name" | "value",
+    val: string
+  ) => {
+    setForm((prev) => {
+      const updatedVariants = [...prev.variants];
+      const updatedAttrs = [...updatedVariants[vIdx].attributes];
+      updatedAttrs[aIdx] = { ...updatedAttrs[aIdx], [field]: val };
+      updatedVariants[vIdx] = {
+        ...updatedVariants[vIdx],
+        attributes: updatedAttrs,
+      };
+      return { ...prev, variants: updatedVariants };
+    });
+  };
+
+  const handleAddAttributeToVariant = (vIdx: number) => {
+    setForm((prev) => {
+      const updatedVariants = [...prev.variants];
+      updatedVariants[vIdx] = {
+        ...updatedVariants[vIdx],
+        attributes: [...updatedVariants[vIdx].attributes, { name: "", value: "" }],
+      };
+      return { ...prev, variants: updatedVariants };
+    });
+  };
+
+  const handleRemoveAttributeFromVariant = (vIdx: number, aIdx: number) => {
+    setForm((prev) => {
+      const updatedVariants = [...prev.variants];
+      const updatedAttrs = updatedVariants[vIdx].attributes.filter(
+        (_, i) => i !== aIdx
+      );
+      updatedVariants[vIdx] = {
+        ...updatedVariants[vIdx],
+        attributes: updatedAttrs.length > 0 ? updatedAttrs : [{ name: "", value: "" }],
+      };
+      return { ...prev, variants: updatedVariants };
+    });
+  };
+
+  // ===================================================
+  // FORM SUBMISSION
+  // ===================================================
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -310,14 +433,11 @@ const AddProduct = () => {
     }
 
     if (!form.price || Number(form.price) < 0) {
-      setError("Valid product price is required.");
+      setError("Valid base product price is required.");
       return;
     }
 
-    if (
-      form.salePrice &&
-      Number(form.salePrice) > Number(form.price)
-    ) {
+    if (form.salePrice && Number(form.salePrice) > Number(form.price)) {
       setError("Sale price cannot be greater than regular price.");
       return;
     }
@@ -327,13 +447,67 @@ const AddProduct = () => {
       return;
     }
 
+    if (images.length === 0) {
+      setError("At least one product image is required.");
+      return;
+    }
+
+    // Validate variants if enabled
+    let cleanedVariantsPayload: any[] = [];
+    if (form.hasVariants) {
+      if (form.variants.length === 0) {
+        setError("Please add at least one variant or uncheck variants.");
+        return;
+      }
+
+      for (let i = 0; i < form.variants.length; i++) {
+        const v = form.variants[i];
+        const vPrice = Number(v.price);
+        if (isNaN(vPrice) || vPrice < 0 || v.price === "") {
+          setError("Variant #" + (i + 1) + " must have a valid price.");
+          return;
+        }
+
+        let vSalePrice = null;
+        if (v.salePrice !== "" && v.salePrice !== undefined && v.salePrice !== null) {
+          vSalePrice = Number(v.salePrice);
+          if (isNaN(vSalePrice) || vSalePrice < 0) {
+            setError("Variant #" + (i + 1) + " has an invalid sale price.");
+            return;
+          }
+          if (vSalePrice > vPrice) {
+            setError("Variant #" + (i + 1) + " sale price cannot exceed regular price.");
+            return;
+          }
+        }
+
+        const validAttrs = v.attributes.filter(
+          (a) => a.name.trim() && a.value.trim()
+        );
+
+        if (validAttrs.length === 0) {
+          setError("Variant #" + (i + 1) + " must have at least one attribute name and value.");
+          return;
+        }
+
+        cleanedVariantsPayload.push({
+          price: vPrice,
+          salePrice: vSalePrice,
+          attributes: validAttrs.map((a) => ({
+            name: a.name.trim(),
+            value: a.value.trim(),
+          })),
+          isActive: v.isActive,
+        });
+      }
+    }
+
     try {
       setSubmitting(true);
 
       const formattedHighlights = form.highlights.filter(
         (h) => h.trim().length > 0
       );
-
 
       const productPayload = {
         name: form.name.trim(),
@@ -347,6 +521,8 @@ const AddProduct = () => {
         salePrice: form.salePrice ? Number(form.salePrice) : null,
         sku: form.sku.trim().toUpperCase(),
         stock: Number(form.stock || 0),
+        hasVariants: form.hasVariants,
+        variants: cleanedVariantsPayload,
         manufacturer: {
           name: form.manufacturer.name.trim(),
           address: form.manufacturer.address.trim(),
@@ -376,32 +552,30 @@ const AddProduct = () => {
           conditions: form.returnPolicy.conditions.trim(),
           description: form.returnPolicy.description.trim(),
         },
-        attributes: {
-          color: form.attributes.color.trim(),
-          size: form.attributes.size.trim(),
-          material: form.attributes.material.trim(),
+        details: {
+          size: form.details.size.trim(),
+          material: form.details.material.trim(),
           weight: {
-            value: form.attributes.weightValue
-              ? Number(form.attributes.weightValue)
+            value: form.details.weightValue
+              ? Number(form.details.weightValue)
               : null,
-            unit: form.attributes.weightUnit,
+            unit: form.details.weightUnit,
           },
           dimensions: {
-            length: form.attributes.length
-              ? Number(form.attributes.length)
+            length: form.details.length
+              ? Number(form.details.length)
               : null,
-            width: form.attributes.width ? Number(form.attributes.width) : null,
-            height: form.attributes.height
-              ? Number(form.attributes.height)
+            width: form.details.width ? Number(form.details.width) : null,
+            height: form.details.height
+              ? Number(form.details.height)
               : null,
-            unit: form.attributes.dimUnit,
+            unit: form.details.dimUnit,
           },
         },
         isFeatured: form.isFeatured,
         isActive: form.isActive,
       };
 
-      // Construct FormData for multipart/form-data request (req.files)
       const formData = new FormData();
       formData.append("name", form.name.trim());
       formData.append("short_description", form.short_description.trim());
@@ -418,6 +592,11 @@ const AddProduct = () => {
       formData.append("isFeatured", String(form.isFeatured));
       formData.append("isActive", String(form.isActive));
 
+      formData.append("hasVariants", String(form.hasVariants));
+      if (form.hasVariants) {
+        formData.append("variants", JSON.stringify(cleanedVariantsPayload));
+      }
+
       formData.append("highlights", JSON.stringify(formattedHighlights));
       formData.append("manufacturer", JSON.stringify(productPayload.manufacturer));
       if (form.warranty.available) {
@@ -426,33 +605,21 @@ const AddProduct = () => {
       if (form.returnPolicy.eligible) {
         formData.append("returnPolicy", JSON.stringify(productPayload.returnPolicy));
       }
-      formData.append("attributes", JSON.stringify(productPayload.attributes));
+      formData.append("details", JSON.stringify(productPayload.details));
 
-      // Append each raw file to "images" field so Express multer parses req.files
       images.forEach((file) => {
         formData.append("images", file);
       });
 
-      let res = await fetch(`${API_BASE}/api/admin/add/product`, {
+      const authToken = localStorage.getItem("token") || token;
+      const res = await fetch(API_BASE + "/api/admin/add/product", {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${token}`,
+          Authorization: "Bearer " + authToken,
         },
         credentials: "include",
         body: formData,
       });
-
-      // Fallback try to /api/admin/add/products
-      if (!res.ok) {
-        res = await fetch(`${API_BASE}/api/admin/add/product`, {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-          credentials: "include",
-          body: formData,
-        });
-      }
 
       const data = await res.json();
 
@@ -476,8 +643,6 @@ const AddProduct = () => {
     } finally {
       setSubmitting(false);
     }
-
-    console.log(images)
   };
 
   return (
@@ -570,7 +735,7 @@ const AddProduct = () => {
               <div key={index} className="highlight-input-row">
                 <input
                   type="text"
-                  placeholder={`Highlight bullet #${index + 1}...`}
+                  placeholder={"Highlight bullet #" + (index + 1) + "..."}
                   value={item}
                   onChange={(e) =>
                     handleHighlightChange(index, e.target.value)
@@ -602,7 +767,9 @@ const AddProduct = () => {
 
             <div className="form-row">
               <div className="form-group">
-                <label htmlFor="price">Regular Price (₹) *</label>
+                <label htmlFor="price">
+                  {form.hasVariants ? "Base Price (₹) *" : "Regular Price (₹) *"}
+                </label>
                 <input
                   id="price"
                   type="number"
@@ -618,7 +785,9 @@ const AddProduct = () => {
               </div>
 
               <div className="form-group">
-                <label htmlFor="salePrice">Sale Price (₹)</label>
+                <label htmlFor="salePrice">
+                  {form.hasVariants ? "Base Sale Price (₹)" : "Sale Price (₹)"}
+                </label>
                 <input
                   id="salePrice"
                   type="number"
@@ -652,7 +821,7 @@ const AddProduct = () => {
               </div>
 
               <div className="form-group">
-                <label htmlFor="stock">Stock Quantity *</label>
+                <label htmlFor="stock">Total Stock Quantity *</label>
                 <input
                   id="stock"
                   type="number"
@@ -667,40 +836,193 @@ const AddProduct = () => {
             </div>
           </div>
 
-          {/* Product Attributes */}
+          {/* Product Variants */}
           <div className="form-card">
-            <h2 className="form-card-title">Product Attributes</h2>
+            <h2 className="form-card-title">Product Variants</h2>
 
-            <div className="form-row-3">
-              <div className="form-group">
-                <label>Color</label>
+            <div className="form-group">
+              <label className="form-checkbox-label">
                 <input
-                  type="text"
-                  placeholder="e.g. Matte Black"
-                  value={form.attributes.color}
+                  type="checkbox"
+                  checked={form.hasVariants}
                   onChange={(e) =>
                     setForm((prev) => ({
                       ...prev,
-                      attributes: {
-                        ...prev.attributes,
-                        color: e.target.value,
-                      },
+                      hasVariants: e.target.checked,
+                      variants:
+                        e.target.checked && prev.variants.length === 0
+                          ? [
+                              {
+                                price: prev.price || "",
+                                salePrice: prev.salePrice || "",
+                                attributes: [{ name: "", value: "" }],
+                                isActive: true,
+                              },
+                            ]
+                          : prev.variants,
                     }))
                   }
                 />
-              </div>
+                This product has variants (attribute-based pricing)
+              </label>
+            </div>
 
+            {form.hasVariants && (
+              <div className="variants-container">
+                {form.variants.map((variant, vIdx) => (
+                  <div key={vIdx} className="variant-card-box">
+                    <div className="variant-card-topbar">
+                      <span className="variant-number-label">
+                        Variant #{vIdx + 1}
+                      </span>
+                      <div className="variant-topbar-right">
+                        <label className="form-checkbox-label" style={{ fontSize: "13px" }}>
+                          <input
+                            type="checkbox"
+                            checked={variant.isActive}
+                            onChange={(e) =>
+                              handleVariantActiveToggle(vIdx, e.target.checked)
+                            }
+                          />
+                          Active
+                        </label>
+                        <button
+                          type="button"
+                          className="btn-clear-variant"
+                          onClick={() => handleRemoveVariant(vIdx)}
+                          title="Remove variant"
+                        >
+                          <X size={16} />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Variant Attributes */}
+                    <div className="variant-attributes-block">
+                      <label className="variant-subheading">Attributes</label>
+                      {variant.attributes.map((attr, aIdx) => (
+                        <div key={aIdx} className="variant-attr-input-line">
+                          <input
+                            type="text"
+                            placeholder="Attribute (e.g. Storage, Color)"
+                            value={attr.name}
+                            onChange={(e) =>
+                              handleVariantAttributeChange(
+                                vIdx,
+                                aIdx,
+                                "name",
+                                e.target.value
+                              )
+                            }
+                            required
+                          />
+                          <input
+                            type="text"
+                            placeholder="Value (e.g. 256 GB, Red)"
+                            value={attr.value}
+                            onChange={(e) =>
+                              handleVariantAttributeChange(
+                                vIdx,
+                                aIdx,
+                                "value",
+                                e.target.value
+                              )
+                            }
+                            required
+                          />
+                          {variant.attributes.length > 1 && (
+                            <button
+                              type="button"
+                              className="btn-clear-attr"
+                              onClick={() =>
+                                handleRemoveAttributeFromVariant(vIdx, aIdx)
+                              }
+                              title="Remove attribute"
+                            >
+                              <X size={14} />
+                            </button>
+                          )}
+                        </div>
+                      ))}
+
+                      <button
+                        type="button"
+                        className="btn-add-attr-link"
+                        onClick={() => handleAddAttributeToVariant(vIdx)}
+                      >
+                        <Plus size={13} /> Add another attribute to this variant
+                      </button>
+                    </div>
+
+                    {/* Variant Pricing */}
+                    <div className="form-row" style={{ marginTop: 10 }}>
+                      <div className="form-group">
+                        <label>Variant Price (₹) *</label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          placeholder="0.00"
+                          value={variant.price}
+                          onChange={(e) =>
+                            handleVariantPriceChange(
+                              vIdx,
+                              "price",
+                              e.target.value
+                            )
+                          }
+                          required
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label>Variant Sale Price (₹)</label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          placeholder="Leave empty if none"
+                          value={variant.salePrice}
+                          onChange={(e) =>
+                            handleVariantPriceChange(
+                              vIdx,
+                              "salePrice",
+                              e.target.value
+                            )
+                          }
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+
+                <button
+                  type="button"
+                  className="btn-add-highlight"
+                  onClick={handleAddVariant}
+                  style={{ marginTop: 8 }}
+                >
+                  <Plus size={14} /> Add Variant
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Product details (Physical Specifications) */}
+          <div className="form-card">
+            <h2 className="form-card-title">Product details</h2>
+
+            <div className="form-row-3">
               <div className="form-group">
                 <label>Size</label>
                 <input
                   type="text"
-                  placeholder="e.g. Medium / XL / 10"
-                  value={form.attributes.size}
+                  placeholder="e.g. Medium / XL / 6.1 inch"
+                  value={form.details.size}
                   onChange={(e) =>
                     setForm((prev) => ({
                       ...prev,
-                      attributes: {
-                        ...prev.attributes,
+                      details: {
+                        ...prev.details,
                         size: e.target.value,
                       },
                     }))
@@ -712,13 +1034,13 @@ const AddProduct = () => {
                 <label>Material</label>
                 <input
                   type="text"
-                  placeholder="e.g. Aluminum / Leather"
-                  value={form.attributes.material}
+                  placeholder="e.g. Aluminum / Titanium / Leather"
+                  value={form.details.material}
                   onChange={(e) =>
                     setForm((prev) => ({
                       ...prev,
-                      attributes: {
-                        ...prev.attributes,
+                      details: {
+                        ...prev.details,
                         material: e.target.value,
                       },
                     }))
@@ -736,12 +1058,12 @@ const AddProduct = () => {
                   step="0.01"
                   min="0"
                   placeholder="e.g. 250"
-                  value={form.attributes.weightValue}
+                  value={form.details.weightValue}
                   onChange={(e) =>
                     setForm((prev) => ({
                       ...prev,
-                      attributes: {
-                        ...prev.attributes,
+                      details: {
+                        ...prev.details,
                         weightValue: e.target.value,
                       },
                     }))
@@ -752,12 +1074,12 @@ const AddProduct = () => {
               <div className="form-group">
                 <label>Weight Unit</label>
                 <select
-                  value={form.attributes.weightUnit}
+                  value={form.details.weightUnit}
                   onChange={(e) =>
                     setForm((prev) => ({
                       ...prev,
-                      attributes: {
-                        ...prev.attributes,
+                      details: {
+                        ...prev.details,
                         weightUnit: e.target.value as any,
                       },
                     }))
@@ -780,12 +1102,12 @@ const AddProduct = () => {
                   step="0.01"
                   min="0"
                   placeholder="Length"
-                  value={form.attributes.length}
+                  value={form.details.length}
                   onChange={(e) =>
                     setForm((prev) => ({
                       ...prev,
-                      attributes: {
-                        ...prev.attributes,
+                      details: {
+                        ...prev.details,
                         length: e.target.value,
                       },
                     }))
@@ -800,12 +1122,12 @@ const AddProduct = () => {
                   step="0.01"
                   min="0"
                   placeholder="Width"
-                  value={form.attributes.width}
+                  value={form.details.width}
                   onChange={(e) =>
                     setForm((prev) => ({
                       ...prev,
-                      attributes: {
-                        ...prev.attributes,
+                      details: {
+                        ...prev.details,
                         width: e.target.value,
                       },
                     }))
@@ -820,12 +1142,12 @@ const AddProduct = () => {
                   step="0.01"
                   min="0"
                   placeholder="Height"
-                  value={form.attributes.height}
+                  value={form.details.height}
                   onChange={(e) =>
                     setForm((prev) => ({
                       ...prev,
-                      attributes: {
-                        ...prev.attributes,
+                      details: {
+                        ...prev.details,
                         height: e.target.value,
                       },
                     }))
@@ -837,12 +1159,12 @@ const AddProduct = () => {
             <div className="form-group" style={{ marginTop: 10 }}>
               <label>Dimension Unit</label>
               <select
-                value={form.attributes.dimUnit}
+                value={form.details.dimUnit}
                 onChange={(e) =>
                   setForm((prev) => ({
                     ...prev,
-                    attributes: {
-                      ...prev.attributes,
+                    details: {
+                      ...prev.details,
                       dimUnit: e.target.value as any,
                     },
                   }))
@@ -906,53 +1228,51 @@ const AddProduct = () => {
                     </select>
                   </div>
 
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label>Duration</label>
-                      <input
-                        type="number"
-                        min="0"
-                        placeholder="e.g. 12"
-                        value={form.warranty.duration}
-                        onChange={(e) =>
-                          setForm((prev) => ({
-                            ...prev,
-                            warranty: {
-                              ...prev.warranty,
-                              duration: e.target.value,
-                            },
-                          }))
-                        }
-                      />
-                    </div>
+                  <div className="form-group">
+                    <label>Duration</label>
+                    <input
+                      type="number"
+                      min="0"
+                      placeholder="e.g. 12"
+                      value={form.warranty.duration}
+                      onChange={(e) =>
+                        setForm((prev) => ({
+                          ...prev,
+                          warranty: {
+                            ...prev.warranty,
+                            duration: e.target.value,
+                          },
+                        }))
+                      }
+                    />
+                  </div>
 
-                    <div className="form-group">
-                      <label>Unit</label>
-                      <select
-                        value={form.warranty.unit}
-                        onChange={(e) =>
-                          setForm((prev) => ({
-                            ...prev,
-                            warranty: {
-                              ...prev.warranty,
-                              unit: e.target.value as any,
-                            },
-                          }))
-                        }
-                      >
-                        <option value="days">Days</option>
-                        <option value="months">Months</option>
-                        <option value="years">Years</option>
-                      </select>
-                    </div>
+                  <div className="form-group">
+                    <label>Unit</label>
+                    <select
+                      value={form.warranty.unit}
+                      onChange={(e) =>
+                        setForm((prev) => ({
+                          ...prev,
+                          warranty: {
+                            ...prev.warranty,
+                            unit: e.target.value as any,
+                          },
+                        }))
+                      }
+                    >
+                      <option value="days">Days</option>
+                      <option value="months">Months</option>
+                      <option value="years">Years</option>
+                    </select>
                   </div>
                 </div>
 
                 <div className="form-group">
-                  <label>Warranty Description & Terms</label>
+                  <label>Warranty Description</label>
                   <input
                     type="text"
-                    placeholder="Short summary of what warranty covers..."
+                    placeholder="e.g. 1 Year Brand Warranty"
                     value={form.warranty.description}
                     onChange={(e) =>
                       setForm((prev) => ({
@@ -960,6 +1280,24 @@ const AddProduct = () => {
                         warranty: {
                           ...prev.warranty,
                           description: e.target.value,
+                        },
+                      }))
+                    }
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Warranty Terms</label>
+                  <textarea
+                    rows={2}
+                    placeholder="Covers manufacturing defects only..."
+                    value={form.warranty.terms}
+                    onChange={(e) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        warranty: {
+                          ...prev.warranty,
+                          terms: e.target.value,
                         },
                       }))
                     }
@@ -986,7 +1324,7 @@ const AddProduct = () => {
                     }))
                   }
                 />
-                Eligible for Returns
+                Eligible for Return / Replacement
               </label>
             </div>
 
@@ -998,7 +1336,7 @@ const AddProduct = () => {
                     <input
                       type="number"
                       min="0"
-                      placeholder="e.g. 7 or 14"
+                      placeholder="e.g. 7"
                       value={form.returnPolicy.returnWindow}
                       onChange={(e) =>
                         setForm((prev) => ({
@@ -1013,7 +1351,7 @@ const AddProduct = () => {
                   </div>
 
                   <div className="form-group">
-                    <label>Return Unit</label>
+                    <label>Unit</label>
                     <select
                       value={form.returnPolicy.returnWindowUnit}
                       onChange={(e) =>
@@ -1067,11 +1405,47 @@ const AddProduct = () => {
                     Refund Available
                   </label>
                 </div>
+
+                <div className="form-group">
+                  <label>Return Conditions</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Product must be in unused condition with all tags attached"
+                    value={form.returnPolicy.conditions}
+                    onChange={(e) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        returnPolicy: {
+                          ...prev.returnPolicy,
+                          conditions: e.target.value,
+                        },
+                      }))
+                    }
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Return Description</label>
+                  <textarea
+                    rows={2}
+                    placeholder="Brief description of the return policy..."
+                    value={form.returnPolicy.description}
+                    onChange={(e) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        returnPolicy: {
+                          ...prev.returnPolicy,
+                          description: e.target.value,
+                        },
+                      }))
+                    }
+                  />
+                </div>
               </>
             )}
           </div>
 
-          {/* Manufacturer Details */}
+          {/* Manufacturer Information */}
           <div className="form-card">
             <h2 className="form-card-title">Manufacturer Details</h2>
 
@@ -1080,7 +1454,7 @@ const AddProduct = () => {
                 <label>Manufacturer Name</label>
                 <input
                   type="text"
-                  placeholder="e.g. Sony Corporation"
+                  placeholder="e.g. Sony Electronics Ltd."
                   value={form.manufacturer.name}
                   onChange={(e) =>
                     setForm((prev) => ({
@@ -1098,7 +1472,7 @@ const AddProduct = () => {
                 <label>Country of Origin</label>
                 <input
                   type="text"
-                  placeholder="e.g. Japan"
+                  placeholder="e.g. Japan / India / USA"
                   value={form.manufacturer.country}
                   onChange={(e) =>
                     setForm((prev) => ({
@@ -1239,7 +1613,7 @@ const AddProduct = () => {
             <label className="image-dropzone">
               <UploadCloud size={24} />
               <span>Choose Device Files</span>
-              <small>PNG, JPG up to 5MB each</small>
+              <small>PNG, JPG, WebP up to 5MB each</small>
               <input
                 type="file"
                 accept="image/*"
@@ -1253,8 +1627,8 @@ const AddProduct = () => {
             {previews.length > 0 && (
               <div className="image-preview-grid">
                 {previews.map((src, i) => (
-                  <div className="image-preview" key={`file_${i}`}>
-                    <img src={src} alt={`File ${i}`} />
+                  <div className="image-preview" key={"file_" + i}>
+                    <img src={src} alt={"File " + i} />
                     {i === 0 && <span className="primary-badge">Primary</span>}
                     <button
                       type="button"

@@ -9,11 +9,6 @@ import { getCategories, addCategory, deleteCategory, updateCategory } from "../c
 
 const router = express.Router();
 
-
-
-
-
-
 router.post(
   "/add/product",
   protect,

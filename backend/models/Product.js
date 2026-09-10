@@ -257,12 +257,7 @@ const productSchema = new mongoose.Schema(
     // PRODUCT ATTRIBUTES
     // =========================
 
-    attributes: {
-      color: {
-        type: String,
-        trim: true,
-        default: "",
-      },
+    details: {
 
       size: {
         type: String,
@@ -290,6 +285,7 @@ const productSchema = new mongoose.Schema(
         },
       },
 
+
       dimensions: {
         length: {
           type: Number,
@@ -316,6 +312,52 @@ const productSchema = new mongoose.Schema(
         },
       },
     },
+
+    // =========================
+    // VARIANTS & ATTRIBUTE PRICING
+    // =========================
+
+    hasVariants: {
+      type: Boolean,
+      default: false,
+    },
+
+    variants: [
+      {
+        price: {
+          type: Number,
+          required: [true, "Variant price is required"],
+          min: [0, "Variant price cannot be negative"],
+        },
+
+        salePrice: {
+          type: Number,
+          default: null,
+          min: [0, "Variant sale price cannot be negative"],
+        },
+
+        attributes: [
+          {
+            name: {
+              type: String,
+              required: true,
+              trim: true,
+            },
+
+            value: {
+              type: String,
+              required: true,
+              trim: true,
+            },
+          },
+        ],
+
+        isActive: {
+          type: Boolean,
+          default: true,
+        },
+      },
+    ],
 
     // =========================
     // PRODUCT IMAGES

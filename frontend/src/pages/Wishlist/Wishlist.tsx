@@ -18,6 +18,7 @@ import {
   Tag,
 } from "lucide-react";
 import productFallback from "../../assets/electronic.png";
+import VariantSelectionModal from "../../components/common/VariantSelectionModal/VariantSelectionModal";
 import "./Wishlist.css";
 
 const formatImageUrl = (images?: any): string => {
@@ -48,6 +49,8 @@ const Wishlist = () => {
   const [removingId, setRemovingId] = useState<string | null>(null);
   const [addingCartId, setAddingCartId] = useState<string | null>(null);
   const [addedCartSuccessId, setAddedCartSuccessId] = useState<string | null>(null);
+  const [variantModalProduct, setVariantModalProduct] = useState<any | null>(null);
+  const [isVariantModalOpen, setIsVariantModalOpen] = useState<boolean>(false);
 
   const fetchWishlistData = async () => {
     if (!isAuthenticated) {
@@ -98,6 +101,12 @@ const Wishlist = () => {
     e.preventDefault();
     e.stopPropagation();
 
+    if ((product as any).hasVariants || (Array.isArray((product as any).variants) && (product as any).variants.length > 0)) {
+      setVariantModalProduct(product);
+      setIsVariantModalOpen(true);
+      return;
+    }
+
     try {
       setAddingCartId(product._id);
       const success = await addToCart(product._id, 1);
@@ -106,7 +115,7 @@ const Wishlist = () => {
         setTimeout(() => {
           setAddedCartSuccessId(null);
         }, 2000);
-        navigate('/cart')
+        navigate('/cart');
       }
     } catch (err) {
       console.error("Add to cart error:", err);
@@ -352,6 +361,20 @@ const Wishlist = () => {
           </div>
         )}
       </div>
+
+      {variantModalProduct && (
+        <VariantSelectionModal
+          isOpen={isVariantModalOpen}
+          onClose={() => {
+            setIsVariantModalOpen(false);
+            setVariantModalProduct(null);
+          }}
+          product={variantModalProduct}
+          onSuccess={() => {
+            navigate('/cart');
+          }}
+        />
+      )}
     </main>
   );
 };

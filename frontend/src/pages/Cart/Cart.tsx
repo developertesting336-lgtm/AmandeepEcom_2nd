@@ -1,17 +1,26 @@
-import { useNavigate, Link } from "react-router-dom";
-import { ShoppingCart, Trash2, ArrowRight, ArrowLeft, Plus, Minus } from "lucide-react";
+import { useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import {
+  Trash2,
+  Plus,
+  Minus,
+  ArrowRight,
+  ArrowLeft,
+  ShoppingCart,
+} from "lucide-react";
 import { useCart } from "../../context/cartContext";
-import { useEffect } from 'react'
-// import { useAuth } from "../../context/authContext";
-// import toast from "react-hot-toast";
-
 import Footer from "../Home/footersection";
 import product1 from "../../assets/1.jpeg";
 import "./Cart.css";
 
-const formatImageUrl = (image?: any, fallback: string = product1) => {
-  if (!image) return fallback;
-  const rawUrl = typeof image === "string" ? image : image.url;
+const formatImageUrl = (path?: any, fallback: string = product1) => {
+  if (!path) return fallback;
+  let rawUrl = "";
+  if (typeof path === "string") {
+    rawUrl = path;
+  } else if (typeof path === "object" && path !== null) {
+    rawUrl = path.url || (path as any).secure_url || (path as any).path || "";
+  }
   if (!rawUrl) return fallback;
   if (rawUrl.startsWith("http://") || rawUrl.startsWith("https://")) {
     return rawUrl;
@@ -25,7 +34,6 @@ const formatImageUrl = (image?: any, fallback: string = product1) => {
 const Cart = () => {
   const navigate = useNavigate();
 
-  // const { isAuthenticated } = useAuth();
   const { cartItems, totalItems, subtotal, loading, updateQuantity, removeFromCart, fetchCart } = useCart();
 
   const isFreeShipping = subtotal >= 499;
@@ -33,9 +41,7 @@ const Cart = () => {
   const grandTotal = subtotal + shippingFee;
 
   useEffect(() => {
-
     fetchCart();
-
   }, []);
 
   if (loading && cartItems.length === 0) {
@@ -109,13 +115,20 @@ const Cart = () => {
                 {cartItems.map((item) => {
                   const prod = item.product;
                   if (!prod) return null;
-                  const itemPrice = item.price || (prod.salePrice && prod.salePrice < prod.price ? prod.salePrice : prod.price);
-                  const itemTotal = itemPrice * item.quantity;
+
+                  const itemPrice = item.price ?? (prod.salePrice && prod.salePrice < prod.price ? prod.salePrice : prod.price);
+                  const itemTotal = item.lineTotal ?? (itemPrice * item.quantity);
                   const imgUrl = formatImageUrl(prod.images?.[0], product1);
                   const catName = typeof prod.category === "object" ? prod.category?.name || "General" : prod.category || "General";
 
+                  const variantSummary = item.variant?.attributes && item.variant.attributes.length > 0
+                    ? item.variant.attributes.map((a) => `${a.name}: ${a.value}`).join(" • ")
+                    : null;
+
+                  const rowKey = item._id || (item.variantId ? `${prod._id}_${item.variantId}` : prod._id);
+
                   return (
-                    <tr key={prod._id || item._id} className="cart-item-row">
+                    <tr key={rowKey} className="cart-item-row">
                       <td className="cart-cell-product">
                         <div className="cart-product-cell">
                           <div className="cart-product-image">
@@ -128,6 +141,11 @@ const Cart = () => {
                             >
                               {prod.name}
                             </h3>
+                            {variantSummary && (
+                              <div className="cart-product-variant-badge">
+                                {variantSummary}
+                              </div>
+                            )}
                             <span className="cart-product-category">{catName}</span>
                             <span className="cart-mobile-price">₹{itemPrice.toLocaleString("en-IN")}</span>
                           </div>
@@ -143,7 +161,7 @@ const Cart = () => {
                           <button
                             type="button"
                             className="cart-qty-btn"
-                            onClick={() => updateQuantity(prod._id, item.quantity - 1)}
+                            onClick={() => updateQuantity(prod._id, item.quantity - 1, item.variantId)}
                             title="Decrease quantity"
                             aria-label="Decrease quantity"
                           >
@@ -153,7 +171,7 @@ const Cart = () => {
                           <button
                             type="button"
                             className="cart-qty-btn"
-                            onClick={() => updateQuantity(prod._id, item.quantity + 1)}
+                            onClick={() => updateQuantity(prod._id, item.quantity + 1, item.variantId)}
                             title="Increase quantity"
                             aria-label="Increase quantity"
                           >
@@ -171,7 +189,7 @@ const Cart = () => {
                         <button
                           type="button"
                           className="cart-remove-btn"
-                          onClick={() => removeFromCart(prod._id)}
+                          onClick={() => removeFromCart(prod._id, item.variantId)}
                           title="Remove item"
                           aria-label="Remove item"
                         >

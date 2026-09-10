@@ -16,6 +16,7 @@ import { useCart } from "../../context/cartContext";
 import { useAuth } from "../../context/authContext";
 import toast from "react-hot-toast";
 import Footer from "../Home/footersection";
+import VariantSelectionModal, { isProductWithVariants } from "../../components/common/VariantSelectionModal/VariantSelectionModal";
 import "./UserProducts.css";
 
 // =====================================================
@@ -45,6 +46,8 @@ interface Product {
   brand: string;
   images: ProductImageItem[];
   isFeatured: boolean;
+  hasVariants?: boolean;
+  variants?: any[];
 }
 
 // =====================================================
@@ -154,6 +157,10 @@ const UserProducts = () => {
   // Mobile Bottom Sheet Modal State
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
   const [mobileTab, setMobileTab] = useState<"filter" | "sort">("filter");
+
+  // Variant Selector Modal State
+  const [variantModalProduct, setVariantModalProduct] = useState<Product | null>(null);
+  const [isVariantModalOpen, setIsVariantModalOpen] = useState(false);
 
   // Sync Search, Category, and Brand from URL query parameters
   useEffect(() => {
@@ -405,13 +412,21 @@ const UserProducts = () => {
       return;
     }
 
-    // const toastId = toast.loading(`Adding "${product.name}" to cart...`);
+    if (isProductWithVariants(product)) {
+      setVariantModalProduct(product);
+      setIsVariantModalOpen(true);
+      return;
+    }
+
     try {
-      toast.success(`"${product.name}" added to cart!`);
-      const success = await addToCart(product._id, 1);
-      if (success) {
-      } else {
-        toast.error("Failed to add product to cart");
+      const res = await addToCart(product._id, 1);
+      if (res.requiresVariant) {
+        setVariantModalProduct(product);
+        setIsVariantModalOpen(true);
+        return;
+      }
+      if (res.success) {
+        toast.success(`"${product.name}" added to cart!`);
       }
     } catch (error: any) {
       toast.error("Failed to add product to cart");
@@ -831,6 +846,17 @@ const UserProducts = () => {
             </button>
           </div>
         </div>
+      )}
+
+      {variantModalProduct && (
+        <VariantSelectionModal
+          isOpen={isVariantModalOpen}
+          onClose={() => {
+            setIsVariantModalOpen(false);
+            setVariantModalProduct(null);
+          }}
+          product={variantModalProduct}
+        />
       )}
 
       <Footer />

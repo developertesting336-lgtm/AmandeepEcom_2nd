@@ -9,6 +9,7 @@ import { useCart } from "../../context/cartContext";
 import { useAuth } from "../../context/authContext";
 import toast from "react-hot-toast";
 import productFallback from "../../assets/1.jpeg";
+import VariantSelectionModal, { isProductWithVariants } from "../../components/common/VariantSelectionModal/VariantSelectionModal";
 import "./SimilarProducts.css";
 
 interface Product {
@@ -23,6 +24,8 @@ interface Product {
   rating?: number;
   numReviews?: number;
   isFeatured?: boolean;
+  hasVariants?: boolean;
+  variants?: any[];
 }
 
 interface SimilarProductsProps {
@@ -58,6 +61,8 @@ const SimilarProducts = ({ productId }: SimilarProductsProps) => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [wishlist, setWishlist] = useState<Record<string, boolean>>({});
+  const [variantModalProduct, setVariantModalProduct] = useState<Product | null>(null);
+  const [isVariantModalOpen, setIsVariantModalOpen] = useState(false);
 
   const parseProductsResponse = (result: any): Product[] => {
     if (!result) return [];
@@ -224,11 +229,21 @@ const SimilarProducts = ({ productId }: SimilarProductsProps) => {
       return;
     }
 
+    if (isProductWithVariants(prod)) {
+      setVariantModalProduct(prod);
+      setIsVariantModalOpen(true);
+      return;
+    }
+
     try {
-      toast.success(`"${prod.name}" added to cart!`);
-      const success = await addToCart(prod._id, 1);
-      if (!success) {
-        toast.error("Failed to add product to cart");
+      const res = await addToCart(prod._id, 1);
+      if (res.requiresVariant) {
+        setVariantModalProduct(prod);
+        setIsVariantModalOpen(true);
+        return;
+      }
+      if (res.success) {
+        toast.success(`"${prod.name}" added to cart!`);
       }
     } catch (error: any) {
       toast.error("Failed to add product to cart");
@@ -378,6 +393,17 @@ const SimilarProducts = ({ productId }: SimilarProductsProps) => {
           })}
         </div>
       </div>
+
+      {variantModalProduct && (
+        <VariantSelectionModal
+          isOpen={isVariantModalOpen}
+          onClose={() => {
+            setIsVariantModalOpen(false);
+            setVariantModalProduct(null);
+          }}
+          product={variantModalProduct}
+        />
+      )}
     </section>
   );
 };

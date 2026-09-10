@@ -5,6 +5,7 @@ import { useCart } from "../../context/cartContext";
 import { useAuth } from "../../context/authContext";
 import toast from "react-hot-toast";
 import product1 from "../../assets/1.jpeg";
+import VariantSelectionModal, { isProductWithVariants } from "../../components/common/VariantSelectionModal/VariantSelectionModal";
 import "./HomeProductsGrid.css";
 
 interface Product {
@@ -15,6 +16,8 @@ interface Product {
   images?: Array<string | { url?: string; public_id?: string }>;
   category?: { name?: string } | string;
   brand?: string;
+  hasVariants?: boolean;
+  variants?: any[];
 }
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
@@ -45,6 +48,8 @@ const HomeProductsGrid = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [wishlist, setWishlist] = useState<Record<string, boolean>>({});
+  const [variantModalProduct, setVariantModalProduct] = useState<Product | null>(null);
+  const [isVariantModalOpen, setIsVariantModalOpen] = useState(false);
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -165,13 +170,21 @@ const HomeProductsGrid = () => {
       return;
     }
 
-    // const toastId = toast.loading(`Adding "${prod.name}" to cart...`);
+    if (isProductWithVariants(prod)) {
+      setVariantModalProduct(prod);
+      setIsVariantModalOpen(true);
+      return;
+    }
+
     try {
-      toast.success(`"${prod.name}" added to cart!`);
-      const success = await addToCart(prod._id, 1);
-      if (success) {
-      } else {
-        toast.error("Failed to add product to cart");
+      const res = await addToCart(prod._id, 1);
+      if (res.requiresVariant) {
+        setVariantModalProduct(prod);
+        setIsVariantModalOpen(true);
+        return;
+      }
+      if (res.success) {
+        toast.success(`"${prod.name}" added to cart!`);
       }
     } catch (error: any) {
       toast.error("Failed to add product to cart");
@@ -299,6 +312,16 @@ const HomeProductsGrid = () => {
         </div>
       </div>
 
+      {variantModalProduct && (
+        <VariantSelectionModal
+          isOpen={isVariantModalOpen}
+          onClose={() => {
+            setIsVariantModalOpen(false);
+            setVariantModalProduct(null);
+          }}
+          product={variantModalProduct}
+        />
+      )}
     </section>
   );
 };

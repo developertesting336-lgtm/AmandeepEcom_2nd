@@ -8,6 +8,11 @@ const cartItemSchema = new mongoose.Schema(
       required: true,
     },
 
+    variantId: {
+      type: mongoose.Schema.Types.ObjectId,
+      default: null,
+    },
+
     quantity: {
       type: Number,
       required: true,
@@ -21,7 +26,7 @@ const cartItemSchema = new mongoose.Schema(
     },
   },
   {
-    _id: false,
+    _id: true,
   }
 );
 
