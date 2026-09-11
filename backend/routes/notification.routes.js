@@ -1,6 +1,7 @@
 import express from "express";
 import { protect } from "../middlewares/auth.middleware.js";
 import {
+  createNotificationController,
   subscribePush,
   unsubscribePush,
   getNotifications,
@@ -24,7 +25,8 @@ const router = express.Router();
 router.post("/subscribe", protect, subscribePush);
 router.delete("/subscribe", protect, unsubscribePush);
 
-// Notification retrieval routes
+// Notification creation and retrieval routes
+router.post("/", protect, createNotificationController);
 router.get("/unread-count", protect, getUnreadCount);
 router.get("/", protect, getNotifications);
 

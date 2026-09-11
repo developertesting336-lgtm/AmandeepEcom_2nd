@@ -113,8 +113,12 @@ function App() {
         <Route path="/verify-otp" element={<VerifyOtpResetPassword />} />
         <Route path="/oauth-success" element={<OAuthSuccess />} />
         <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+        <Route path="/privacy" element={<PrivacyPolicy />} />
         <Route path="/terms" element={<TermsConditions />} />
+        <Route path="/terms-conditions" element={<TermsConditions />} />
+        <Route path="/terms-and-conditions" element={<TermsConditions />} />
         <Route path="/shipping-policy" element={<ShippingPolicy />} />
+        <Route path="/shipping" element={<ShippingPolicy />} />
         <Route path="/admin/products" element={<ProductList />} />
         <Route path="/admin/categories" element={<Categories />} />
         <Route path="/admin/orders" element={<Orders />} />

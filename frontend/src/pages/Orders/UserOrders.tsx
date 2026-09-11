@@ -102,6 +102,55 @@ const getPaymentStatusBadge = (paymentStatus?: string, isCod?: boolean) => {
   }
 };
 
+const getOrderItemVariants = (
+  item: UserOrderItem,
+  productObj?: any
+): Array<{ name?: string; value: string }> => {
+  // 1. Direct item.variantAttributes
+  if (Array.isArray(item.variantAttributes) && item.variantAttributes.length > 0) {
+    const valid = item.variantAttributes
+      .filter((a) => a && (a.name || a.value))
+      .map((a) => ({ name: a.name || "", value: a.value || "" }));
+    if (valid.length > 0) return valid;
+  }
+
+  // 2. Direct item.variant?.attributes
+  if (Array.isArray(item.variant?.attributes) && item.variant.attributes.length > 0) {
+    const valid = item.variant.attributes
+      .filter((a) => a && (a.name || a.value))
+      .map((a) => ({ name: a.name || "", value: a.value || "" }));
+    if (valid.length > 0) return valid;
+  }
+
+  // 3. Direct item.attributes
+  if (Array.isArray(item.attributes) && item.attributes.length > 0) {
+    const valid = item.attributes
+      .filter((a) => a && (a.name || a.value))
+      .map((a) => ({ name: a.name || "", value: a.value || "" }));
+    if (valid.length > 0) return valid;
+  }
+
+  // 4. Look up in productObj.variants if variantId is available
+  const vId =
+    item.variantId ||
+    item.variant?._id ||
+    (typeof item.variant === "string" ? item.variant : null);
+
+  if (vId && productObj && Array.isArray(productObj.variants)) {
+    const foundVariant = productObj.variants.find(
+      (v: any) => v && (v._id?.toString() === vId.toString() || v.sku === vId)
+    );
+    if (foundVariant && Array.isArray(foundVariant.attributes) && foundVariant.attributes.length > 0) {
+      const valid = foundVariant.attributes
+        .filter((a: any) => a && (a.name || a.value))
+        .map((a: any) => ({ name: a.name || "", value: a.value || "" }));
+      if (valid.length > 0) return valid;
+    }
+  }
+
+  return [];
+};
+
 export interface UserOrdersProps {
   hideFooter?: boolean;
   isEmbedded?: boolean;
@@ -163,8 +212,13 @@ const UserOrders: React.FC<UserOrdersProps> = ({ hideFooter = false, isEmbedded 
             ? item.productId
             : (item.productId as any)?._id || (typeof item.product === "string" ? item.product : (item.product as any)?._id);
 
+        const variantId =
+          item.variantId ||
+          item.variant?._id ||
+          (typeof item.variant === "string" ? item.variant : undefined);
+
         if (prodId && addToCart) {
-          await addToCart(prodId, item.quantity || 1);
+          await addToCart(prodId, item.quantity || 1, variantId);
         }
       }
       setToastMessage("Items added to your cart successfully!");
@@ -428,6 +482,7 @@ const UserOrders: React.FC<UserOrdersProps> = ({ hideFooter = false, isEmbedded 
 
                         const quantity = item.quantity || 1;
                         const itemSubtotal = unitPrice * quantity;
+                        const variantAttrs = getOrderItemVariants(item, productObj);
 
                         const productContent = (
                           <>
@@ -443,7 +498,19 @@ const UserOrders: React.FC<UserOrdersProps> = ({ hideFooter = false, isEmbedded 
                             </div>
 
                             <div className="product-main-details">
-                              <h4 className="product-row-title">{prodName}</h4>
+                              <div className="product-title-row">
+                                <h4 className="product-row-title">{prodName}</h4>
+                                {variantAttrs.length > 0 && (
+                                  <div className="order-item-variant-badges">
+                                    {variantAttrs.map((attr, aIdx) => (
+                                      <span key={aIdx} className="order-variant-badge">
+                                        {attr.name && <span className="order-variant-name">{attr.name}: </span>}
+                                        <strong className="order-variant-val">{attr.value}</strong>
+                                      </span>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
                               <div className="product-pricing-line">
                                 <span>Purchase Price: {formatCurrency(unitPrice)} × {quantity}</span>
                                 <span className="line-bullet">•</span>

@@ -155,9 +155,11 @@ export const getUserOrders = async (req, res) => {
         })
             .populate({
                 path: "products.productId",
-                select: "name images price salePrice brand category",
+                select: "name images price salePrice brand category variants",
             })
             .sort({ createdAt: -1 });
+
+        // console.log("orders", orders.products)
 
         return res.status(200).json({
             success: true,
@@ -181,7 +183,7 @@ export const getOrderById = async (req, res) => {
             user: req.user._id,
         }).populate({
             path: "products.productId",
-            select: "name images price salePrice brand category",
+            select: "name images price salePrice brand category variants",
         });
 
         if (!order) {
@@ -208,6 +210,10 @@ export const getOrderById = async (req, res) => {
 export const stripePayments = async (req, res) => {
     try {
         const { products, address } = req.body;
+
+        // console.log(products, "products from stripe");
+        // console.log(address, "address from stripe");
+        console.log(req.body, "req body");
 
         if (!products || !Array.isArray(products) || products.length === 0) {
             return res.status(400).json({
@@ -353,6 +359,7 @@ export const stripePayments = async (req, res) => {
         const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
         const session = await stripe.checkout.sessions.create({
             mode: "payment",
+            payment_method_types: ["upi", "card"],
             line_items: lineItems,
             success_url: `${frontendUrl}/payment-success`,
             cancel_url: `${frontendUrl}/payment-cancelled`,

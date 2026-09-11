@@ -3,11 +3,13 @@ export interface PlaceCodOrderPayload {
   productId?: string;
   products?: Array<{
     productId: string;
+    variantId?: string | null;
     quantity: number;
     price?: number;
   }>;
   items?: Array<{
     productId: string;
+    variantId?: string | null;
     quantity: number;
     price?: number;
   }>;
@@ -50,12 +52,36 @@ export interface OrderItemProduct {
   image?: string;
   category?: any;
   brand?: string;
+  variants?: Array<{
+    _id?: string;
+    price?: number;
+    salePrice?: number | null;
+    attributes?: Array<{ name: string; value: string }>;
+    [key: string]: any;
+  }>;
+}
+
+export interface OrderVariantAttribute {
+  name: string;
+  value: string;
+  [key: string]: any;
 }
 
 export interface UserOrderItem {
   _id?: string;
   productId?: string | OrderItemProduct;
   product?: OrderItemProduct | string;
+  variantId?: string | null;
+  variantAttributes?: OrderVariantAttribute[];
+  variant?: {
+    _id?: string;
+    attributes?: OrderVariantAttribute[];
+    sku?: string;
+    price?: number;
+    salePrice?: number | null;
+    [key: string]: any;
+  } | null;
+  attributes?: OrderVariantAttribute[];
   name?: string;
   productName?: string;
   purchasePrice?: number;
@@ -123,12 +149,14 @@ export interface PlaceStripeOrderPayload {
   productId?: string;
   products?: Array<{
     productId: string;
+    variantId?: string | null;
     quantity: number;
     price?: number;
     purchasePrice?: number;
   }>;
   items?: Array<{
     productId: string;
+    variantId?: string | null;
     quantity: number;
     price?: number;
   }>;

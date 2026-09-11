@@ -255,7 +255,7 @@ const ProductDetails = () => {
           ? ` (${selectedVariant.attributes.map(a => a.value).join(" / ")})`
           : "";
         toast.success(`${quantity} x "${product.name}${variantSuffix}" added to cart!`);
-        setAddedNotice(true);
+        // setAddedNotice(true);
       }
     } catch (error: any) {
       toast.error("Failed to add product to cart");
@@ -529,26 +529,7 @@ const ProductDetails = () => {
   return (
     <div className="pdp-page">
       <div className="pdp-container">
-        {/* BREADCRUMB NAVIGATION */}
-        <div className="pdp-header-zone">
-          <nav className="pdp-breadcrumb" aria-label="Breadcrumb">
-            <Link to="/" className="pdp-bc-link">
-              Home
-            </Link>
-            <ChevronRight size={13} className="pdp-bc-separator" />
-            <Link to="/products" className="pdp-bc-link">
-              {categoryName || "Products"}
-            </Link>
-            {Boolean(subcategoryName) && (
-              <>
-                <ChevronRight size={13} className="pdp-bc-separator" />
-                <span className="pdp-bc-link">{subcategoryName}</span>
-              </>
-            )}
-            <ChevronRight size={13} className="pdp-bc-separator" />
-            <span className="pdp-bc-current">{product.name}</span>
-          </nav>
-        </div>
+
 
         {/* MAIN PRODUCT BOX */}
         <div className="pdp-main-card">
@@ -603,7 +584,7 @@ const ProductDetails = () => {
             <h2 className="pdp-product-title">{product.name}</h2>
 
             {/* STOCK STATUS */}
-            <div className="pdp-meta-row">
+            {/* <div className="pdp-meta-row">
               <span className="pdp-stock-text">
                 {product.stock > 0 ? (
                   <>
@@ -616,7 +597,7 @@ const ProductDetails = () => {
                   <span className="pdp-out-of-stock">Out of Stock</span>
                 )}
               </span>
-            </div>
+            </div> */}
 
             {/* VARIANT SELECTOR */}
             {hasActiveVariants && (
@@ -629,7 +610,7 @@ const ProductDetails = () => {
                     </span>
                   ) : (
                     <span className="pdp-selected-variant-summary" style={{ color: "#2563eb", fontWeight: 500 }}>
-                      (Please choose an option)
+
                     </span>
                   )}
                 </div>
@@ -1029,7 +1010,7 @@ const ProductDetails = () => {
           onClose={() => setIsVariantModalOpen(false)}
           product={product}
           onSuccess={(vIdx) => {
-            setAddedNotice(true);
+            // setAddedNotice(true);
             if (typeof vIdx === "number") {
               setSelectedVariantIndex(vIdx);
             }

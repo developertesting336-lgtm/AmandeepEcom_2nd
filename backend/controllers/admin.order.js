@@ -2,9 +2,7 @@ import Order from '../models/Order.js'
 import User from '../models/user.js'
 import Product from '../models/Product.js'
 import stripe from "../config/stripe.js";
-import Notification from "../models/Notification.js";
-import PushSubscription from "../models/PushSubscription.js";
-import webpush from "../config/webpush.js";
+import { createNotification } from "./notification.controller.js";
 
 
 
@@ -109,7 +107,7 @@ export const getOrdersForadmin = async (req, res) => {
         const orders = await Order.find(filter)
             .populate({
                 path: "products.productId",
-                select: "name images sku price salePrice",
+                select: "name images sku price salePrice variants",
             })
             .populate({
                 path: "user",
@@ -138,15 +136,13 @@ export const updatedOrderByAdmin = async (req, res) => {
         const { orderId } = req.params;
 
         const allowedFields = [
-            // "paymentStatus",
+            "paymentStatus",
             "orderStatus",
             "shippingAddress",
             "cancellationReason",
         ];
 
         const updateData = {};
-
-        // console.log("update data", updateData)
 
         for (const field of allowedFields) {
             if (req.body[field] !== undefined) {
@@ -164,13 +160,6 @@ export const updatedOrderByAdmin = async (req, res) => {
         // If order is being cancelled
         if (updateData.orderStatus === "cancelled") {
             updateData.cancelledAt = new Date();
-
-            // if (!updateData.cancellationReason) {
-            //     return res.status(400).json({
-            //         success: false,
-            //         message: "Cancellation reason is required",
-            //     });
-            // }
         }
 
         const order = await Order.findOneAndUpdate(
@@ -191,45 +180,31 @@ export const updatedOrderByAdmin = async (req, res) => {
             });
         }
 
-        const userId = order.user;
-        const url = `/order`;
+        // Map status to corresponding Notification type
+        let notifType = "SYSTEM";
+        if (updateData.orderStatus === "delivered") notifType = "ORDER_DELIVERED";
+        else if (updateData.orderStatus === "shipped") notifType = "ORDER_SHIPPED";
+        else if (updateData.orderStatus === "cancelled") notifType = "ORDER_CANCELLED";
+        else if (updateData.orderStatus === "processing") notifType = "ORDER_PACKED";
+        else if (updateData.orderStatus === "confirmed") notifType = "ORDER_CONFIRMED";
 
-        const subscriptions = await PushSubscription.find({ userId });
-        console.log(`Found ${subscriptions.length} push subscription(s) for user:`, userId);
+        const notifMessage = updateData.orderStatus
+            ? `Your order status has been updated to "${order.orderStatus}".`
+            : "Your order details have been updated.";
 
-        const pushPayload = JSON.stringify({
+        // Create in-app notification in DB & broadcast Web Push
+        await createNotification({
+            userId: order.user?._id || order.user,
+            type: notifType,
             title: "Order Updated",
-            body: `Your order has been updated successfully as ${updateData.orderStatus}`,
-            icon: "/favicon.png",
-            data: {
-                url,
-                orderId,
+            message: notifMessage,
+            orderId: order._id,
+            url: "/order",
+            metadata: {
+                orderId: order.orderId,
+                orderStatus: order.orderStatus,
             },
         });
-
-        const pushResults = await Promise.allSettled(
-            subscriptions.map(async (sub) => {
-                try {
-                    return await webpush.sendNotification(
-                        {
-                            endpoint: sub.endpoint,
-                            keys: sub.keys,
-                        },
-                        pushPayload
-                    );
-                } catch (pushErr) {
-                    // If subscription is expired or invalid (410 or 404), clean it up
-                    if (pushErr.statusCode === 410 || pushErr.statusCode === 404) {
-                        console.log("Removing expired push subscription:", sub.endpoint);
-                        await PushSubscription.findByIdAndDelete(sub._id);
-                    }
-                    throw pushErr;
-                }
-            })
-        );
-
-        const successfulPushes = pushResults.filter((r) => r.status === "fulfilled").length;
-        console.log(`Push notifications sent: ${successfulPushes}/${subscriptions.length} successful`);
 
         return res.status(200).json({
             success: true,
@@ -251,7 +226,7 @@ export const refundGenrate = async (req, res) => {
     try {
         const { orderId } = req.params;
 
-        console.log(orderId)
+        console.log(orderId);
 
         const order = await Order.findOne({
             orderId,
@@ -304,18 +279,12 @@ export const refundGenrate = async (req, res) => {
             payment_intent: order.stripePaymentIntentId,
         });
 
-
-
         // ==========================
         // UPDATE ORDER
         // ==========================
 
         order.paymentStatus = "refunded";
-
-        order.orderStatus = "cancelled";
-
         order.refundId = refund.id;
-
         order.refundedAt = new Date();
 
         // If refund means order is cancelled
@@ -325,42 +294,20 @@ export const refundGenrate = async (req, res) => {
 
         await order.save();
 
-        const userId = order.user;
-        const url = `/order`;
-
-        const subscriptions = await PushSubscription.find({ userId });
-        console.log(`Found ${subscriptions.length} push subscription(s) for user:`, userId);
-
-        const pushPayload = JSON.stringify({
+        // Create in-app notification in DB & broadcast Web Push
+        await createNotification({
+            userId: order.user?._id || order.user,
+            type: "REFUND_COMPLETED",
             title: "Order Refunded",
-            body: `Order Id ${orderId} has been refunded successfully and order is cancelled`,
-            icon: "/favicon.png",
-            data: {
-                url,
+            message: `Order Id ${orderId} has been refunded successfully and order is cancelled.`,
+            orderId: order._id,
+            url: "/order",
+            metadata: {
                 orderId,
+                refundId: refund.id,
+                refundAmount: order.orderTotal,
             },
         });
-
-        const pushResults = await Promise.allSettled(
-            subscriptions.map(async (sub) => {
-                try {
-                    return await webpush.sendNotification(
-                        {
-                            endpoint: sub.endpoint,
-                            keys: sub.keys,
-                        },
-                        pushPayload
-                    );
-                } catch (pushErr) {
-                    // If subscription is expired or invalid (410 or 404), clean it up
-                    if (pushErr.statusCode === 410 || pushErr.statusCode === 404) {
-                        console.log("Removing expired push subscription:", sub.endpoint);
-                        await PushSubscription.findByIdAndDelete(sub._id);
-                    }
-                    throw pushErr;
-                }
-            })
-        );
 
         return res.status(200).json({
             success: true,

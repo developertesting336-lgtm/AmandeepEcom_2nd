@@ -114,17 +114,25 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     ).map((item: any) => {
       const productObj = item.product || item.productId || item;
       const qty = item.quantity || 1;
-      const itemVariant = item.variant || null;
       const variantId =
-        item.variantId || (itemVariant ? itemVariant._id : null);
+        item.variantId || (item.variant ? item.variant._id : null);
+
+      let itemVariant = item.variant || null;
+      if (!itemVariant && variantId && Array.isArray(productObj.variants)) {
+        itemVariant =
+          productObj.variants.find(
+            (v: any) => v._id?.toString() === variantId.toString()
+          ) || null;
+      }
 
       const itemPrice =
-        item.price ??
         (itemVariant
           ? itemVariant.salePrice && itemVariant.salePrice > 0
             ? itemVariant.salePrice
             : itemVariant.price
-          : productObj.salePrice && productObj.salePrice < productObj.price
+          : null) ??
+        item.price ??
+        (productObj.salePrice && productObj.salePrice < productObj.price
           ? productObj.salePrice
           : productObj.price || 0);
 

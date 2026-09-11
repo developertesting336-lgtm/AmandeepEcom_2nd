@@ -79,6 +79,55 @@ const formatCurrency = (amount?: number): string => {
   })}`;
 };
 
+const getOrderItemVariants = (
+  item: UserOrderItem,
+  productObj?: any
+): Array<{ name?: string; value: string }> => {
+  // 1. Direct item.variantAttributes
+  if (Array.isArray(item.variantAttributes) && item.variantAttributes.length > 0) {
+    const valid = item.variantAttributes
+      .filter((a) => a && (a.name || a.value))
+      .map((a) => ({ name: a.name || "", value: a.value || "" }));
+    if (valid.length > 0) return valid;
+  }
+
+  // 2. Direct item.variant?.attributes
+  if (Array.isArray(item.variant?.attributes) && item.variant.attributes.length > 0) {
+    const valid = item.variant.attributes
+      .filter((a) => a && (a.name || a.value))
+      .map((a) => ({ name: a.name || "", value: a.value || "" }));
+    if (valid.length > 0) return valid;
+  }
+
+  // 3. Direct item.attributes
+  if (Array.isArray(item.attributes) && item.attributes.length > 0) {
+    const valid = item.attributes
+      .filter((a) => a && (a.name || a.value))
+      .map((a) => ({ name: a.name || "", value: a.value || "" }));
+    if (valid.length > 0) return valid;
+  }
+
+  // 4. Look up in productObj.variants if variantId is available
+  const vId =
+    item.variantId ||
+    item.variant?._id ||
+    (typeof item.variant === "string" ? item.variant : null);
+
+  if (vId && productObj && Array.isArray(productObj.variants)) {
+    const foundVariant = productObj.variants.find(
+      (v: any) => v && (v._id?.toString() === vId.toString() || v.sku === vId)
+    );
+    if (foundVariant && Array.isArray(foundVariant.attributes) && foundVariant.attributes.length > 0) {
+      const valid = foundVariant.attributes
+        .filter((a: any) => a && (a.name || a.value))
+        .map((a: any) => ({ name: a.name || "", value: a.value || "" }));
+      if (valid.length > 0) return valid;
+    }
+  }
+
+  return [];
+};
+
 const Orders: React.FC = () => {
   const { token } = useAuth();
 
@@ -432,9 +481,27 @@ const Orders: React.FC = () => {
                             {productsList.length} item{productsList.length !== 1 ? "s" : ""}
                           </span>
                           {productsList[0] && (
-                            <span className="items-preview-name">
-                              {productsList[0].name || productsList[0].productName || (productsList[0].productId as any)?.name || ""}
-                            </span>
+                            <>
+                              <span className="items-preview-name">
+                                {productsList[0].name || productsList[0].productName || (productsList[0].productId as any)?.name || ""}
+                              </span>
+                              {(() => {
+                                const vBadges = getOrderItemVariants(
+                                  productsList[0],
+                                  typeof productsList[0].productId === "object" ? productsList[0].productId : null
+                                );
+                                if (!vBadges || vBadges.length === 0) return null;
+                                return (
+                                  <div className="admin-order-item-variant-badges">
+                                    {vBadges.map((v, vIdx) => (
+                                      <span key={vIdx} className="admin-order-variant-badge">
+                                        {v.name ? `${v.name}: ` : ""}{v.value}
+                                      </span>
+                                    ))}
+                                  </div>
+                                );
+                              })()}
+                            </>
                           )}
                         </div>
                       </div>
@@ -632,6 +699,19 @@ const Orders: React.FC = () => {
                         />
                         <div className="modal-prod-info">
                           <h5>{prodName}</h5>
+                          {(() => {
+                            const vBadges = getOrderItemVariants(item, productObj);
+                            if (!vBadges || vBadges.length === 0) return null;
+                            return (
+                              <div className="admin-order-item-variant-badges">
+                                {vBadges.map((v, vIdx) => (
+                                  <span key={vIdx} className="admin-order-variant-badge">
+                                    {v.name ? `${v.name}: ` : ""}{v.value}
+                                  </span>
+                                ))}
+                              </div>
+                            );
+                          })()}
                           <span className="modal-prod-qty">Qty: {qty} × {formatCurrency(price)}</span>
                         </div>
                         <strong className="modal-prod-subtotal">{formatCurrency(price * qty)}</strong>

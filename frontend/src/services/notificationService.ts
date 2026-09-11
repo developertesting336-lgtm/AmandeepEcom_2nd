@@ -10,6 +10,8 @@ export interface NotificationItem {
   title: string;
   message: string;
   isRead: boolean;
+  orderId?: any;
+  productId?: any;
   metadata?: {
     orderId?: string;
     productId?: string;

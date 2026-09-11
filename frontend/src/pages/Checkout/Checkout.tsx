@@ -68,6 +68,59 @@ const BLANK_ADDRESS_FORM: Omit<Address, "id"> = {
   isDefault: false,
 };
 
+// Helper to get exact variant/product pricing
+const getItemPricing = (item: any) => {
+  const variant = item?.variant;
+  const prod = item?.product || {};
+
+  // 1. Regular / Original MRP price (prefer variant's regular price if variant exists)
+  const originalPrice =
+    (variant && typeof variant.price === "number" && variant.price > 0
+      ? variant.price
+      : null) ??
+    (typeof prod.price === "number" && prod.price > 0 ? prod.price : null) ??
+    (typeof item.price === "number" && item.price > 0 ? item.price : 0);
+
+  // 2. Selling / Effective unit price
+  let effectivePrice: number = 0;
+  if (variant) {
+    if (typeof variant.salePrice === "number" && variant.salePrice > 0) {
+      effectivePrice = variant.salePrice;
+    } else if (typeof variant.price === "number" && variant.price > 0) {
+      effectivePrice = variant.price;
+    } else if (typeof item.price === "number" && item.price > 0) {
+      effectivePrice = item.price;
+    } else {
+      effectivePrice = prod.price || 0;
+    }
+  } else {
+    if (
+      typeof prod.salePrice === "number" &&
+      prod.salePrice > 0 &&
+      prod.salePrice < prod.price
+    ) {
+      effectivePrice = prod.salePrice;
+    } else if (typeof item.price === "number" && item.price > 0) {
+      effectivePrice = item.price;
+    } else {
+      effectivePrice = prod.price || 0;
+    }
+  }
+
+  const hasDiscount = originalPrice > effectivePrice;
+  const discountPercent =
+    hasDiscount && originalPrice > 0
+      ? Math.round(((originalPrice - effectivePrice) / originalPrice) * 100)
+      : 0;
+
+  return {
+    originalPrice,
+    effectivePrice,
+    hasDiscount,
+    discountPercent,
+  };
+};
+
 const Checkout: React.FC = () => {
   const navigate = useNavigate();
   const { token } = useAuth();
@@ -123,11 +176,8 @@ const Checkout: React.FC = () => {
   }, [token]);
 
   useEffect(() => {
-
     fetchCart();
-
   }, []);
-
 
   // Open form for adding new address
   const handleOpenAddForm = () => {
@@ -262,18 +312,24 @@ const Checkout: React.FC = () => {
 
   // Pricing calculations
   const safeItems = Array.isArray(cartItems) ? cartItems : [];
-  const safeSubtotal = Number(subtotal) || 0;
-  const isFreeShipping = safeSubtotal >= 499;
-  const deliveryCharge = isFreeShipping || safeItems.length === 0 ? 0 : 99;
 
-  // Calculate MRP vs sale price discount
+  // Calculate MRP vs sale price discount with variant support
   const totalMrp = safeItems.reduce((acc, item) => {
-    const prod = item?.product;
-    const originalPrice = Number(prod?.price) || Number(item?.price) || 0;
+    const { originalPrice } = getItemPricing(item);
     const qty = Number(item?.quantity) || 1;
     return acc + originalPrice * qty;
   }, 0);
 
+  // Calculate actual subtotal from item effective prices
+  const safeSubtotal =
+    safeItems.reduce((acc, item) => {
+      const { effectivePrice } = getItemPricing(item);
+      const qty = Number(item?.quantity) || 1;
+      return acc + effectivePrice * qty;
+    }, 0) || Number(subtotal) || 0;
+
+  const isFreeShipping = safeSubtotal >= 499;
+  const deliveryCharge = isFreeShipping || safeItems.length === 0 ? 0 : 99;
   const totalDiscount = Math.max(0, totalMrp - safeSubtotal);
   const totalPayable = safeSubtotal + deliveryCharge;
   const totalSavings = totalDiscount + (isFreeShipping && safeItems.length > 0 ? 99 : 0);
@@ -306,17 +362,25 @@ const Checkout: React.FC = () => {
       // Online payment via Stripe Checkout Session
       try {
         const payload: PlaceStripeOrderPayload = {
-          products: safeItems.map((item) => ({
-            productId: item.product._id,
-            quantity: item.quantity,
-            price: item.price || item.product.price,
-            purchasePrice: item.price || item.product.price,
-          })),
-          items: safeItems.map((item) => ({
-            productId: item.product._id,
-            quantity: item.quantity,
-            price: item.price || item.product.price,
-          })),
+          products: safeItems.map((item) => {
+            const { effectivePrice } = getItemPricing(item);
+            return {
+              productId: item.product._id,
+              variantId: item.variantId || item.variant?._id || null,
+              quantity: item.quantity,
+              price: effectivePrice,
+              purchasePrice: effectivePrice,
+            };
+          }),
+          items: safeItems.map((item) => {
+            const { effectivePrice } = getItemPricing(item);
+            return {
+              productId: item.product._id,
+              variantId: item.variantId || item.variant?._id || null,
+              quantity: item.quantity,
+              price: effectivePrice,
+            };
+          }),
           paymentMode: "ONLINE",
           address: {
             fullName: selectedAddress.fullName,
@@ -368,16 +432,24 @@ const Checkout: React.FC = () => {
       // Cash on Delivery - call /api/order/cod
       try {
         const payload: PlaceCodOrderPayload = {
-          products: safeItems.map((item) => ({
-            productId: item.product._id,
-            quantity: item.quantity,
-            price: item.price || item.product.price,
-          })),
-          items: safeItems.map((item) => ({
-            productId: item.product._id,
-            quantity: item.quantity,
-            price: item.price || item.product.price,
-          })),
+          products: safeItems.map((item) => {
+            const { effectivePrice } = getItemPricing(item);
+            return {
+              productId: item.product._id,
+              variantId: item.variantId || item.variant?._id || null,
+              quantity: item.quantity,
+              price: effectivePrice,
+            };
+          }),
+          items: safeItems.map((item) => {
+            const { effectivePrice } = getItemPricing(item);
+            return {
+              productId: item.product._id,
+              variantId: item.variantId || item.variant?._id || null,
+              quantity: item.quantity,
+              price: effectivePrice,
+            };
+          }),
           paymentMode: "COD",
           address: {
             fullName: selectedAddress.fullName,
@@ -950,17 +1022,8 @@ const Checkout: React.FC = () => {
                   <div className="checkout-items-list">
                     {safeItems.map((item, idx) => {
                       const prod = item?.product || ({} as any);
-                      const prodPrice = Number(prod?.price) || 0;
-                      const prodSalePrice = Number(prod?.salePrice) || null;
-                      const itemPrice =
-                        Number(item?.price) ||
-                        (prodSalePrice && prodSalePrice < prodPrice ? prodSalePrice : prodPrice) ||
-                        0;
-                      const originalPrice = prodPrice || itemPrice;
-                      const hasDiscount = originalPrice > itemPrice;
-                      const discountPercent = hasDiscount
-                        ? Math.round(((originalPrice - itemPrice) / originalPrice) * 100)
-                        : 0;
+                      const { originalPrice, effectivePrice, hasDiscount, discountPercent } =
+                        getItemPricing(item);
 
                       const rawImg = Array.isArray(prod?.images) ? prod.images[0] : prod?.images;
                       const imgUrl = formatImageUrl(rawImg, product1);
@@ -970,10 +1033,13 @@ const Checkout: React.FC = () => {
                           ? prod.category?.name || "General"
                           : prod?.category || "General";
 
-                      const productId = prod?._id || item?._id || `item-${idx}`;
+                      const itemKey =
+                        item._id ||
+                        (item.variantId ? `${prod?._id}_${item.variantId}` : prod?._id) ||
+                        `item-${idx}`;
 
                       return (
-                        <div key={productId} className="checkout-item-card">
+                        <div key={itemKey} className="checkout-item-card">
                           <div className="checkout-item-main">
                             <div className="checkout-item-image">
                               <img
@@ -995,9 +1061,40 @@ const Checkout: React.FC = () => {
                                 </span>
                               </div>
 
+                              {/* VARIANT ATTRIBUTES BADGES */}
+                              {item.variant?.attributes && item.variant.attributes.length > 0 && (
+                                <div
+                                  className="checkout-item-variant-badges"
+                                  style={{
+                                    display: "flex",
+                                    flexWrap: "wrap",
+                                    gap: "6px",
+                                    marginTop: "6px",
+                                    marginBottom: "4px",
+                                  }}
+                                >
+                                  {item.variant.attributes.map((attr, aIdx) => (
+                                    <span
+                                      key={aIdx}
+                                      style={{
+                                        fontSize: "12px",
+                                        background: "#f1f5f9",
+                                        color: "#334155",
+                                        padding: "2px 8px",
+                                        borderRadius: "4px",
+                                        fontWeight: 500,
+                                        border: "1px solid #cbd5e1",
+                                      }}
+                                    >
+                                      {attr.name}: <strong>{attr.value}</strong>
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
+
                               <div className="checkout-item-pricing">
                                 <span className="checkout-sale-price">
-                                  ₹{itemPrice.toLocaleString("en-IN")}
+                                  ₹{effectivePrice.toLocaleString("en-IN")}
                                 </span>
                                 {hasDiscount && (
                                   <>
@@ -1019,16 +1116,34 @@ const Checkout: React.FC = () => {
                               <button
                                 type="button"
                                 className="checkout-mini-qty-btn"
-                                onClick={() => updateQuantity && prod?._id && updateQuantity(prod._id, (item.quantity || 1) - 1)}
+                                onClick={() =>
+                                  updateQuantity &&
+                                  prod?._id &&
+                                  updateQuantity(
+                                    prod._id,
+                                    (item.quantity || 1) - 1,
+                                    item.variantId
+                                  )
+                                }
                                 title="Decrease quantity"
                               >
                                 <Minus size={13} />
                               </button>
-                              <span className="checkout-mini-qty-val">Qty: {item.quantity || 1}</span>
+                              <span className="checkout-mini-qty-val">
+                                Qty: {item.quantity || 1}
+                              </span>
                               <button
                                 type="button"
                                 className="checkout-mini-qty-btn"
-                                onClick={() => updateQuantity && prod?._id && updateQuantity(prod._id, (item.quantity || 1) + 1)}
+                                onClick={() =>
+                                  updateQuantity &&
+                                  prod?._id &&
+                                  updateQuantity(
+                                    prod._id,
+                                    (item.quantity || 1) + 1,
+                                    item.variantId
+                                  )
+                                }
                                 title="Increase quantity"
                               >
                                 <Plus size={13} />
@@ -1188,23 +1303,23 @@ const Checkout: React.FC = () => {
             <h2 className="checkout-summary-title">Order Summary</h2>
 
             <div className="checkout-summary-row">
-              <span>Item Subtotal ({totalItems} items)</span>
+              <span>{totalDiscount > 0 ? "Total MRP" : "Item Subtotal"} ({totalItems} {totalItems === 1 ? "item" : "items"})</span>
               <span>
-                ₹{totalMrp > safeSubtotal ? safeSubtotal.toLocaleString("en-IN") : totalMrp.toLocaleString("en-IN")}
+                ₹{(totalDiscount > 0 ? totalMrp : safeSubtotal).toLocaleString("en-IN")}
               </span>
             </div>
+
+            {totalDiscount > 0 && (
+              <div className="checkout-summary-row discount-text">
+                <span>Discount on MRP</span>
+                <span>-₹{totalDiscount.toLocaleString("en-IN")}</span>
+              </div>
+            )}
 
             <div className={`checkout-summary-row ${isFreeShipping ? "free-text" : ""}`}>
               <span>Delivery Charge</span>
               <span>{isFreeShipping ? "FREE" : `₹${deliveryCharge}`}</span>
             </div>
-
-            {totalDiscount > 0 && (
-              <div className="checkout-summary-row discount-text">
-                <span>Total Discount</span>
-                <span>-₹{totalDiscount.toLocaleString("en-IN")}</span>
-              </div>
-            )}
 
             <div className="checkout-summary-divider"></div>
 

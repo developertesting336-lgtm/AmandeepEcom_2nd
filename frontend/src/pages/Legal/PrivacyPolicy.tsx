@@ -1,121 +1,116 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import { ShieldCheck, ArrowLeft, Lock, Eye, FileText, Bell } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
+import Footer from "../Home/footersection";
 import "./Legal.css";
 
 const PrivacyPolicy: React.FC = () => {
   return (
-    <div className="legal-page">
-      <div className="legal-container">
-        <Link to="/" className="legal-back-btn">
-          <ArrowLeft size={16} /> Back to Home
-        </Link>
+    <>
+      <div className="legal-page">
+        <div className="legal-container">
+          <Link to="/" className="legal-back-btn">
+            <ArrowLeft size={16} /> Back to Home
+          </Link>
 
-        <div className="legal-header">
-          <span className="legal-eyebrow">
-            <ShieldCheck size={14} /> TRUST & PRIVACY
-          </span>
-          <h1 className="legal-title">Privacy Policy</h1>
-          <p className="legal-last-updated">Last Updated: August 7, 2026</p>
-        </div>
+          <header className="legal-header">
+            <h1 className="legal-title">Privacy Policy</h1>
+            <p className="legal-last-updated">Last Updated: August 2026</p>
+          </header>
 
-        <div className="legal-card">
-          <section className="legal-section">
-            <h2>1. Introduction</h2>
-            <p>
-              Welcome to <strong>Shopora</strong> ("we", "our", or "us"). We respect your privacy and are committed to protecting your personal data. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you visit our website or make purchases through our store.
-            </p>
-          </section>
+          <main className="legal-card">
+            <section className="legal-section">
+              <h2>1. Introduction</h2>
+              <p>
+                Welcome to <strong>Shopora</strong> ("we", "our", or "us"). We are committed to protecting your personal information and your right to privacy. This Privacy Policy explains what personal data we collect, how we use and protect it, and the rights you have concerning your information when you browse our website or purchase items from our store.
+              </p>
+            </section>
 
-          <section className="legal-section">
-            <h2>2. Information We Collect</h2>
-            <p>We collect information to provide better services to all our users. The types of data collected include:</p>
-            <ul className="legal-list">
-              <li>
-                <strong>Personal Data:</strong> Name, email address, phone number, shipping and billing addresses provided during checkout or account creation.
-              </li>
-              <li>
-                <strong>Payment Information:</strong> Credit/debit card numbers, UPI details, and payment authorization tokens (processed securely through encrypted gateway partners).
-              </li>
-              <li>
-                <strong>Order History & Preferences:</strong> Purchased items, saved wishlist items, cart contents, and customer service communication records.
-              </li>
-              <li>
-                <strong>Technical & Usage Data:</strong> IP address, browser type, device information, operating system, and browsing behavior on our platform.
-              </li>
-            </ul>
-          </section>
+            <section className="legal-section">
+              <h2>2. Information We Collect</h2>
+              <p>
+                We collect information necessary to provide and improve our products and services. This includes:
+              </p>
+              <ul className="legal-list">
+                <li>
+                  <strong>Personal Identification:</strong> Name, email address, phone number, shipping address, and billing address provided during checkout or account registration.
+                </li>
+                <li>
+                  <strong>Payment Details:</strong> Transaction records, payment method identifiers, and billing confirmations. All card and payment credentials are encrypted and processed securely by authorized payment partners.
+                </li>
+                <li>
+                  <strong>Order & Activity History:</strong> Details of products purchased, saved items in your wishlist, shopping cart contents, and customer service requests.
+                </li>
+                <li>
+                  <strong>Technical & Usage Information:</strong> IP address, device type, browser specifications, operating system, and log data collected when interacting with our store.
+                </li>
+              </ul>
+            </section>
 
-          <section className="legal-section">
-            <h2>3. How We Use Your Information</h2>
-            <p>We use the collected information for various business purposes, including:</p>
-            <div className="legal-grid-features">
-              <div className="legal-feature-box">
-                <FileText className="feature-icon" size={20} />
-                <h4>Order Fulfillment</h4>
-                <p>Processing transactions, shipping packages, and sending order confirmation updates.</p>
+            <section className="legal-section">
+              <h2>3. How We Use Your Information</h2>
+              <p>We use the data we collect for legitimate business purposes, including:</p>
+              <ul className="legal-list">
+                <li>Processing, fulfilling, and delivering your orders.</li>
+                <li>Communicating order confirmations, tracking details, and customer support responses.</li>
+                <li>Managing your account, verifying identity, and protecting against fraudulent activity.</li>
+                <li>Improving website functionality, user experience, and product offerings.</li>
+                <li>Sending optional promotional newsletters and updates (only with your explicit consent).</li>
+              </ul>
+            </section>
+
+            <section className="legal-section">
+              <h2>4. Information Sharing & Third Parties</h2>
+              <p>
+                We do not sell, rent, or trade your personal data to third parties. We share information only with trusted service partners essential for our operations, including:
+              </p>
+              <ul className="legal-list">
+                <li>Logistics and shipping carriers to deliver your orders.</li>
+                <li>Payment gateway providers for secure transaction processing.</li>
+                <li>Cloud hosting and IT infrastructure services that power our website.</li>
+              </ul>
+            </section>
+
+            <section className="legal-section">
+              <h2>5. Cookies and Tracking</h2>
+              <p>
+                Our website uses cookies and similar technologies to remember your preferences, keep you signed in, manage shopping cart sessions, and analyze site performance. You can choose to disable cookies through your browser settings, though some store features may not function as intended.
+              </p>
+            </section>
+
+            <section className="legal-section">
+              <h2>6. Data Security & Retention</h2>
+              <p>
+                We implement industry-standard administrative and technical safeguards to keep your personal data secure. We retain your information only as long as necessary to fulfill orders, meet legal requirements, and maintain account services.
+              </p>
+            </section>
+
+            <section className="legal-section">
+              <h2>7. Your Privacy Rights</h2>
+              <p>Depending on your location, you may have the right to:</p>
+              <ul className="legal-list">
+                <li>Access, review, or update your personal information through your account profile.</li>
+                <li>Request deletion of your account and associated personal data.</li>
+                <li>Opt out of marketing communications at any time by clicking the unsubscribe link in our emails.</li>
+              </ul>
+            </section>
+
+            <section className="legal-section">
+              <h2>8. Contact Us</h2>
+              <p>
+                If you have questions, concerns, or requests regarding this Privacy Policy or your data, please contact us:
+              </p>
+              <div className="legal-contact-box">
+                <p><strong>Email:</strong> <a href="mailto:support@shopora.com">support@shopora.com</a></p>
+                <p><strong>Support:</strong> +1 (800) 555-7467</p>
+                <p><strong>Operating Hours:</strong> Monday – Saturday, 9:00 AM – 6:00 PM</p>
               </div>
-              <div className="legal-feature-box">
-                <Lock className="feature-icon" size={20} />
-                <h4>Account Security</h4>
-                <p>Verifying credentials, detecting fraud, and safeguarding user data against unauthorized access.</p>
-              </div>
-              <div className="legal-feature-box">
-                <Eye className="feature-icon" size={20} />
-                <h4>Personalized Experience</h4>
-                <p>Recommending products, remembering shopping preferences, and tailoring promotional offers.</p>
-              </div>
-              <div className="legal-feature-box">
-                <Bell className="feature-icon" size={20} />
-                <h4>Customer Support</h4>
-                <p>Responding to queries, processing returns/refunds, and improving platform usability.</p>
-              </div>
-            </div>
-          </section>
-
-          <section className="legal-section">
-            <h2>4. Data Sharing & Third Parties</h2>
-            <p>
-              We do not sell or rent your personal data to third parties. We share information only with trusted service providers necessary to operate our business, such as:
-            </p>
-            <ul className="legal-list">
-              <li>Logistics & Delivery Partners (for package dispatch and tracking)</li>
-              <li>Encrypted Payment Processing Gateways</li>
-              <li>Cloud Infrastructure & Analytics Services</li>
-            </ul>
-          </section>
-
-          <section className="legal-section">
-            <h2>5. Cookies & Tracking Technologies</h2>
-            <p>
-              Shopora uses cookies and similar tracking technologies to enhance user navigation, maintain shopping cart sessions, and analyze website traffic patterns. You can manage cookie preferences through your web browser settings.
-            </p>
-          </section>
-
-          <section className="legal-section">
-            <h2>6. Your Rights & Choices</h2>
-            <p>You have the right to:</p>
-            <ul className="legal-list">
-              <li>Access, update, or delete your account information at any time via your profile settings.</li>
-              <li>Unsubscribe from marketing emails using the 'Unsubscribe' link included in our newsletters.</li>
-              <li>Request details regarding the personal data we store about you.</li>
-            </ul>
-          </section>
-
-          <section className="legal-section">
-            <h2>7. Contact Us</h2>
-            <p>
-              If you have any questions, concerns, or requests regarding this Privacy Policy, please contact our Data Protection Officer at:
-            </p>
-            <div className="legal-contact-box">
-              <p><strong>Email:</strong> support@shopora.com</p>
-              <p><strong>Support Line:</strong> +1 (800) 555-7467</p>
-              <p><strong>Address:</strong> Shopora Global Retail Inc., 100 Commerce Way, Suite 400</p>
-            </div>
-          </section>
+            </section>
+          </main>
         </div>
       </div>
-    </div>
+      <Footer />
+    </>
   );
 };
 

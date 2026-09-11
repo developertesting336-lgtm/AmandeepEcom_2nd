@@ -322,7 +322,191 @@ export const clearAllNotifications = async (req, res) => {
 };
 
 // ==========================================
-// 9. SEND TEST NOTIFICATION (TESTING ENDPOINT)
+// 9. REUSABLE FUNCTION: CREATE NOTIFICATION IN DB & BROADCAST PUSH
+// Can be imported and used in any controller, service, or webhook
+// ==========================================
+export const createNotification = async ({
+  userId,
+  type = "SYSTEM",
+  title,
+  message,
+  orderId = null,
+  productId = null,
+  url = "/order",
+  metadata = {},
+  sendPush = true,
+}) => {
+  try {
+    // 1. Extract and sanitize User ID (handles ObjectId, string, or populated user object)
+    const targetUserId = userId?._id || userId;
+
+    if (!targetUserId) {
+      console.warn("⚠️ [createNotification] No valid userId provided, skipping notification creation");
+      return null;
+    }
+
+    if (!title || !message) {
+      console.warn("⚠️ [createNotification] 'title' and 'message' are required");
+      return null;
+    }
+
+    // 2. Format Mongoose ObjectIds for orderId and productId if provided
+    let formattedOrderId = null;
+    if (orderId) {
+      const rawOrderId = orderId?._id || orderId;
+      if (mongoose.Types.ObjectId.isValid(rawOrderId)) {
+        formattedOrderId = new mongoose.Types.ObjectId(rawOrderId);
+      }
+    }
+
+    let formattedProductId = null;
+    if (productId) {
+      const rawProductId = productId?._id || productId;
+      if (mongoose.Types.ObjectId.isValid(rawProductId)) {
+        formattedProductId = new mongoose.Types.ObjectId(rawProductId);
+      }
+    }
+
+    // 3. Save Notification Document in MongoDB
+    const notification = await Notification.create({
+      userId: targetUserId,
+      type,
+      title: title.trim(),
+      message: message.trim(),
+      orderId: formattedOrderId,
+      productId: formattedProductId,
+      metadata: {
+        ...metadata,
+        url,
+        ...(orderId && !formattedOrderId ? { customOrderId: orderId } : {}),
+      },
+    });
+
+    console.log(`✅ [createNotification] Notification saved in DB (ID: ${notification._id}, User: ${targetUserId})`);
+
+    // 4. Optionally broadcast Web Push Notification to user's registered devices
+    if (sendPush) {
+      const subscriptions = await PushSubscription.find({ userId: targetUserId });
+
+      if (subscriptions.length > 0) {
+        const pushPayload = JSON.stringify({
+          title: title.trim(),
+          body: message.trim(),
+          icon: "/favicon.png",
+          data: {
+            url,
+            notificationId: notification._id,
+            orderId: formattedOrderId || orderId,
+            productId: formattedProductId || productId,
+          },
+        });
+
+        const pushResults = await Promise.allSettled(
+          subscriptions.map(async (sub) => {
+            try {
+              return await webpush.sendNotification(
+                {
+                  endpoint: sub.endpoint,
+                  keys: sub.keys,
+                },
+                pushPayload
+              );
+            } catch (pushErr) {
+              // Clean up stale or revoked subscriptions (410 Gone / 404 Not Found)
+              if (pushErr.statusCode === 410 || pushErr.statusCode === 404) {
+                console.log("🧹 Removing expired push subscription:", sub.endpoint);
+                await PushSubscription.findByIdAndDelete(sub._id);
+              }
+              throw pushErr;
+            }
+          })
+        );
+
+        const successful = pushResults.filter((r) => r.status === "fulfilled").length;
+        console.log(`🚀 [createNotification] Push notifications sent: ${successful}/${subscriptions.length} successful`);
+      }
+    }
+
+    return notification;
+  } catch (error) {
+    console.error("❌ [createNotification] Error saving notification:", error);
+    return null;
+  }
+};
+
+// Backward-compatible alias
+export const sendNotificationHelper = createNotification;
+
+// ==========================================
+// 10. API CONTROLLER: CREATE NOTIFICATION VIA HTTP ROUTE
+// ==========================================
+export const createNotificationController = async (req, res) => {
+  console.log("👉 [Create Notification Controller] POST /api/notifications called with body:", req.body);
+  try {
+    const {
+      userId: targetUserId,
+      type = "SYSTEM",
+      title,
+      message,
+      orderId = null,
+      productId = null,
+      metadata = {},
+      sendPush = true,
+      url = "/order",
+    } = req.body || {};
+
+    const userId = targetUserId || req.user?._id;
+
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        message: "User ID is required to create a notification",
+      });
+    }
+
+    if (!title || !message) {
+      return res.status(400).json({
+        success: false,
+        message: "'title' and 'message' are required fields",
+      });
+    }
+
+    const notification = await createNotification({
+      userId,
+      type,
+      title,
+      message,
+      orderId,
+      productId,
+      metadata,
+      sendPush,
+      url,
+    });
+
+    if (!notification) {
+      return res.status(500).json({
+        success: false,
+        message: "Failed to create notification",
+      });
+    }
+
+    return res.status(201).json({
+      success: true,
+      message: "Notification created successfully in database",
+      notification,
+    });
+  } catch (error) {
+    console.error("❌ Error in createNotificationController:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to create notification",
+      error: error.message,
+    });
+  }
+};
+
+// ==========================================
+// 11. SEND TEST NOTIFICATION (TESTING ENDPOINT)
 // ==========================================
 export const sendTestNotification = async (req, res) => {
   console.log("👉 [Send Test Notification] POST /api/notifications/test called with body:", req.body, "for user:", req.user?._id);
@@ -405,79 +589,7 @@ export const sendTestNotification = async (req, res) => {
 };
 
 // ==========================================
-// 10. REUSABLE BACKEND HELPER FUNCTION
-// Call this helper from any other controller (e.g., order, payment, refund)
-// ==========================================
-export const sendNotificationHelper = async ({
-  userId,
-  type = "SYSTEM",
-  title,
-  message,
-  orderId = null,
-  productId = null,
-  url = "/",
-  metadata = {},
-  saveToDb = true,
-  sendPush = true,
-}) => {
-  try {
-    let savedNotification = null;
-
-    // 1. Optionally save to MongoDB
-    if (saveToDb) {
-      savedNotification = await Notification.create({
-        userId,
-        type,
-        title,
-        message,
-        orderId,
-        productId,
-        metadata: { ...metadata, url },
-      });
-    }
-
-    // 2. Optionally send browser Push Notification
-    if (sendPush) {
-      const subscriptions = await PushSubscription.find({ userId });
-      if (subscriptions.length > 0) {
-        const payload = JSON.stringify({
-          title,
-          body: message,
-          icon: "/favicon.png",
-          data: {
-            url,
-            notificationId: savedNotification?._id || null,
-            orderId,
-            productId,
-          },
-        });
-
-        await Promise.allSettled(
-          subscriptions.map(async (sub) => {
-            try {
-              return await webpush.sendNotification(
-                { endpoint: sub.endpoint, keys: sub.keys },
-                payload
-              );
-            } catch (err) {
-              if (err.statusCode === 410 || err.statusCode === 404) {
-                await PushSubscription.findByIdAndDelete(sub._id);
-              }
-            }
-          })
-        );
-      }
-    }
-
-    return savedNotification;
-  } catch (err) {
-    console.error("❌ Error in sendNotificationHelper:", err);
-    return null;
-  }
-};
-
-// ==========================================
-// 11. CHECK VAPID CONFIGURATION STATUS
+// 12. CHECK VAPID CONFIGURATION STATUS
 // ==========================================
 export const checkVapidConfig = async (req, res) => {
   const hasEmail = Boolean(process.env.VAPID_EMAIL && process.env.VAPID_EMAIL.trim());
