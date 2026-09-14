@@ -1,33 +1,37 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap');
 
-/* =========================
-   ADMIN DASHBOARD MAIN
-========================= */
+/* =========================================================
+   ADMIN DASHBOARD MAIN WRAPPER
+========================================================= */
 
 .admin-dashboard {
   min-height: calc(100vh - 76px);
-  padding: 40px 5% 80px;
+  padding: 36px 4% 80px;
   background-color: #f8fafc;
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background-image: 
+    radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.03) 0px, transparent 50%),
+    radial-gradient(at 100% 0%, rgba(56, 189, 248, 0.03) 0px, transparent 50%);
+  font-family: 'Plus Jakarta Sans', 'Inter', system-ui, -apple-system, sans-serif;
   box-sizing: border-box;
+  color: #0f172a;
 }
 
-/* =========================
-   HEADER SECTION
-========================= */
+/* =========================================================
+   HEADER & TOP ACTIONS
+========================================================= */
 
 .admin-header {
-  max-width: 1300px;
+  max-width: 1360px;
   margin: 0 auto 32px;
-  padding: 32px 36px;
-  background-color: #ffffff;
+  padding: 28px 32px;
+  background: #ffffff;
   border: 1px solid #e2e8f0;
-  border-radius: 16px;
+  border-radius: 20px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 24px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.04);
 }
 
 .admin-header-main {
@@ -38,98 +42,105 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  border: 1px solid rgba(37, 99, 235, 0.2);
-  background: rgba(37, 99, 235, 0.06);
-  color: #2563eb;
+  border: 1px solid rgba(99, 102, 241, 0.2);
+  background: rgba(99, 102, 241, 0.08);
+  color: #4f46e5;
   font-size: 11px;
   font-weight: 700;
-  letter-spacing: 1.8px;
+  letter-spacing: 1.5px;
   text-transform: uppercase;
   padding: 5px 12px;
-  border-radius: 20px;
-  margin-bottom: 12px;
+  border-radius: 9999px;
+  margin-bottom: 10px;
 }
 
 .admin-title {
-  margin: 0 0 8px;
-  font-family: 'Inter', sans-serif;
-  font-size: 32px;
+  margin: 0 0 6px;
+  font-size: 28px;
   font-weight: 800;
   line-height: 1.2;
   color: #0f172a;
-  letter-spacing: -0.5px;
+  letter-spacing: -0.6px;
 }
 
 .admin-subtext {
   margin: 0;
-  font-size: 14px;
+  font-size: 13.5px;
   line-height: 1.5;
   color: #64748b;
-  max-width: 700px;
+  max-width: 650px;
 }
 
 .admin-header-actions {
   display: flex;
   align-items: center;
   gap: 12px;
-  flex-shrink: 0;
+  flex-wrap: wrap;
 }
 
-.admin-btn-primary {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  background-color: #0f172a;
-  color: #ffffff;
-  text-decoration: none;
-  font-size: 13.5px;
+.timeframe-pill-group {
+  display: flex;
+  background: #f1f5f9;
+  padding: 4px;
+  border-radius: 10px;
+  gap: 2px;
+  border: 1px solid #e2e8f0;
+}
+
+.timeframe-pill-btn {
+  padding: 6px 14px;
+  font-size: 12.5px;
   font-weight: 600;
-  padding: 10px 18px;
+  color: #64748b;
+  background: transparent;
+  border: none;
   border-radius: 8px;
-  white-space: nowrap;
-  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.2);
-  transition: all 0.2s ease;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  font-family: inherit;
 }
 
-.admin-btn-primary:hover {
-  background-color: #2563eb;
-  transform: translateY(-1px);
-  box-shadow: 0 6px 18px rgba(37, 99, 235, 0.3);
+.timeframe-pill-btn:hover {
+  color: #0f172a;
+}
+
+.timeframe-pill-btn.active {
+  background: #ffffff;
+  color: #4f46e5;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  font-weight: 700;
 }
 
 .admin-btn-secondary {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background-color: #f8fafc;
+  background-color: #ffffff;
   color: #1e293b;
   border: 1px solid #cbd5e1;
-  font-family: 'Inter', sans-serif;
+  font-family: inherit;
   font-size: 13px;
   font-weight: 600;
-  padding: 9px 15px;
-  border-radius: 8px;
+  padding: 8px 14px;
+  border-radius: 10px;
   cursor: pointer;
   transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
 }
 
 .admin-btn-secondary:hover:not(:disabled) {
-  background-color: #ffffff;
+  background-color: #f8fafc;
   border-color: #94a3b8;
+  color: #0f172a;
 }
 
-.admin-btn-secondary:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-/* =========================
+/* =========================================================
    STAT CARDS (KPIs)
-========================= */
+========================================================= */
 
 .admin-stats {
-  max-width: 1300px;
-  margin: 0 auto 36px;
+  max-width: 1360px;
+  margin: 0 auto 32px;
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 20px;
@@ -139,13 +150,12 @@
   padding: 22px 24px;
   background-color: #ffffff;
   border: 1px solid #e2e8f0;
-  border-radius: 14px;
+  border-radius: 18px;
   display: flex;
   flex-direction: column;
-  text-decoration: none;
   color: inherit;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
-  transition: all 0.2s ease;
+  box-shadow: 0 4px 16px -2px rgba(0, 0, 0, 0.03);
+  transition: all 0.25s ease;
   position: relative;
   overflow: hidden;
 }
@@ -153,20 +163,20 @@
 .admin-stat:hover {
   transform: translateY(-3px);
   border-color: #cbd5e1;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 10px 25px -4px rgba(0, 0, 0, 0.07);
 }
 
 .admin-stat-top {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 16px;
+  margin-bottom: 14px;
 }
 
 .admin-stat-icon {
   width: 44px;
   height: 44px;
-  border-radius: 10px;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -185,13 +195,13 @@
   border: 1px solid #bfdbfe;
 }
 
-.icon-products {
+.icon-aov {
   background-color: #faf5ff;
   color: #9333ea;
   border: 1px solid #e9d5ff;
 }
 
-.icon-users {
+.icon-delivery {
   background-color: #fffbeb;
   color: #d97706;
   border: 1px solid #fde68a;
@@ -201,12 +211,11 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  font-size: 11px;
+  font-size: 11.5px;
   font-weight: 700;
   padding: 3px 8px;
   border-radius: 6px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.2px;
 }
 
 .stat-trend.positive {
@@ -216,9 +225,9 @@
 }
 
 .stat-trend.warning {
-  background: #fef3c7;
-  color: #b45309;
-  border: 1px solid #fde68a;
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
 }
 
 .stat-trend.neutral {
@@ -233,15 +242,16 @@
   font-weight: 600;
   color: #64748b;
   margin-bottom: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .stat-value {
   display: block;
-  font-size: 24px;
+  font-size: 26px;
   font-weight: 800;
   color: #0f172a;
-  font-family: 'Inter', sans-serif;
-  letter-spacing: -0.5px;
+  letter-spacing: -0.6px;
   margin-bottom: 4px;
 }
 
@@ -249,15 +259,265 @@
   display: block;
   font-size: 12px;
   color: #94a3b8;
+  font-weight: 500;
 }
 
-/* =========================
-   MODULE PANELS
-========================= */
+/* =========================================================
+   RECHARTS ANALYTICS GRIDS
+========================================================= */
+
+.admin-charts-grid {
+  max-width: 1360px;
+  margin: 0 auto 36px;
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 24px;
+}
+
+.admin-chart-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 20px;
+  padding: 26px 28px;
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.03);
+  display: flex;
+  flex-direction: column;
+}
+
+.admin-chart-card.full-width {
+  grid-column: 1 / -1;
+}
+
+.chart-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 22px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.chart-card-title-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.chart-badge-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: #6366f1;
+}
+
+.chart-card-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.3px;
+}
+
+.chart-card-subtitle {
+  margin: 0;
+  font-size: 12.5px;
+  color: #64748b;
+}
+
+.chart-toggle-controls {
+  display: flex;
+  background: #f8fafc;
+  padding: 3px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  gap: 2px;
+}
+
+.chart-toggle-btn {
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: inherit;
+}
+
+.chart-toggle-btn:hover {
+  color: #0f172a;
+}
+
+.chart-toggle-btn.active {
+  background: #ffffff;
+  color: #4f46e5;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  font-weight: 700;
+}
+
+.chart-container-wrap {
+  width: 100%;
+  height: 320px;
+  position: relative;
+}
+
+/* Secondary charts row (Payment Donut + Status Bars) */
+.admin-secondary-charts {
+  max-width: 1360px;
+  margin: 0 auto 36px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+.donut-legend-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #f1f5f9;
+}
+
+.donut-legend-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
+}
+
+.donut-legend-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.donut-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.donut-legend-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.donut-legend-amount {
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.donut-legend-percent {
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 6px;
+  background: #f1f5f9;
+  color: #475569;
+}
+
+/* Custom Recharts Tooltip */
+.custom-recharts-tooltip {
+  background: rgba(15, 23, 42, 0.95);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 12px 16px;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px -3px rgba(0, 0, 0, 0.3);
+  color: #ffffff;
+  font-size: 12px;
+}
+
+.tooltip-date {
+  font-weight: 700;
+  font-size: 12.5px;
+  margin-bottom: 8px;
+  color: #94a3b8;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding-bottom: 4px;
+}
+
+.tooltip-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 4px 0;
+}
+
+.tooltip-item-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #cbd5e1;
+}
+
+.tooltip-item-val {
+  font-weight: 800;
+  color: #ffffff;
+}
+
+/* Status bars list */
+.status-progress-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 10px;
+}
+
+.status-progress-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.status-progress-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.status-progress-badge {
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 6px;
+}
+
+.status-progress-track {
+  width: 100%;
+  height: 8px;
+  background: #f1f5f9;
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+.status-progress-bar {
+  height: 100%;
+  border-radius: 9999px;
+  transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* =========================================================
+   STORE MANAGEMENT MODULES
+========================================================= */
 
 .section-title-wrap {
-  max-width: 1300px;
-  margin: 0 auto 18px;
+  max-width: 1360px;
+  margin: 0 auto 20px;
 }
 
 .section-title-wrap h2 {
@@ -275,7 +535,7 @@
 }
 
 .admin-content {
-  max-width: 1300px;
+  max-width: 1360px;
   margin: 0 auto 40px;
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -285,7 +545,7 @@
 .admin-panel {
   background-color: #ffffff;
   border: 1px solid #e2e8f0;
-  border-radius: 14px;
+  border-radius: 18px;
   padding: 24px;
   display: flex;
   flex-direction: column;
@@ -296,7 +556,7 @@
 .admin-panel:hover {
   transform: translateY(-2px);
   border-color: #cbd5e1;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 8px 24px -2px rgba(0, 0, 0, 0.06);
 }
 
 .admin-panel-head {
@@ -307,9 +567,9 @@
 }
 
 .panel-badge-icon {
-  width: 36px;
-  height: 36px;
-  border-radius: 8px;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -346,7 +606,6 @@
 
 .admin-panel h2 {
   margin: 0 0 8px;
-  font-family: 'Inter', sans-serif;
   font-size: 17px;
   font-weight: 700;
   color: #0f172a;
@@ -374,13 +633,13 @@
   gap: 6px;
   font-size: 13px;
   font-weight: 600;
-  color: #2563eb;
+  color: #4f46e5;
   text-decoration: none;
   transition: color 0.15s ease;
 }
 
 .admin-panel-link:hover {
-  color: #1d4ed8;
+  color: #3730a3;
 }
 
 .panel-sub-action {
@@ -402,18 +661,18 @@
   color: #0f172a;
 }
 
-/* =========================
-   RECENT ORDERS PREVIEW
-========================= */
+/* =========================================================
+   RECENT ORDERS PREVIEW TABLE
+========================================================= */
 
 .admin-recent-orders-section {
-  max-width: 1300px;
+  max-width: 1360px;
   margin: 0 auto;
   background: #ffffff;
   border: 1px solid #e2e8f0;
-  border-radius: 16px;
+  border-radius: 20px;
   padding: 28px 32px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.03);
 }
 
 .recent-orders-header {
@@ -425,7 +684,7 @@
 
 .recent-orders-header h2 {
   margin: 0;
-  font-size: 22px;
+  font-size: 20px;
   font-weight: 800;
   color: #0f172a;
 }
@@ -436,13 +695,13 @@
   gap: 6px;
   font-size: 13px;
   font-weight: 600;
-  color: #2563eb;
+  color: #4f46e5;
   text-decoration: none;
   transition: color 0.15s ease;
 }
 
 .view-all-link:hover {
-  color: #1d4ed8;
+  color: #3730a3;
   text-decoration: underline;
 }
 
@@ -460,7 +719,7 @@
 .recent-orders-table th {
   padding: 12px 16px;
   background: #f8fafc;
-  color: #2563eb;
+  color: #4f46e5;
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 1px;
@@ -530,16 +789,16 @@
   gap: 4px;
   font-size: 12.5px;
   font-weight: 600;
-  color: #2563eb;
+  color: #4f46e5;
   text-decoration: none;
-  padding: 4px 10px;
-  background: #eff6ff;
+  padding: 5px 12px;
+  background: #eef2ff;
   border-radius: 6px;
   transition: all 0.15s ease;
 }
 
 .order-action-link:hover {
-  background: #2563eb;
+  background: #4f46e5;
   color: #ffffff;
 }
 
@@ -556,13 +815,21 @@
   }
 }
 
-/* =========================
-   RESPONSIVE
-========================= */
+/* =========================================================
+   RESPONSIVE DESIGN
+========================================================= */
 
 @media (max-width: 1200px) {
   .admin-stats {
     grid-template-columns: repeat(2, 1fr);
+  }
+
+  .admin-charts-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-secondary-charts {
+    grid-template-columns: 1fr;
   }
 
   .admin-content {
@@ -572,13 +839,13 @@
 
 @media (max-width: 768px) {
   .admin-dashboard {
-    padding: 24px 16px 60px;
+    padding: 20px 14px 60px;
   }
 
   .admin-header {
     flex-direction: column;
     align-items: flex-start;
-    padding: 24px 20px;
+    padding: 20px 16px;
   }
 
   .admin-header-actions {
@@ -586,8 +853,18 @@
     justify-content: space-between;
   }
 
+  .timeframe-pill-group {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .timeframe-pill-btn {
+    padding: 6px 8px;
+    font-size: 11.5px;
+  }
+
   .admin-title {
-    font-size: 26px;
+    font-size: 24px;
   }
 
   .admin-stats {
@@ -596,6 +873,14 @@
 
   .admin-content {
     grid-template-columns: 1fr;
+  }
+
+  .admin-chart-card {
+    padding: 18px 16px;
+  }
+
+  .chart-container-wrap {
+    height: 260px;
   }
 
   .admin-recent-orders-section {

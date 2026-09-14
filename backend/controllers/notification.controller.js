@@ -168,7 +168,7 @@ export const getUnreadCount = async (req, res) => {
       isRead: false,
     });
 
-    console.log(`✅ Unread count for user ${userId}:`, unreadCount);
+    // console.log(`✅ Unread count for user ${userId}:`, unreadCount);
     return res.status(200).json({
       success: true,
       unreadCount,
