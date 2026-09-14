@@ -135,11 +135,9 @@ const ProductDetails = () => {
   const [selectedImgIndex, setSelectedImgIndex] = useState(0);
   const [selectedVariantIndex, setSelectedVariantIndex] = useState<number>(-1);
   const [activeTab, setActiveTab] = useState<"specifications" | "description" | "warranty">("specifications");
-  const [addedNotice, setAddedNotice] = useState(false);
+  // const [addedNotice, setAddedNotice] = useState(false);
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [isVariantModalOpen, setIsVariantModalOpen] = useState(false);
-
-  setAddedNotice(false);
 
   useEffect(() => {
     const fetchWishlist = async () => {
@@ -727,15 +725,7 @@ const ProductDetails = () => {
                   onClick={handleAddToCart}
                   disabled={product.stock <= 0}
                 >
-                  {addedNotice ? (
-                    <>
-                      <Check size={18} /> Added to Cart!
-                    </>
-                  ) : (
-                    <>
-                      <ShoppingCart size={18} /> Add to Cart
-                    </>
-                  )}
+                  <ShoppingCart size={18} /> Add to Cart
                 </button>
 
                 {/* Buy Now */}
