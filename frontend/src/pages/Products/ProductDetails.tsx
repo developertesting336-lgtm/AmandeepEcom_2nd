@@ -1,12 +1,11 @@
 import { useEffect, useState } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
   ShoppingCart,
   Zap,
   ShieldCheck,
   RotateCcw,
-  ChevronRight,
   Sparkles,
   Check,
   Heart,
@@ -139,6 +138,8 @@ const ProductDetails = () => {
   const [addedNotice, setAddedNotice] = useState(false);
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [isVariantModalOpen, setIsVariantModalOpen] = useState(false);
+
+  setAddedNotice(false);
 
   useEffect(() => {
     const fetchWishlist = async () => {
