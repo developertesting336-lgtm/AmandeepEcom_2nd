@@ -7,7 +7,6 @@ import {
   ShieldCheck,
   RotateCcw,
   Sparkles,
-  Check,
   Heart,
 } from "lucide-react";
 import { useCart } from "../../context/cartContext";
