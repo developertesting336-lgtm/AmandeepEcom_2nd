@@ -9,6 +9,7 @@ import Footer from "./footersection";
 import Hero1 from './hero1';
 import VideoSection from "./VideoSection";
 import CategorySection from "./CategorySection";
+import AiChatModal from "../../components/AiChat/AiChatModal";
 
 const Home = () => {
   return (
@@ -24,6 +25,7 @@ const Home = () => {
       {/* <Hero2 /> */}
       <OffersTrustSection />
       <Footer />
+      <AiChatModal />
     </main>
   );
 };
