@@ -160,7 +160,7 @@ export const getNotifications = async (req, res) => {
 // 4. GET UNREAD NOTIFICATION COUNT
 // ==========================================
 export const getUnreadCount = async (req, res) => {
-  console.log("👉 [Unread Count] GET /api/notifications/unread-count called for user:", req.user?._id);
+  // console.log("👉 [Unread Count] GET /api/notifications/unread-count called for user:", req.user?._id);
   try {
     const userId = req.user?._id;
     const unreadCount = await Notification.countDocuments({

@@ -1,0 +1,556 @@
+/* =====================================================
+   CONTACT & HELP CENTER - PLATFORM LIGHT THEME
+   Matches Shopora Design System (Inter, #f8fafc, #7257c2)
+===================================================== */
+
+.contact-help-page {
+  width: 100%;
+  min-height: calc(100vh - 72px);
+  background-color: #f8fafc;
+  color: #334155;
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+
+.contact-help-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 32px 20px 64px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* ==========================================
+   1. BREADCRUMB & PAGE HEADER
+   ========================================== */
+.ch-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #64748b;
+  margin-bottom: 16px;
+}
+
+.ch-breadcrumb a {
+  color: #64748b;
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.ch-breadcrumb a:hover {
+  color: #7257c2;
+}
+
+.ch-breadcrumb-separator {
+  color: #cbd5e1;
+  font-size: 11px;
+}
+
+.ch-breadcrumb-current {
+  color: #0f172a;
+  font-weight: 500;
+}
+
+.ch-page-header {
+  margin-bottom: 24px;
+}
+
+.ch-page-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 8px 0;
+  letter-spacing: -0.02em;
+}
+
+.ch-page-subtitle {
+  font-size: 15px;
+  color: #64748b;
+  margin: 0;
+  line-height: 1.5;
+  max-width: 760px;
+}
+
+/* ==========================================
+   2. EMAIL SUPPORT STRIP / INFO BOX
+   ========================================== */
+.ch-email-strip {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 12px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+}
+
+.ch-email-strip-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.ch-email-icon-box {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: rgba(114, 87, 194, 0.09);
+  color: #7257c2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.ch-email-strip-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.ch-email-strip-title span {
+  color: #7257c2;
+  font-weight: 600;
+  margin-left: 2px;
+}
+
+.ch-email-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 7px 14px;
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-radius: 7px;
+  color: #0f172a;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.ch-email-action-btn:hover {
+  background: #7257c2;
+  border-color: #7257c2;
+  color: #ffffff;
+}
+
+.ch-email-action-btn-copied {
+  background: #059669 !important;
+  border-color: #059669 !important;
+  color: #ffffff !important;
+}
+
+/* ==========================================
+   3. SPLIT SECTION (FORM + FAQS)
+   ========================================== */
+.ch-split-grid {
+  display: grid;
+  grid-template-columns: 1.15fr 1fr;
+  gap: 28px;
+  margin-bottom: 36px;
+  align-items: start;
+}
+
+@media (max-width: 960px) {
+  .ch-split-grid {
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
+}
+
+/* ==========================================
+   4. INQUIRY FORM CARD
+   ========================================== */
+.ch-form-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 30px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.ch-form-header {
+  margin-bottom: 22px;
+}
+
+.ch-section-tag {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #7257c2;
+  margin-bottom: 4px;
+  display: block;
+}
+
+.ch-section-heading {
+  font-size: 20px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 6px 0;
+  letter-spacing: -0.01em;
+}
+
+.ch-section-subtext {
+  font-size: 13.5px;
+  color: #64748b;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.ch-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+@media (max-width: 600px) {
+  .ch-form-row {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+}
+
+.ch-field-group {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 14px;
+}
+
+.ch-field-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #334155;
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.ch-required-star {
+  color: #ef4444;
+  margin-left: 3px;
+}
+
+.ch-optional-tag {
+  font-size: 11.5px;
+  color: #94a3b8;
+  font-weight: normal;
+}
+
+.ch-input,
+.ch-select,
+.ch-textarea {
+  width: 100%;
+  padding: 9.5px 12px;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  color: #0f172a;
+  font-size: 13.5px;
+  font-family: inherit;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.ch-input:focus,
+.ch-select:focus,
+.ch-textarea:focus {
+  border-color: #7257c2;
+  box-shadow: 0 0 0 3px rgba(114, 87, 194, 0.12);
+}
+
+.ch-input::placeholder,
+.ch-textarea::placeholder {
+  color: #94a3b8;
+}
+
+.ch-select {
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 36px;
+}
+
+.ch-textarea {
+  min-height: 110px;
+  resize: vertical;
+  line-height: 1.5;
+}
+
+.ch-char-count {
+  font-size: 11.5px;
+  color: #94a3b8;
+  text-align: right;
+  margin-top: 4px;
+}
+
+.ch-submit-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 11px 20px;
+  background: #7257c2;
+  border: none;
+  border-radius: 8px;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s ease, transform 0.1s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  margin-top: 4px;
+}
+
+.ch-submit-btn:hover:not(:disabled) {
+  background: #5e45a8;
+}
+
+.ch-submit-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Success Confirmation Box */
+.ch-success-box {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 10px;
+  padding: 24px;
+  text-align: center;
+}
+
+.ch-success-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: #dcfce7;
+  color: #16a34a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 12px;
+}
+
+.ch-success-title {
+  font-size: 17px;
+  font-weight: 600;
+  color: #166534;
+  margin: 0 0 6px 0;
+}
+
+.ch-success-desc {
+  font-size: 13.5px;
+  color: #374151;
+  line-height: 1.5;
+  margin: 0 0 16px 0;
+}
+
+.ch-reset-btn {
+  padding: 8px 18px;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  color: #0f172a;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.ch-reset-btn:hover {
+  background: #f8fafc;
+  border-color: #94a3b8;
+}
+
+/* ==========================================
+   5. FAQ ACCORDION CARD
+   ========================================== */
+.ch-faq-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 30px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+/* Inline FAQ Search */
+.ch-faq-search-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.ch-faq-search-icon {
+  position: absolute;
+  left: 12px;
+  color: #94a3b8;
+  pointer-events: none;
+}
+
+.ch-faq-search-input {
+  width: 100%;
+  padding: 9px 34px 9px 36px;
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  color: #0f172a;
+  font-size: 13.5px;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.ch-faq-search-input:focus {
+  border-color: #7257c2;
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(114, 87, 194, 0.12);
+}
+
+.ch-faq-search-clear {
+  position: absolute;
+  right: 10px;
+  background: none;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ch-faq-categories {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 18px;
+}
+
+.ch-cat-pill {
+  padding: 5px 12px;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 20px;
+  color: #475569;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.ch-cat-pill:hover {
+  color: #0f172a;
+  background: #e2e8f0;
+}
+
+.ch-cat-pill.active {
+  background: #7257c2;
+  border-color: #7257c2;
+  color: #ffffff;
+}
+
+.ch-accordion-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ch-accordion-item {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #ffffff;
+  overflow: hidden;
+  transition: border-color 0.15s ease;
+}
+
+.ch-accordion-item.is-open {
+  border-color: #cbd5e1;
+}
+
+.ch-accordion-trigger {
+  width: 100%;
+  padding: 13px 16px;
+  background: none;
+  border: none;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: #0f172a;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background-color 0.15s ease;
+}
+
+.ch-accordion-trigger:hover {
+  background-color: #f8fafc;
+}
+
+.ch-chevron {
+  color: #64748b;
+  transition: transform 0.2s ease;
+  flex-shrink: 0;
+}
+
+.ch-accordion-item.is-open .ch-chevron {
+  transform: rotate(180deg);
+  color: #7257c2;
+}
+
+.ch-accordion-body {
+  padding: 0 16px 14px;
+  font-size: 13.5px;
+  color: #475569;
+  line-height: 1.55;
+  border-top: 1px solid #f1f5f9;
+  padding-top: 10px;
+}
+
+.ch-no-results {
+  text-align: center;
+  padding: 28px 16px;
+  color: #64748b;
+  font-size: 13.5px;
+}
+
+/* ==========================================
+   6. RESPONSIVENESS
+   ========================================== */
+@media (max-width: 768px) {
+  .contact-help-container {
+    padding: 20px 14px 48px;
+  }
+
+  .ch-page-title {
+    font-size: 24px;
+  }
+
+  .ch-page-subtitle {
+    font-size: 14px;
+  }
+
+  .ch-form-card,
+  .ch-faq-card {
+    padding: 20px 16px;
+  }
+}

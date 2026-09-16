@@ -19,6 +19,7 @@ import {
   DollarSign,
   Activity,
   Loader2,
+  MessageSquare,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -899,6 +900,27 @@ const AdminDashboard: React.FC = () => {
           <div className="panel-footer-links">
             <Link to="/admin/users" className="admin-panel-link">
               <span>Manage Platform Users</span>
+              <ArrowRight size={14} />
+            </Link>
+          </div>
+        </div>
+
+        {/* Customer Inquiries Panel */}
+        <div className="admin-panel">
+          <div className="admin-panel-head">
+            <div className="panel-badge-icon purple">
+              <MessageSquare size={20} />
+            </div>
+            <p className="panel-tag">SUPPORT & HELPDESK</p>
+          </div>
+          <h2>Customer Inquiries</h2>
+          <span>
+            Track customer inquiries, respond to tickets, resolve order concerns,
+            and manage help requests.
+          </span>
+          <div className="panel-footer-links">
+            <Link to="/admin/inquiries" className="admin-panel-link">
+              <span>View Customer Inquiries</span>
               <ArrowRight size={14} />
             </Link>
           </div>

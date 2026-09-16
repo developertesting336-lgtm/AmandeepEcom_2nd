@@ -17,6 +17,7 @@ import {
   Sparkles,
   CheckCircle2,
   Clock,
+  HelpCircle,
 } from "lucide-react";
 import "./Navbar.css";
 import logo from "../../../assets/logo.png";
@@ -464,6 +465,15 @@ const Navbar = () => {
                         <span>Wishlist</span>
                       </Link>
 
+                      <Link
+                        to="/contact-help"
+                        className="dropdown-item"
+                        onClick={closeMenu}
+                      >
+                        <HelpCircle size={16} className="dropdown-item-icon" />
+                        <span>Help & Support</span>
+                      </Link>
+
                       <div className="dropdown-divider" />
 
                       <button
@@ -521,6 +531,14 @@ const Navbar = () => {
                   onClick={closeMenu}
                 >
                   Users
+                </Link>
+
+                <Link
+                  to="/admin/inquiries"
+                  className="navbar-link"
+                  onClick={closeMenu}
+                >
+                  Inquiries
                 </Link>
 
                 <button

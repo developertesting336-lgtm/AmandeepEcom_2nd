@@ -21,6 +21,7 @@ import googleAuth from './routes/oauth.js'
 import notificationRoutes from './routes/notification.routes.js'
 import adminAnalyticsRoutes from './routes/admin.analytics.routes.js'
 import aiRoutes from './routes/ai.routes.js'
+import inquiryRoutes from './routes/inquiry.routes.js'
 import cookieParser from "cookie-parser";
 
 
@@ -90,6 +91,7 @@ app.use('/api/admin/users', adminUserRoutes)
 app.use('/api/admin/analytics', adminAnalyticsRoutes)
 app.use('/api/notifications', notificationRoutes)
 app.use('/api/ai', aiRoutes)
+app.use('/api/contact', inquiryRoutes)
 
 
 

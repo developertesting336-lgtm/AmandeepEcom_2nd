@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import {
@@ -31,6 +32,7 @@ const DEFAULT_SUGGESTIONS = [
 ];
 
 export const AiChatModal: React.FC = () => {
+  const navigate = useNavigate();
   const { user, isAuthenticated } = useAuth();
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const [inputValue, setInputValue] = useState<string>("");
@@ -52,6 +54,10 @@ export const AiChatModal: React.FC = () => {
   const chatWindowRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // console.log("chatwindow", chatWindowRef.current);
+  console.log("messagesEnd", messagesEndRef);
+  // console.log("inputRef", inputRef.current);
 
   // Auto-scroll to bottom whenever messages update
   const scrollToBottom = () => {
@@ -86,10 +92,16 @@ export const AiChatModal: React.FC = () => {
       }
     };
 
+    const handleOpenAiChat = () => {
+      setIsOpen(true);
+    };
+
+    window.addEventListener("open-ai-chat", handleOpenAiChat);
     document.addEventListener("mousedown", handleClickOutside);
     document.addEventListener("keydown", handleKeyDown);
 
     return () => {
+      window.removeEventListener("open-ai-chat", handleOpenAiChat);
       document.removeEventListener("mousedown", handleClickOutside);
       document.removeEventListener("keydown", handleKeyDown);
     };
@@ -236,7 +248,60 @@ export const AiChatModal: React.FC = () => {
                     <div className="ai-message-bubble">
                       {msg.sender === "assistant" ? (
                         <div className="ai-markdown-body">
-                          <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                          <ReactMarkdown
+                            remarkPlugins={[remarkGfm]}
+                            components={{
+                              a: ({ href, children, ...props }) => {
+                                const raw = (href || "").trim();
+                                // Clean any domain or prefix like yourstore.com/path, http://example.com/path
+                                let clean = raw.replace(
+                                  /^(?:https?:\/\/)?(?:www\.)?(?:[a-zA-Z0-9-]+\.(?:com|org|io|net)|localhost:\d+)/i,
+                                  ""
+                                );
+
+                                if (
+                                  !clean.startsWith("/") &&
+                                  !clean.startsWith("http://") &&
+                                  !clean.startsWith("https://") &&
+                                  !clean.startsWith("mailto:") &&
+                                  !clean.startsWith("tel:")
+                                ) {
+                                  clean = "/" + clean;
+                                }
+
+                                const isInternal =
+                                  clean.startsWith("/") && !clean.startsWith("//");
+
+                                if (isInternal) {
+                                  return (
+                                    <a
+                                      href={clean}
+                                      className="ai-chat-link"
+                                      onClick={(e) => {
+                                        e.preventDefault();
+                                        navigate(clean);
+                                      }}
+                                      {...props}
+                                    >
+                                      {children}
+                                    </a>
+                                  );
+                                }
+
+                                return (
+                                  <a
+                                    href={href}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="ai-chat-link"
+                                    {...props}
+                                  >
+                                    {children}
+                                  </a>
+                                );
+                              },
+                            }}
+                          >
                             {msg.text}
                           </ReactMarkdown>
                         </div>

@@ -7,12 +7,7 @@ export const testAi = async (req, res, next) => {
     const prompt = req.body?.prompt || req.query?.prompt || "Say hello and confirm the AI integration is working!";
     const model = req.body?.model || req.query?.model || "openai/gpt-oss-20b";
 
-    const userId = req.user?._id.toString()
-
-    // console.log(userId)
-
-    // console.log("prompt", prompt);
-    // console.log("req.body", req.body)
+    const userId = req.user?._id ? req.user._id.toString() : null;
 
     const tools = [
       {
@@ -20,74 +15,91 @@ export const testAi = async (req, res, next) => {
         function: {
           name: "getFaqAnswer",
           description:
-            "Get the answer to a frequently asked customer support question.",
+            "Get official e-commerce store FAQs, policies, and platform information (such as about the store/platform, account management, registration, password reset, payment methods, shipping and delivery, order tracking, cancellations, returns, refunds, warranty, customer support, coupons/discounts, cart/wishlist, damaged orders, and security).",
           parameters: {
             type: "object",
             properties: {
               topic: {
                 type: "string",
                 description:
-                  "The FAQ topic, such as forgot_password or cancel_order"
-              }
+                  "The FAQ topic to lookup, such as 'about_platform', 'account_management', 'account_registration', 'forgot_password', 'payment_methods', 'shipping_information', 'track_order', 'cancellation_policy', 'return_policy', 'refund_policy', 'warranty_information', 'contact_support', 'discounts_and_coupons', 'cart_and_wishlist', 'order_issue_or_damage', 'security_privacy'.",
+                enum: [
+                  "about_platform",
+                  "account_management",
+                  "account_registration",
+                  "forgot_password",
+                  "payment_methods",
+                  "shipping_information",
+                  "track_order",
+                  "cancellation_policy",
+                  "return_policy",
+                  "refund_policy",
+                  "warranty_information",
+                  "contact_support",
+                  "discounts_and_coupons",
+                  "cart_and_wishlist",
+                  "order_issue_or_damage",
+                  "security_privacy",
+                ],
+              },
             },
-            required: ["topic"]
-          }
-        }
+            required: ["topic"],
+          },
+        },
       },
       {
         type: "function",
         function: {
           name: "getUserInfoByUserId",
           description:
-            "Get the user information using their user ID.",
+            "Get the user profile information using their user ID.",
           parameters: {
             type: "object",
-            properties: {
-              userId: {
-                type: "string",
-                description: "The customer's user ID",
-              },
-            },
-            required: ["userId"],
+            properties: {},
           },
         },
       },
-      {
-        type: "function",
-        function: {
-          name: "getOrderDetailsByUserId",
-          description:
-            "Get the order details of a user using their user ID.",
-          parameters: {
-            type: "object",
-            properties: {
-              userId: {
-                type: "string",
-                description: "The customer's user ID",
-              },
-            },
-            required: ["userId"],
-          },
-        },
-      },
+      // {
+      //   type: "function",
+      //   function: {
+      //     name: "getOrderDetailsByUserId",
+      //     description:
+      //       "Get the order details of a user using their user ID.",
+      //     parameters: {
+      //       type: "object",
+      //       properties: {}
+      //     },
+      //   },
+      // },
     ];
 
+    const sanitizeInternalUrls = (text) => {
+      if (!text || typeof text !== "string") return "";
+      return text
+        // Replace markdown links containing domain names: [Text](https://yourstore.com/path) -> [Text](/path)
+        .replace(
+          /\[([^\]]+)\]\((?:https?:\/\/)?(?:www\.)?(?:yourstore\.com|example\.com|myshop\.com|localhost:\d+)(\/[^\)\s]*)\)/gi,
+          "[$1]($2)"
+        )
+        // Replace bare yourstore.com/path with /path
+        .replace(
+          /(?:https?:\/\/)?(?:www\.)?(?:yourstore\.com|example\.com|myshop\.com|localhost:\d+)(\/[a-zA-Z0-9_\-\/]+)/gi,
+          "$1"
+        );
+    };
+
     const systemPrompt = `
-You are an AI assistant for an e-commerce platform.
+You are a friendly and helpful AI customer support assistant for our e-commerce platform.
 
 STRICT RULES:
-
-1. You may ONLY provide information that comes from the tools available to you.
-2. NEVER use your own general knowledge, assumptions, training data, guesses, or external knowledge to answer questions about the e-commerce platform.
-3. If the user asks for information that can be obtained through an available tool, you MUST use the appropriate tool.
-4. Do NOT invent, assume, or fabricate any information.
-5. If the required information is not available through any available tool, simply respond:
+1. You may ONLY provide platform information that comes from the tools available to you.
+2. NEVER invent or fabricate platform, product, order, or account information.
+3. If the user asks for platform details, store information, policies, account issues, shipping, returns, refunds, or support, you MUST call the getFaqAnswer tool with the most appropriate topic (e.g. use "about_platform" for questions like "about", "what is this", "tell me about the store", "about us").
+4. CRITICAL LINK FORMATTING RULE: Whenever providing a link or directing users to a page, ALWAYS output a clean relative path starting with a single forward slash (e.g. [About Us](/about), [Reset Password](/forgot-password), [My Orders](/order), [Contact Support](/contact)). NEVER prepend a domain name like "yourstore.com", "example.com", or full URLs like "https://...".
+5. Format your answers beautifully using Markdown: use bullet points, bold text, and numbered steps for high readability.
+6. If the required information is not available through any available tool, respond:
    "Sorry, I don't have that information."
-6. If a tool returns no data or says that the requested information was not found, do not make up an answer. Simply tell the user that the information was not found.
-7. Use only the information returned by the tool when generating your final answer.
-8. Do not claim that you performed an action unless a tool actually performed that action.
-9. Keep responses short, clear, and direct.
-10. If the user asks something unrelated to the e-commerce platform and no tool can provide the answer, respond:
+7. If a user asks something unrelated to the e-commerce platform and no tool can provide the answer, respond:
    "Sorry, I can only help with information available through this platform."
 
 IMPORTANT:
@@ -221,7 +233,7 @@ The tools are the ONLY source of truth for platform information.
         message: "Groq AI response received successfully",
         model,
         prompt,
-        response: assistantMessage.content || "",
+        response: sanitizeInternalUrls(assistantMessage.content || ""),
       });
     }
 
@@ -234,17 +246,25 @@ The tools are the ONLY source of truth for platform information.
 
       let toolResult;
 
+      console.log("toolName", toolName)
+      console.log("args", args)
+      // console.log("toolResult", toolResult)
+
       if (toolName === "getUserInfoByUserId") {
         toolResult = await getUserInfoByUserId(userId);
-      } else if (toolName === "getOrderDetailsByUserId") {
-        toolResult = await getOrderDetailsByUserId(userId);
       }
+      // else if (toolName === "getOrderDetailsByUserId") {
+      //   toolResult = await getOrderDetailsByUserId(userId);
+      // }
       else if (toolName === "getFaqAnswer") {
         toolResult = await getFaqAnswer(args.topic);
       }
       else {
         throw new Error(`Unknown tool: ${toolName}`);
       }
+
+
+      // console.log("toolResult", toolResult)
 
       // Send the REAL function result back to the AI.
       messages.push({
@@ -272,6 +292,8 @@ The tools are the ONLY source of truth for platform information.
     const finalMessage =
       finalCompletion.choices[0]?.message;
 
+    console.log("finalMessage", finalMessage)
+
     // --------------------------------------------------
     // 5. Return AI's final response to user
     // --------------------------------------------------
@@ -281,7 +303,7 @@ The tools are the ONLY source of truth for platform information.
       message: "Groq AI response received successfully",
       model,
       prompt,
-      response: finalMessage?.content || "",
+      response: sanitizeInternalUrls(finalMessage?.content || ""),
     });
 
     // const aiResponse = completion.choices[0]?.message?.content || "";

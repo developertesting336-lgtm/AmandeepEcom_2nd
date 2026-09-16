@@ -14,6 +14,7 @@ import EditProduct from "./pages/Admin/EditProduct";
 import Categories from "./pages/Admin/Categories";
 import Orders from "./pages/Admin/Orders";
 import Users from "./pages/Admin/Users";
+import AdminInquiries from "./pages/Admin/Inquiries";
 import UserProducts from "./pages/Products/UserProducts";
 import ProductDetails from "./pages/Products/ProductDetails";
 import Cart from "./pages/Cart/Cart";
@@ -25,6 +26,7 @@ import Wishlist from "./pages/Wishlist/Wishlist";
 import PrivacyPolicy from "./pages/Legal/PrivacyPolicy";
 import TermsConditions from "./pages/Legal/TermsConditions";
 import ShippingPolicy from "./pages/Legal/ShippingPolicy";
+import ContactHelp from "./pages/ContactHelp/ContactHelp";
 import OAuthSuccess from "./pages/Auth/OAuthSuccess";
 import ResetPasswordEmail from "./pages/Auth/ResetPasswordEmail";
 import VerifyOtpResetPassword from "./pages/Auth/VerifyOtpResetPassword";
@@ -119,10 +121,14 @@ function App() {
         <Route path="/terms-and-conditions" element={<TermsConditions />} />
         <Route path="/shipping-policy" element={<ShippingPolicy />} />
         <Route path="/shipping" element={<ShippingPolicy />} />
+        <Route path="/contact-help" element={<ContactHelp />} />
+        <Route path="/contact" element={<ContactHelp />} />
+        <Route path="/help" element={<ContactHelp />} />
         <Route path="/admin/products" element={<ProductList />} />
         <Route path="/admin/categories" element={<Categories />} />
         <Route path="/admin/orders" element={<Orders />} />
         <Route path="/admin/users" element={<Users />} />
+        <Route path="/admin/inquiries" element={<AdminInquiries />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/admin/add/product" element={<AddProduct />} />
         <Route path="/admin/products/edit/:productId" element={<EditProduct />} />

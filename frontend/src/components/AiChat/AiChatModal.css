@@ -224,9 +224,20 @@
   color: #0f172a;
 }
 
-.ai-markdown-body a {
+.ai-markdown-body a,
+.ai-chat-link {
   color: #6366f1;
+  font-weight: 600;
   text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+  transition: color 0.15s ease, text-decoration-color 0.15s ease;
+}
+
+.ai-markdown-body a:hover,
+.ai-chat-link:hover {
+  color: #4338ca;
+  text-decoration-thickness: 2px;
 }
 
 .ai-markdown-body code {

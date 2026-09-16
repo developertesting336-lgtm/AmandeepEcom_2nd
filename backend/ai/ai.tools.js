@@ -11,7 +11,7 @@ import User from "../models/user.js";
 export const getOrderDetailsByUserId = async (userId, options = {}) => {
   try {
     if (!userId) {
-      throw new Error("User ID is required to fetch order details.");
+      throw new Error("Sorry I cannot fullfill this request right now. Please Login or Register first.");
     }
 
     // Convert string to ObjectId if valid
@@ -87,7 +87,7 @@ export const getUserInfoByUserId = async (userId) => {
 
     console.log("userID in tool", userId);
     if (!userId) {
-      throw new Error("User ID is required to fetch user information.");
+      throw new Error("Sorry I cannot fullfill this request right now. Please Login or Register first.");
     }
 
     const userObjectId = mongoose.Types.ObjectId.isValid(userId)
@@ -103,27 +103,27 @@ export const getUserInfoByUserId = async (userId) => {
     }
 
     return {
-      userId: user._id.toString(),
+      // userId: user._id.toString(),
       name: user.name,
-      email: user.email,
-      role: user.role,
-      phone: user.phone || "",
-      avatar: user.avatar || "",
-      isActive: user.isActive,
-      authProvider: user.authProvider,
-      addresses: (user.addresses || []).map((addr) => ({
-        addressId: addr._id ? addr._id.toString() : null,
-        fullName: addr.fullName,
-        phone: addr.phone,
-        addressLine1: addr.addressLine1,
-        addressLine2: addr.addressLine2 || "",
-        city: addr.city,
-        state: addr.state,
-        postalCode: addr.postalCode,
-        country: addr.country,
-        isDefault: addr.isDefault || false,
-      })),
-      memberSince: user.createdAt,
+      email: user.email
+      // role: user.role,
+      // phone: user.phone || "",
+      // avatar: user.avatar || "",
+      // isActive: user.isActive,
+      // authProvider: user.authProvider,
+      // addresses: (user.addresses || []).map((addr) => ({
+      //   addressId: addr._id ? addr._id.toString() : null,
+      //   fullName: addr.fullName,
+      //   phone: addr.phone,
+      //   addressLine1: addr.addressLine1,
+      //   addressLine2: addr.addressLine2 || "",
+      //   city: addr.city,
+      //   state: addr.state,
+      //   postalCode: addr.postalCode,
+      //   country: addr.country,
+      //   isDefault: addr.isDefault || false,
+      // })),
+      // memberSince: user.createdAt,
     };
   } catch (error) {
     console.error("Error in getUserInfoByUserId:", error);
