@@ -222,8 +222,6 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     quantity: number = 1,
     variantId?: string | null
   ): Promise<AddToCartResult> => {
-    // Update count optimistically
-    setTotalItems((prev) => prev + quantity);
     try {
       setLoading(true);
 
@@ -256,9 +254,6 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         return { success: true };
       }
 
-      // Roll back optimistic total count
-      setTotalItems((prev) => Math.max(0, prev - quantity));
-
       if (res.status === 401) {
         toast.error("Your session has expired. Please log in again.");
         await logout();
@@ -274,69 +269,12 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       return { success: false, message: msg };
     } catch (err) {
       console.error("Add to cart error:", err);
-      setTotalItems((prev) => Math.max(0, prev - quantity));
       toast.error("An error occurred while adding to cart.");
       return { success: false, message: "An error occurred while adding to cart." };
     } finally {
       setLoading(false);
     }
   };
-
-
-  // const addToCart = async (
-  //     productId: string,
-  //     quantity: number = 1
-  //   ): Promise<boolean> => {
-
-  //     // Update count immediately
-  //     setTotalItems((prev) => prev + quantity);
-  //     try {
-  //       setLoading(true);
-
-  //       const res = await fetch(API_CART, {
-  //         method: "POST",
-  //         credentials: "include",
-
-  //         headers: {
-  //           "Content-Type": "application/json",
-  //         },
-
-  //         body: JSON.stringify({
-  //           productId,
-  //           quantity,
-  //         }),
-  //       });
-
-  //       const result = await res.json();
-
-  //       if (res.ok && result.success !== false) {
-  //         // Adding a product can change an existing cart item,
-  //         // so fetch the latest cart after successful addition.
-  //         // await fetchCart();
-
-  //         return true;
-  //       }
-
-  //       if (res.status === 401) {
-  //         alert("Your session has expired. Please log in again.");
-
-  //         await logout(); // backend clears cookie + frontend clears user
-
-  //         // navigate("/login", { replace: true });
-
-  //         return false;
-  //       }
-
-  //       alert(result.message || "Failed to add product to cart.");
-  //       return false;
-  //     } catch (err) {
-  //       console.error("Add to cart error:", err);
-  //       alert("An error occurred while adding to cart.");
-  //       return false;
-  //     } finally {
-  //       setLoading(false);
-  //     }
-  //   };
 
   // ==========================================
   // UPDATE QUANTITY - OPTIMISTIC UPDATE
