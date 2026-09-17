@@ -432,6 +432,14 @@
   box-shadow: 0 4px 12px rgba(15, 23, 42, 0.2);
 }
 
+.user-product-cart-btn.added {
+  background-color: #059669 !important;
+  color: #ffffff !important;
+  border-color: #059669 !important;
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(5, 150, 105, 0.4) !important;
+}
+
 /* EMPTY STATE & LOADING */
 
 .user-products-empty {

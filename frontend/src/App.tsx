@@ -1,4 +1,5 @@
 import Navbar from "./components/layout/Navbar/Navbar";
+import FlyToCartOverlay from "./components/common/FlyToCart/FlyToCart";
 import Home from "./pages/Home/Home";
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { useEffect } from "react";
@@ -15,6 +16,7 @@ import Categories from "./pages/Admin/Categories";
 import Orders from "./pages/Admin/Orders";
 import Users from "./pages/Admin/Users";
 import AdminInquiries from "./pages/Admin/Inquiries";
+import PromoBanners from "./pages/Admin/PromoBanners";
 import UserProducts from "./pages/Products/UserProducts";
 import ProductDetails from "./pages/Products/ProductDetails";
 import Cart from "./pages/Cart/Cart";
@@ -94,6 +96,7 @@ function App() {
           },
         }}
       />
+      <FlyToCartOverlay />
       <Navbar />
 
       <Routes>
@@ -129,6 +132,8 @@ function App() {
         <Route path="/admin/orders" element={<Orders />} />
         <Route path="/admin/users" element={<Users />} />
         <Route path="/admin/inquiries" element={<AdminInquiries />} />
+        <Route path="/admin/promos" element={<PromoBanners />} />
+        <Route path="/admin/video-promos" element={<PromoBanners />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/admin/add/product" element={<AddProduct />} />
         <Route path="/admin/products/edit/:productId" element={<EditProduct />} />

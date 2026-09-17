@@ -8,7 +8,11 @@ import {
   RotateCcw,
   Sparkles,
   Heart,
+  Check,
+  Loader2,
 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { triggerFlyToCart } from "../../components/common/FlyToCart/FlyToCart";
 import { useCart } from "../../context/cartContext";
 import { useAuth } from "../../context/authContext";
 import toast from "react-hot-toast";
@@ -137,6 +141,8 @@ const ProductDetails = () => {
   // const [addedNotice, setAddedNotice] = useState(false);
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [isVariantModalOpen, setIsVariantModalOpen] = useState(false);
+  const [isAdding, setIsAdding] = useState(false);
+  const [isAdded, setIsAdded] = useState(false);
 
   useEffect(() => {
     const fetchWishlist = async () => {
@@ -242,6 +248,7 @@ const ProductDetails = () => {
       return;
     }
 
+    setIsAdding(true);
     try {
       const res = await addToCart(product._id, quantity, selectedVariant?._id);
       if (res.requiresVariant) {
@@ -253,10 +260,29 @@ const ProductDetails = () => {
           ? ` (${selectedVariant.attributes.map(a => a.value).join(" / ")})`
           : "";
         toast.success(`${quantity} x "${product.name}${variantSuffix}" added to cart!`);
-        // setAddedNotice(true);
+
+        const currentPrice = selectedVariant
+          ? (selectedVariant.salePrice && selectedVariant.salePrice > 0
+            ? selectedVariant.salePrice
+            : selectedVariant.price)
+          : (product.salePrice && product.salePrice > 0
+            ? product.salePrice
+            : product.price);
+
+        triggerFlyToCart({
+          productName: `${product.name}${variantSuffix}`,
+          price: currentPrice,
+          quantity: quantity,
+          imageUrl: mainImage,
+        });
+
+        setIsAdded(true);
+        setTimeout(() => setIsAdded(false), 1800);
       }
     } catch (error: any) {
       toast.error("Failed to add product to cart");
+    } finally {
+      setIsAdding(false);
     }
   };
 
@@ -718,14 +744,50 @@ const ProductDetails = () => {
               {/* Action Buttons Group */}
               <div className="pdp-btns-group">
                 {/* Add to Cart */}
-                <button
+                <motion.button
                   type="button"
-                  className="pdp-btn pdp-btn-cart"
+                  whileTap={{ scale: 0.95 }}
+                  className={`pdp-btn pdp-btn-cart ${isAdded ? "added" : ""}`}
                   onClick={handleAddToCart}
-                  disabled={product.stock <= 0}
+                  disabled={product.stock <= 0 || isAdding}
                 >
-                  <ShoppingCart size={18} /> Add to Cart
-                </button>
+                  <AnimatePresence mode="wait">
+                    {isAdded ? (
+                      <motion.span
+                        key="added"
+                        initial={{ opacity: 0, y: 6, scale: 0.9 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: -6, scale: 0.9 }}
+                        transition={{ duration: 0.2 }}
+                        style={{ display: "inline-flex", alignItems: "center", gap: "8px" }}
+                      >
+                        <Check size={18} strokeWidth={2.5} /> Added to Cart!
+                      </motion.span>
+                    ) : isAdding ? (
+                      <motion.span
+                        key="adding"
+                        initial={{ opacity: 0, y: 6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -6 }}
+                        transition={{ duration: 0.2 }}
+                        style={{ display: "inline-flex", alignItems: "center", gap: "8px" }}
+                      >
+                        <Loader2 size={18} className="animate-spin" /> Adding...
+                      </motion.span>
+                    ) : (
+                      <motion.span
+                        key="idle"
+                        initial={{ opacity: 0, y: 6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -6 }}
+                        transition={{ duration: 0.2 }}
+                        style={{ display: "inline-flex", alignItems: "center", gap: "8px" }}
+                      >
+                        <ShoppingCart size={18} /> Add to Cart
+                      </motion.span>
+                    )}
+                  </AnimatePresence>
+                </motion.button>
 
                 {/* Buy Now */}
                 <button

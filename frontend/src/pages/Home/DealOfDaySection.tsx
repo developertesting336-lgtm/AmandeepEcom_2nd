@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { ShoppingCart, Flame, Clock } from "lucide-react";
+import { ShoppingCart, Flame, Clock, Check } from "lucide-react";
+import { triggerFlyToCart } from "../../components/common/FlyToCart/FlyToCart";
 import { useCart } from "../../context/cartContext";
 import product1 from "../../assets/1.jpeg";
 import iphoneImg from "../../assets/iphone.png";
@@ -7,7 +8,7 @@ import "./DealOfDaySection.css";
 
 const DealOfDaySection = () => {
   const { addToCart } = useCart();
-
+  const [isAdded, setIsAdded] = useState(false);
   const [timeLeft, setTimeLeft] = useState({ hours: 14, minutes: 32, seconds: 45 });
 
   useEffect(() => {
@@ -22,6 +23,20 @@ const DealOfDaySection = () => {
 
     return () => clearInterval(timer);
   }, []);
+
+  const handleClaimDeal = async () => {
+    const res = await addToCart("6a7400a3be73e77659acdbe1", 1);
+    if (res.success) {
+      triggerFlyToCart({
+        productName: "iPhone Special Edition (50% OFF)",
+        price: 49999,
+        quantity: 1,
+        imageUrl: iphoneImg || product1,
+      });
+      setIsAdded(true);
+      setTimeout(() => setIsAdded(false), 2000);
+    }
+  };
 
   return (
     <section className="deal-section">
@@ -67,10 +82,18 @@ const DealOfDaySection = () => {
           </div>
 
           <button
-            className="deal-cta-btn"
-            onClick={() => addToCart("6a7400a3be73e77659acdbe1", 1)}
+            className={`deal-cta-btn ${isAdded ? "deal-cta-added" : ""}`}
+            onClick={handleClaimDeal}
           >
-            <ShoppingCart size={18} /> Claim Deal Now
+            {isAdded ? (
+              <>
+                <Check size={18} strokeWidth={2.5} /> Deal Claimed!
+              </>
+            ) : (
+              <>
+                <ShoppingCart size={18} /> Claim Deal Now
+              </>
+            )}
           </button>
         </div>
       </div>
@@ -79,3 +102,4 @@ const DealOfDaySection = () => {
 };
 
 export default DealOfDaySection;
+

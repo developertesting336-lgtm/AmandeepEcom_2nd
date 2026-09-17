@@ -1,0 +1,131 @@
+/* Fly to Cart Animation Overlay */
+.fly-to-cart-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  z-index: 99999;
+  overflow: hidden;
+}
+
+/* Center-Pop Toast Card (Hardware-accelerated) */
+.center-pop-toast-card {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  margin-top: -45px;
+  margin-left: -160px;
+  width: 320px;
+  max-width: calc(100vw - 32px);
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(16px);
+  border: 1.5px solid rgba(114, 87, 194, 0.3);
+  box-shadow: 0 20px 45px -10px rgba(15, 23, 42, 0.25),
+              0 0 0 1px rgba(255, 255, 255, 0.8) inset,
+              0 0 25px rgba(114, 87, 194, 0.25);
+  border-radius: 18px;
+  padding: 14px 16px;
+  box-sizing: border-box;
+  transform-origin: center center;
+  will-change: transform, opacity, border-radius;
+  pointer-events: none;
+  z-index: 99999;
+  overflow: hidden;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+/* Header */
+.fly-toast-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.fly-toast-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #059669;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: -0.2px;
+}
+
+.fly-toast-check-icon {
+  color: #059669;
+}
+
+.fly-toast-qty {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #64748b;
+  background: #f1f5f9;
+  padding: 2px 8px;
+  border-radius: 6px;
+}
+
+/* Body */
+.fly-toast-body {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.fly-toast-img-box {
+  width: 52px;
+  height: 52px;
+  border-radius: 10px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.fly-toast-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.fly-toast-icon-fallback {
+  color: #7257c2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.fly-toast-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.fly-toast-title {
+  margin: 0 0 3px 0;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #0f172a;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fly-toast-price {
+  font-size: 14px;
+  font-weight: 800;
+  color: #7257c2;
+}
+
+/* Glowing Halo Effect */
+.fly-toast-glow {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(circle at center, rgba(114, 87, 194, 0.15) 0%, transparent 70%);
+  pointer-events: none;
+}

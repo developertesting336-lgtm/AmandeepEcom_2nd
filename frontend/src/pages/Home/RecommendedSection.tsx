@@ -4,7 +4,9 @@ import {
   Heart,
   ShoppingCart,
   ArrowRight,
+  Check,
 } from "lucide-react";
+import { triggerFlyToCart } from "../../components/common/FlyToCart/FlyToCart";
 import { useCart } from "../../context/cartContext";
 import { useAuth } from "../../context/authContext";
 import toast from "react-hot-toast";
@@ -58,6 +60,7 @@ const RecommendedSection = () => {
   const [wishlist, setWishlist] = useState<Record<string, boolean>>({});
   const [variantModalProduct, setVariantModalProduct] = useState<Product | null>(null);
   const [isVariantModalOpen, setIsVariantModalOpen] = useState(false);
+  const [recentlyAddedId, setRecentlyAddedId] = useState<string | null>(null);
 
   // Helper to extract list from various response envelopes
   const parseProductsResponse = (result: any): Product[] => {
@@ -218,6 +221,10 @@ const RecommendedSection = () => {
 
   const handleAddToCart = async (e: React.MouseEvent, prod: Product) => {
     e.stopPropagation();
+
+    const rawImg = prod.images && prod.images.length > 0 ? prod.images[0] : undefined;
+    const imgUrl = formatImageUrl(rawImg, productFallback);
+
     if (!isAuthenticated) {
       navigate("/login");
       toast.error("Please login to add product to cart");
@@ -238,7 +245,18 @@ const RecommendedSection = () => {
         return;
       }
       if (res.success) {
-        toast.success(`"${prod.name}" added to cart!`);
+        const currentPrice = prod.salePrice && prod.salePrice > 0 ? prod.salePrice : prod.price;
+        triggerFlyToCart({
+          productName: prod.name,
+          price: currentPrice,
+          quantity: 1,
+          imageUrl: imgUrl,
+        });
+
+        setRecentlyAddedId(prod._id);
+        setTimeout(() => {
+          setRecentlyAddedId((prev) => (prev === prod._id ? null : prev));
+        }, 1500);
       }
     } catch (error: any) {
       toast.error("Failed to add product to cart");
@@ -371,12 +389,16 @@ const RecommendedSection = () => {
 
                     <button
                       type="button"
-                      className="recommended-cart-btn"
+                      className={`recommended-cart-btn ${recentlyAddedId === prod._id ? "added" : ""}`}
                       onClick={(e) => handleAddToCart(e, prod)}
-                      title="Add to Cart"
-                      aria-label="Add to Cart"
+                      title={recentlyAddedId === prod._id ? "Added!" : "Add to Cart"}
+                      aria-label={recentlyAddedId === prod._id ? "Added to cart" : "Add to Cart"}
                     >
-                      <ShoppingCart size={15} strokeWidth={2.2} />
+                      {recentlyAddedId === prod._id ? (
+                        <Check size={15} strokeWidth={2.5} />
+                      ) : (
+                        <ShoppingCart size={15} strokeWidth={2.2} />
+                      )}
                     </button>
                   </div>
                 </div>

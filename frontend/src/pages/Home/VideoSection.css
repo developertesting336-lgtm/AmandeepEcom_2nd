@@ -93,6 +93,50 @@
   color: #ffffff;
 }
 
+.badge-purple {
+  background-color: #7257c2;
+  color: #ffffff;
+}
+
+.badge-rose {
+  background-color: #e11d48;
+  color: #ffffff;
+}
+
+.badge-emerald {
+  background-color: #059669;
+  color: #ffffff;
+}
+
+.badge-amber {
+  background-color: #d97706;
+  color: #ffffff;
+}
+
+/* Dark theme card typography */
+.promo-card-info.dark-theme .promo-card-title,
+.promo-card-info.dark-theme .promo-card-price strong {
+  color: #ffffff;
+}
+
+.promo-card-info.dark-theme .promo-card-generation {
+  color: #94a3b8;
+}
+
+.promo-card-info.dark-theme .promo-card-tagline,
+.promo-card-info.dark-theme .promo-card-price {
+  color: #cbd5e1;
+}
+
+.promo-card-info.dark-theme .promo-card-btn {
+  background-color: #ffffff;
+  color: #0f172a;
+}
+
+.promo-card-info.dark-theme .promo-card-btn:hover {
+  background-color: #f1f5f9;
+}
+
 /* Titles */
 .promo-card-title {
   font-size: 27px;
@@ -195,8 +239,21 @@
   transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.promo-card:hover .promo-video {
-  transform: scale(1.05);
+.promo-image-media {
+  width: 100%;
+  height: 100%;
+  max-height: 240px;
+  object-fit: contain;
+  object-position: center;
+  display: block;
+  padding: 16px;
+  box-sizing: border-box;
+  transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.promo-card:hover .promo-video,
+.promo-card:hover .promo-image-media {
+  transform: scale(1.06);
 }
 
 /* ===================================================
@@ -231,18 +288,21 @@
     padding: 16px 3.5% 24px;
   }
 
-  .promo-card {
+  .promo-card,
+  .promo-skeleton-card {
     flex-direction: column-reverse;
     min-height: auto;
   }
 
-  .promo-card-media {
+  .promo-card-media,
+  .promo-skeleton-media {
     width: 100%;
     max-width: 100%;
     height: 180px;
   }
 
-  .promo-card-info {
+  .promo-card-info,
+  .promo-skeleton-info {
     padding: 20px 20px 24px;
     align-items: flex-start;
   }
@@ -250,4 +310,94 @@
   .promo-card-title {
     font-size: 22px;
   }
+}
+
+/* ===================================================
+   SKELETON SHIMMER LOADING ANIMATION
+   =================================================== */
+
+@keyframes promoShimmer {
+  0% {
+    background-position: -300px 0;
+  }
+  100% {
+    background-position: calc(300px + 100%) 0;
+  }
+}
+
+.promo-skeleton-card {
+  position: relative;
+  min-height: 250px;
+  border-radius: 16px;
+  overflow: hidden;
+  display: flex;
+  justify-content: space-between;
+  align-items: stretch;
+  background: #e7e5dc;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.04);
+}
+
+.promo-skeleton-info {
+  flex: 1;
+  padding: 28px 20px 28px 32px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.skeleton-line {
+  border-radius: 6px;
+  background: linear-gradient(90deg, #dbd8ce 0%, #edebe3 50%, #dbd8ce 100%);
+  background-size: 300px 100%;
+  animation: promoShimmer 1.5s infinite ease-in-out;
+}
+
+.skeleton-badge-pill {
+  width: 90px;
+  height: 20px;
+  border-radius: 6px;
+  margin-bottom: 2px;
+}
+
+.skeleton-promo-title {
+  width: 70%;
+  height: 28px;
+  border-radius: 6px;
+}
+
+.skeleton-promo-subtitle {
+  width: 40%;
+  height: 16px;
+  border-radius: 4px;
+}
+
+.skeleton-promo-tagline {
+  width: 85%;
+  height: 14px;
+  border-radius: 4px;
+  margin-bottom: 4px;
+}
+
+.skeleton-promo-price {
+  width: 110px;
+  height: 18px;
+  border-radius: 4px;
+  margin-bottom: 6px;
+}
+
+.skeleton-promo-btn {
+  width: 105px;
+  height: 36px;
+  border-radius: 8px;
+}
+
+.promo-skeleton-media {
+  width: 250px;
+  max-width: 48%;
+  background: linear-gradient(90deg, #d5d1c4 0%, #e6e3da 50%, #d5d1c4 100%);
+  background-size: 300px 100%;
+  animation: promoShimmer 1.5s infinite ease-in-out;
+  flex-shrink: 0;
 }

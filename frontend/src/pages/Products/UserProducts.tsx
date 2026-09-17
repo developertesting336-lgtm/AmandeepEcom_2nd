@@ -14,7 +14,9 @@ import {
 } from "lucide-react";
 import { useCart } from "../../context/cartContext";
 import { useAuth } from "../../context/authContext";
+import { triggerFlyToCart } from "../../components/common/FlyToCart/FlyToCart";
 import toast from "react-hot-toast";
+import productFallback from "../../assets/1.jpeg";
 import Footer from "../Home/footersection";
 import VariantSelectionModal, { isProductWithVariants } from "../../components/common/VariantSelectionModal/VariantSelectionModal";
 import "./UserProducts.css";
@@ -161,6 +163,7 @@ const UserProducts = () => {
   // Variant Selector Modal State
   const [variantModalProduct, setVariantModalProduct] = useState<Product | null>(null);
   const [isVariantModalOpen, setIsVariantModalOpen] = useState(false);
+  const [recentlyAddedId, setRecentlyAddedId] = useState<string | null>(null);
 
   // Sync Search, Category, and Brand from URL query parameters
   useEffect(() => {
@@ -406,6 +409,10 @@ const UserProducts = () => {
 
   const handleAddToCart = async (e: React.MouseEvent, product: Product) => {
     e.stopPropagation();
+
+    const rawImg = product.images && product.images.length > 0 ? product.images[0] : undefined;
+    const imgUrl = formatImageUrl(rawImg, productFallback);
+
     if (!isAuthenticated) {
       navigate("/login");
       toast.error("Please login to add product to cart");
@@ -426,7 +433,18 @@ const UserProducts = () => {
         return;
       }
       if (res.success) {
-        toast.success(`"${product.name}" added to cart!`);
+        const currentPrice = product.salePrice && product.salePrice > 0 ? product.salePrice : product.price;
+        triggerFlyToCart({
+          productName: product.name,
+          price: currentPrice,
+          quantity: 1,
+          imageUrl: imgUrl,
+        });
+
+        setRecentlyAddedId(product._id);
+        setTimeout(() => {
+          setRecentlyAddedId((prev) => (prev === product._id ? null : prev));
+        }, 1500);
       }
     } catch (error: any) {
       toast.error("Failed to add product to cart");
@@ -678,12 +696,16 @@ const UserProducts = () => {
 
                           <button
                             type="button"
-                            className="user-product-cart-btn"
+                            className={`user-product-cart-btn ${recentlyAddedId === product._id ? "added" : ""}`}
                             onClick={(e) => handleAddToCart(e, product)}
-                            title="Add to Cart"
-                            aria-label="Add to Cart"
+                            title={recentlyAddedId === product._id ? "Added!" : "Add to Cart"}
+                            aria-label={recentlyAddedId === product._id ? "Added to cart" : "Add to Cart"}
                           >
-                            <ShoppingCart size={15} strokeWidth={2} />
+                            {recentlyAddedId === product._id ? (
+                              <Check size={15} strokeWidth={2.5} />
+                            ) : (
+                              <ShoppingCart size={15} strokeWidth={2} />
+                            )}
                           </button>
                         </div>
                       </div>

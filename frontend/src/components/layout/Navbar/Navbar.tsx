@@ -57,6 +57,29 @@ const Navbar = () => {
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [unreadCount, setUnreadCount] = useState<number>(0);
   const [loadingNotifications, setLoadingNotifications] = useState(false);
+  const [isCartBouncing, setIsCartBouncing] = useState(false);
+  const prevTotalRef = useRef(totalItems);
+
+  // Trigger bounce on flight arrival event or when totalItems increases
+  useEffect(() => {
+    const handleCartBounce = () => {
+      setIsCartBouncing(true);
+      const timer = setTimeout(() => setIsCartBouncing(false), 750);
+      return () => clearTimeout(timer);
+    };
+
+    window.addEventListener("cart-badge-bounce", handleCartBounce);
+    return () => window.removeEventListener("cart-badge-bounce", handleCartBounce);
+  }, []);
+
+  useEffect(() => {
+    if (totalItems > prevTotalRef.current) {
+      setIsCartBouncing(true);
+      const timer = setTimeout(() => setIsCartBouncing(false), 750);
+      return () => clearTimeout(timer);
+    }
+    prevTotalRef.current = totalItems;
+  }, [totalItems]);
 
   const dropdownRef = useRef<HTMLDivElement>(null);
   const notifDropdownRef = useRef<HTMLDivElement>(null);
@@ -329,6 +352,31 @@ const Navbar = () => {
               </div>
             )}
 
+            {/* Mobile / Top Bar Quick Cart Icon */}
+            {isAuthenticated && user?.role !== "admin" && (
+              <Link
+                to="/cart"
+                id="navbar-cart-mobile-btn"
+                className={`notif-bell-trigger mobile-cart-top-btn ${
+                  isCartBouncing ? "cart-icon-bouncing" : ""
+                }`}
+                onClick={closeMenu}
+                aria-label="View Cart"
+                title="View Cart"
+              >
+                <ShoppingCart size={19} strokeWidth={1.9} />
+                {totalItems > 0 && (
+                  <span
+                    className={`cart-badge-count ${
+                      isCartBouncing ? "cart-badge-bouncing" : ""
+                    }`}
+                  >
+                    {totalItems}
+                  </span>
+                )}
+              </Link>
+            )}
+
             {/* Mobile Hamburger Toggle (Three navbar lines) */}
             <button
               type="button"
@@ -382,14 +430,26 @@ const Navbar = () => {
               <>
                 <Link
                   to="/cart"
+                  id="navbar-cart-link"
                   className="navbar-link navbar-icon-link"
                   onClick={closeMenu}
                   style={{ position: "relative" }}
                 >
-                  <ShoppingCart size={18} strokeWidth={1.9} />
+                  <span
+                    style={{ display: "inline-flex" }}
+                    className={isCartBouncing ? "cart-icon-bouncing" : ""}
+                  >
+                    <ShoppingCart size={18} strokeWidth={1.9} />
+                  </span>
                   <span>Cart</span>
                   {totalItems > 0 && (
-                    <span className="cart-badge-count">{totalItems}</span>
+                    <span
+                      className={`cart-badge-count ${
+                        isCartBouncing ? "cart-badge-bouncing" : ""
+                      }`}
+                    >
+                      {totalItems}
+                    </span>
                   )}
                 </Link>
 
@@ -539,6 +599,14 @@ const Navbar = () => {
                   onClick={closeMenu}
                 >
                   Inquiries
+                </Link>
+
+                <Link
+                  to="/admin/promos"
+                  className="navbar-link"
+                  onClick={closeMenu}
+                >
+                  Video Promos
                 </Link>
 
                 <button

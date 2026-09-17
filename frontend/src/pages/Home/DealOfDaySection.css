@@ -196,8 +196,14 @@
 }
 
 .deal-cta-btn:hover {
-  background: #2563eb;
+  background: #7257c2;
   transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(114, 87, 194, 0.28);
+}
+
+.deal-cta-btn.deal-cta-added {
+  background: #059669 !important;
+  box-shadow: 0 6px 18px rgba(5, 150, 105, 0.35) !important;
 }
 
 @media (max-width: 900px) {

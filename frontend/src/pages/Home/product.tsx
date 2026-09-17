@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronLeft, ChevronRight, Heart } from "lucide-react";
+import { ChevronLeft, ChevronRight, Heart, ShoppingCart, Check } from "lucide-react";
+import { triggerFlyToCart } from "../../components/common/FlyToCart/FlyToCart";
+import { useCart } from "../../context/cartContext";
 import { useAuth } from "../../context/authContext";
 import toast from "react-hot-toast";
 import "./ProductSection.css";
@@ -44,12 +46,14 @@ const CARD_WIDTH = 205; // 205px per slide container
 const ProductSection = () => {
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
+  const { addToCart } = useCart();
 
   const [allProducts, setAllProducts] = useState<DisplayProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const [wishlist, setWishlist] = useState<Record<string, boolean>>({});
+  const [recentlyAddedId, setRecentlyAddedId] = useState<string | null>(null);
   const [viewportWidth, setViewportWidth] = useState(0);
 
   const viewportRef = useRef<HTMLDivElement>(null);
@@ -154,11 +158,12 @@ const ProductSection = () => {
   // Calculate precise max scroll distance and maximum slide index
   const totalTrackWidth = displayList.length * CARD_WIDTH;
   const maxScrollPx = viewportWidth > 0 ? Math.max(0, totalTrackWidth - viewportWidth) : 0;
-  const maxIndex = maxScrollPx > 0 ? Math.ceil(maxScrollPx / CARD_WIDTH) : 0;
+  const hasOverflow = maxScrollPx > 0;
+  const maxIndex = hasOverflow ? Math.ceil(maxScrollPx / CARD_WIDTH) : 0;
   const safeIndex = Math.min(currentIndex, maxIndex);
 
   // Clamp translation so the last product aligns flush with the right edge with ZERO empty space
-  const currentTranslateX = Math.min(safeIndex * CARD_WIDTH, maxScrollPx);
+  const currentTranslateX = hasOverflow ? Math.min(safeIndex * CARD_WIDTH, maxScrollPx) : 0;
 
   const nextSlide = () => {
     if (currentTranslateX < maxScrollPx) {
@@ -172,9 +177,39 @@ const ProductSection = () => {
     }
   };
 
+  // Touch swipe support for mobile/tablets
+  const touchStartXRef = useRef<number | null>(null);
+  const touchEndXRef = useRef<number | null>(null);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartXRef.current = e.targetTouches[0].clientX;
+    touchEndXRef.current = null;
+    setIsPaused(true);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    touchEndXRef.current = e.targetTouches[0].clientX;
+  };
+
+  const handleTouchEnd = () => {
+    setIsPaused(false);
+    if (!touchStartXRef.current || !touchEndXRef.current) return;
+    const distance = touchStartXRef.current - touchEndXRef.current;
+    const minSwipeDistance = 45;
+
+    if (distance > minSwipeDistance && hasOverflow) {
+      nextSlide();
+    } else if (distance < -minSwipeDistance && hasOverflow) {
+      prevSlide();
+    }
+
+    touchStartXRef.current = null;
+    touchEndXRef.current = null;
+  };
+
   // Auto-play interval
   useEffect(() => {
-    if (isPaused || loading || displayList.length === 0 || maxScrollPx <= 0) return;
+    if (isPaused || loading || displayList.length === 0 || !hasOverflow) return;
 
     const interval = setInterval(() => {
       setCurrentIndex((prev) => {
@@ -184,7 +219,7 @@ const ProductSection = () => {
     }, 3500);
 
     return () => clearInterval(interval);
-  }, [isPaused, loading, displayList.length, maxScrollPx]);
+  }, [isPaused, loading, displayList.length, maxScrollPx, hasOverflow]);
 
   const toggleWishlist = async (
     e: React.MouseEvent,
@@ -245,6 +280,39 @@ const ProductSection = () => {
     }
   };
 
+  const handleAddToCart = async (e: React.MouseEvent, product: DisplayProduct) => {
+    e.stopPropagation();
+
+    if (!isAuthenticated) {
+      navigate("/login");
+      toast.error("Please login to add product to cart");
+      return;
+    }
+
+    try {
+      const res = await addToCart(product.id, 1);
+      if (res.requiresVariant) {
+        navigate(`/product/${product.id}`);
+        return;
+      }
+      if (res.success) {
+        triggerFlyToCart({
+          productName: product.name,
+          price: product.price,
+          quantity: 1,
+          imageUrl: product.image,
+        });
+
+        setRecentlyAddedId(product.id);
+        setTimeout(() => {
+          setRecentlyAddedId((prev) => (prev === product.id ? null : prev));
+        }, 1500);
+      }
+    } catch (error: any) {
+      toast.error("Failed to add product to cart");
+    }
+  };
+
   const goToProduct = (id: string) => {
     navigate(`/product/${id}`);
   };
@@ -273,9 +341,12 @@ const ProductSection = () => {
           className="product-slider-wrapper"
           onMouseEnter={() => setIsPaused(true)}
           onMouseLeave={() => setIsPaused(false)}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
         >
           {/* NAVIGATION ARROWS - ONLY SHOWN IF THERE IS SCROLLABLE CONTENT */}
-          {!loading && safeIndex > 0 && maxScrollPx > 0 && (
+          {!loading && safeIndex > 0 && hasOverflow && (
             <button
               className="product-slider-arrow product-slider-prev"
               onClick={prevSlide}
@@ -285,7 +356,7 @@ const ProductSection = () => {
             </button>
           )}
 
-          {!loading && currentTranslateX < maxScrollPx && maxScrollPx > 0 && (
+          {!loading && currentTranslateX < maxScrollPx && hasOverflow && (
             <button
               className="product-slider-arrow product-slider-next"
               onClick={nextSlide}
@@ -318,9 +389,9 @@ const ProductSection = () => {
               </div>
             ) : (
               <div
-                className="product-slider-track"
+                className={`product-slider-track ${!hasOverflow ? "no-overflow" : ""}`}
                 style={{
-                  transform: `translateX(-${currentTranslateX}px)`,
+                  transform: hasOverflow ? `translateX(-${currentTranslateX}px)` : "none",
                 }}
               >
                 {displayList.map((product) => {
@@ -388,6 +459,20 @@ const ProductSection = () => {
                                 </span>
                               )}
                             </div>
+
+                            <button
+                              type="button"
+                              className={`product-slider-cart-btn ${recentlyAddedId === product.id ? "added" : ""}`}
+                              onClick={(e) => handleAddToCart(e, product)}
+                              title={recentlyAddedId === product.id ? "Added!" : "Add to Cart"}
+                              aria-label={recentlyAddedId === product.id ? "Added to cart" : "Add to Cart"}
+                            >
+                              {recentlyAddedId === product.id ? (
+                                <Check size={14} strokeWidth={2.5} />
+                              ) : (
+                                <ShoppingCart size={14} strokeWidth={2} />
+                              )}
+                            </button>
                           </div>
                         </div>
                       </article>
@@ -400,7 +485,7 @@ const ProductSection = () => {
         </div>
 
         {/* SLIDER DOTS */}
-        {!loading && maxIndex > 0 && maxScrollPx > 0 && (
+        {!loading && hasOverflow && maxIndex > 0 && (
           <div className="product-slider-dots">
             {Array.from({ length: maxIndex + 1 }).map((_, index) => (
               <button

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { X, ShoppingCart, Check, AlertCircle } from "lucide-react";
+import { triggerFlyToCart } from "../FlyToCart/FlyToCart";
 import { useCart } from "../../../context/cartContext";
 import { useAuth } from "../../../context/authContext";
 import { useNavigate } from "react-router-dom";
@@ -282,10 +283,18 @@ export const VariantSelectionModal: React.FC<VariantSelectionModalProps> = ({
       if (res.success) {
         setIsAdded(true);
         toast.success(`${quantity} x "${currentProduct.name}${variantSuffix}" added to cart!`);
+        
+        triggerFlyToCart({
+          productName: `${currentProduct.name}${variantSuffix}`,
+          price: currentPrice,
+          quantity: quantity,
+          imageUrl: imgUrl,
+        });
+
         if (onSuccess) onSuccess(selectedVariantIndex);
         setTimeout(() => {
           onClose();
-        }, 600);
+        }, 700);
       }
     } catch (err: any) {
       console.error("Modal Add To Cart Error:", err);

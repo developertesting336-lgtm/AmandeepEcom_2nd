@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { ArrowRight, Heart, ShoppingCart } from "lucide-react";
+import { ArrowRight, Heart, ShoppingCart, Check } from "lucide-react";
+import { triggerFlyToCart } from "../../components/common/FlyToCart/FlyToCart";
 import { useCart } from "../../context/cartContext";
 import { useAuth } from "../../context/authContext";
 import toast from "react-hot-toast";
@@ -50,6 +51,7 @@ const HomeProductsGrid = () => {
   const [wishlist, setWishlist] = useState<Record<string, boolean>>({});
   const [variantModalProduct, setVariantModalProduct] = useState<Product | null>(null);
   const [isVariantModalOpen, setIsVariantModalOpen] = useState(false);
+  const [recentlyAddedId, setRecentlyAddedId] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -108,62 +110,53 @@ const HomeProductsGrid = () => {
 
   const toggleWishlist = async (e: React.MouseEvent, productId: string) => {
     e.stopPropagation();
-
     if (!isAuthenticated) {
       navigate("/login");
-      toast.error("Please login to add to wishlist");
+      toast.error("Please login to manage your wishlist");
       return;
     }
 
-    const isCurrentlyInWishlist = Boolean(wishlist[productId]);
-    const nextState = !isCurrentlyInWishlist;
-
-    // Optimistic UI update (instant heart fill and message)
+    const isCurrentlyLiked = !!wishlist[productId];
     setWishlist((prev) => ({
       ...prev,
-      [productId]: nextState,
+      [productId]: !isCurrentlyLiked,
     }));
 
-    if (nextState) {
-      toast.success("Item added to wishlist");
-    } else {
-      toast.success("Item removed from wishlist");
-    }
-
     try {
-      const response = await fetch(`${API_BASE_URL}/api/wishlist/${productId}`, {
+      const response = await fetch(`${API_BASE_URL}/api/wishlist/toggle`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         credentials: "include",
+        body: JSON.stringify({ productId }),
       });
 
       const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || "Failed to update wishlist");
-      }
-
-      if (data.success) {
+      if (!response.ok || !data.success) {
         setWishlist((prev) => ({
           ...prev,
-          [productId]: data.action === "added",
+          [productId]: isCurrentlyLiked,
         }));
+        toast.error(data.message || "Failed to update wishlist");
+      } else {
+        toast.success(data.message || "Wishlist updated");
       }
-    } catch (error: any) {
-      // Revert optimistic update on failure
+    } catch (error) {
       setWishlist((prev) => ({
         ...prev,
-        [productId]: isCurrentlyInWishlist,
+        [productId]: isCurrentlyLiked,
       }));
-      console.error("Wishlist error:", error);
-      toast.error(error?.message || "Failed to update wishlist");
+      toast.error("Failed to update wishlist");
     }
   };
 
   const handleAddToCart = async (e: React.MouseEvent, prod: Product) => {
     e.stopPropagation();
+
+    const rawImg = prod.images && prod.images.length > 0 ? prod.images[0] : undefined;
+    const imgUrl = formatImageUrl(rawImg, product1);
+
     if (!isAuthenticated) {
       navigate("/login");
       toast.error("Please login to add product to cart");
@@ -184,7 +177,18 @@ const HomeProductsGrid = () => {
         return;
       }
       if (res.success) {
-        toast.success(`"${prod.name}" added to cart!`);
+        const currentPrice = prod.salePrice && prod.salePrice > 0 ? prod.salePrice : prod.price;
+        triggerFlyToCart({
+          productName: prod.name,
+          price: currentPrice,
+          quantity: 1,
+          imageUrl: imgUrl,
+        });
+
+        setRecentlyAddedId(prod._id);
+        setTimeout(() => {
+          setRecentlyAddedId((prev) => (prev === prod._id ? null : prev));
+        }, 1500);
       }
     } catch (error: any) {
       toast.error("Failed to add product to cart");
@@ -297,12 +301,16 @@ const HomeProductsGrid = () => {
 
                     <button
                       type="button"
-                      className="home-product-add-btn"
+                      className={`home-product-add-btn ${recentlyAddedId === prod._id ? "added" : ""}`}
                       onClick={(e) => handleAddToCart(e, prod)}
-                      title="Add to Cart"
-                      aria-label="Add to Cart"
+                      title={recentlyAddedId === prod._id ? "Added!" : "Add to Cart"}
+                      aria-label={recentlyAddedId === prod._id ? "Added to cart" : "Add to Cart"}
                     >
-                      <ShoppingCart size={15} strokeWidth={2} />
+                      {recentlyAddedId === prod._id ? (
+                        <Check size={15} strokeWidth={2.5} />
+                      ) : (
+                        <ShoppingCart size={15} strokeWidth={2} />
+                      )}
                     </button>
                   </div>
                 </div>

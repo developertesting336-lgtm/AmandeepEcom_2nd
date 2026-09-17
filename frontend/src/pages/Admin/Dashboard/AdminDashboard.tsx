@@ -20,6 +20,7 @@ import {
   Activity,
   Loader2,
   MessageSquare,
+  Video,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -921,6 +922,26 @@ const AdminDashboard: React.FC = () => {
           <div className="panel-footer-links">
             <Link to="/admin/inquiries" className="admin-panel-link">
               <span>View Customer Inquiries</span>
+              <ArrowRight size={14} />
+            </Link>
+          </div>
+        </div>
+
+        {/* Video Promo Banners Panel */}
+        <div className="admin-panel">
+          <div className="admin-panel-head">
+            <div className="panel-badge-icon blue">
+              <Video size={20} />
+            </div>
+            <p className="panel-tag">HOMEPAGE MARKETING</p>
+          </div>
+          <h2>Video Promo Banners</h2>
+          <span>
+            Customize high-impact video showcase cards, badges, gradients, and promotional links for the store homepage.
+          </span>
+          <div className="panel-footer-links">
+            <Link to="/admin/promos" className="admin-panel-link">
+              <span>Manage Video Promos</span>
               <ArrowRight size={14} />
             </Link>
           </div>
