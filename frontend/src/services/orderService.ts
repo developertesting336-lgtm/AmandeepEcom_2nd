@@ -29,6 +29,7 @@ export interface PlaceCodOrderPayload {
 export interface PlaceCodOrderResponse {
   success: boolean;
   orderId?: string;
+  orderTotal?: number;
   data?: any;
   message?: string;
   error?: string;
@@ -205,9 +206,7 @@ export interface PlaceStripeOrderResponse {
   error?: string;
 }
 
-/**
- * Places a Cash on Delivery (COD) order via POST /api/order/cod
- */
+
 export const placeCodOrder = async (
   payload: PlaceCodOrderPayload,
   token?: string | null
@@ -242,9 +241,18 @@ export const placeCodOrder = async (
         result._id ||
         `OD${Date.now().toString().slice(-8)}`;
 
+      const orderTotal =
+        result.orderTotal ??
+        result.order?.orderTotal ??
+        result.data?.orderTotal ??
+        result.data?.order?.orderTotal ??
+        payload.totalAmount ??
+        0;
+
       return {
         success: true,
         orderId,
+        orderTotal,
         data: result.data || result,
         message: result.message || "Order placed successfully!",
       };
@@ -263,9 +271,7 @@ export const placeCodOrder = async (
   }
 };
 
-/**
- * Creates a Stripe Checkout Session via POST /api/order/payment-checkout-session
- */
+
 export const placestripeOrder = async (
   payload: PlaceStripeOrderPayload | PlaceCodOrderPayload | any,
   token?: string | null
@@ -324,9 +330,7 @@ export const placestripeOrder = async (
 
 export const placeStripeOrder = placestripeOrder;
 
-/**
- * Fetches user orders via GET /api/order
- */
+
 export const getUserOrders = async (token?: string | null): Promise<GetOrdersResponse> => {
   try {
     const activeToken = token || localStorage.getItem("token");

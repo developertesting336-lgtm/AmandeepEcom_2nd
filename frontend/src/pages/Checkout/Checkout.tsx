@@ -145,8 +145,6 @@ const Checkout: React.FC = () => {
 
   // Order Placement state
   const [isPlacingOrder, setIsPlacingOrder] = useState<boolean>(false);
-  const [orderPlaced, setOrderPlaced] = useState<boolean>(false);
-  const [placedOrderId, setPlacedOrderId] = useState<string>("");
 
   // Load addresses on mount or when token changes
   useEffect(() => {
@@ -465,13 +463,23 @@ const Checkout: React.FC = () => {
 
         const res = await placeCodOrder(payload, token);
 
+        console.log(res);
+
         if (res.success && res.orderId) {
-          setPlacedOrderId(res.orderId);
-          setOrderPlaced(true);
           if (fetchCart) {
             await fetchCart();
           }
-          window.scrollTo({ top: 0, behavior: "smooth" });
+          const finalTotal = res.orderTotal || totalPayable;
+          navigate(
+            `/payment-success?orderId=${encodeURIComponent(res.orderId)}&paymentMode=COD&orderTotal=${finalTotal}`,
+            {
+              state: {
+                orderId: res.orderId,
+                paymentMode: "COD",
+                orderTotal: finalTotal,
+              },
+            }
+          );
         } else {
           alert(res.error || "Failed to place COD order. Please try again.");
         }
@@ -518,8 +526,8 @@ const Checkout: React.FC = () => {
     );
   }
 
-  // 2. Empty Cart State (when not order placed)
-  if (safeItems.length === 0 && !orderPlaced) {
+  // 2. Empty Cart State
+  if (safeItems.length === 0) {
     return (
       <div className="checkout-page">
         <header className="checkout-top-bar">
@@ -572,77 +580,6 @@ const Checkout: React.FC = () => {
           </div>
         </main>
 
-        <Footer />
-      </div>
-    );
-  }
-
-  // 3. Order Success State
-  if (orderPlaced) {
-    return (
-      <div className="checkout-page">
-        <header className="checkout-top-bar">
-          <Link to="/" className="checkout-brand">
-            <img src={logo} alt="Shopora" style={{ height: "30px", width: "auto" }} />
-            <span className="checkout-brand-name">Shopora</span>
-          </Link>
-          <div className="checkout-security-badge">
-            <Lock size={15} /> 100% Secure Checkout
-          </div>
-        </header>
-
-        <main className="checkout-container">
-          <div className="order-success-card">
-            <div className="success-icon-wrap">
-              <CheckCircle2 size={44} />
-            </div>
-            <h2 className="success-title">Order Placed Successfully!</h2>
-            <p className="success-desc">
-              Thank you for shopping with Shopora. We have received your order.
-            </p>
-
-            <div className="success-order-details">
-              <div className="success-detail-row">
-                <span>Order ID:</span>
-                <strong>#{placedOrderId}</strong>
-              </div>
-              <div className="success-detail-row">
-                <span>Payment Method:</span>
-                <strong>{paymentMethod === "COD" ? "Cash on Delivery" : "Online Payment (Stripe)"}</strong>
-              </div>
-              <div className="success-detail-row">
-                <span>Delivery Address:</span>
-                <strong>
-                  {selectedAddress?.fullName}, {selectedAddress?.city} ({selectedAddress?.pincode})
-                </strong>
-              </div>
-              <div className="success-detail-row">
-                <span>Total Amount:</span>
-                <strong>₹{totalPayable.toLocaleString("en-IN")}</strong>
-              </div>
-            </div>
-
-            <div style={{ display: "flex", gap: "12px", justifyContent: "center" }}>
-              <Link
-                to="/products"
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: "8px",
-                  padding: "11px 22px",
-                  background: "#0f172a",
-                  color: "#ffffff",
-                  borderRadius: "8px",
-                  textDecoration: "none",
-                  fontWeight: 600,
-                  fontSize: "14px",
-                }}
-              >
-                Continue Shopping <ArrowRight size={16} />
-              </Link>
-            </div>
-          </div>
-        </main>
         <Footer />
       </div>
     );

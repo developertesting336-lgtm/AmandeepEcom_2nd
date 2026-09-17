@@ -76,12 +76,10 @@ export const testAi = async (req, res, next) => {
     const sanitizeInternalUrls = (text) => {
       if (!text || typeof text !== "string") return "";
       return text
-        // Replace markdown links containing domain names: [Text](https://yourstore.com/path) -> [Text](/path)
         .replace(
           /\[([^\]]+)\]\((?:https?:\/\/)?(?:www\.)?(?:yourstore\.com|example\.com|myshop\.com|localhost:\d+)(\/[^\)\s]*)\)/gi,
           "[$1]($2)"
         )
-        // Replace bare yourstore.com/path with /path
         .replace(
           /(?:https?:\/\/)?(?:www\.)?(?:yourstore\.com|example\.com|myshop\.com|localhost:\d+)(\/[a-zA-Z0-9_\-\/]+)/gi,
           "$1"
@@ -274,9 +272,7 @@ The tools are the ONLY source of truth for platform information.
       });
     }
 
-    // --------------------------------------------------
-    // 4. Give the tool result back to AI
-    // --------------------------------------------------
+
 
     const finalCompletion =
       await groq.chat.completions.create({
@@ -294,9 +290,6 @@ The tools are the ONLY source of truth for platform information.
 
     console.log("finalMessage", finalMessage)
 
-    // --------------------------------------------------
-    // 5. Return AI's final response to user
-    // --------------------------------------------------
 
     return res.status(200).json({
       success: true,

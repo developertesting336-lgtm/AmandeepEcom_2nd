@@ -1,17 +1,27 @@
 import React, { useEffect } from "react";
-import { Link, useSearchParams } from "react-router-dom";
-import { CheckCircle2, ShoppingBag, ArrowRight, ShieldCheck, PackageCheck } from "lucide-react";
+import { Link, useLocation, useSearchParams } from "react-router-dom";
+import { CheckCircle2, ShoppingBag, ArrowRight, ShieldCheck, PackageCheck, Banknote } from "lucide-react";
 import { useCart } from "../../context/cartContext";
 import Footer from "../Home/footersection";
 import "./PaymentSuccess.css";
 
 const PaymentSuccess: React.FC = () => {
   const [searchParams] = useSearchParams();
-  const sessionId = searchParams.get("session_id") || searchParams.get("sessionId");
+  const location = useLocation();
   const { fetchCart } = useCart();
 
+  const sessionId = searchParams.get("session_id") || searchParams.get("sessionId");
+  const paymentMode = (
+    searchParams.get("paymentMode") ||
+    searchParams.get("payment_mode") ||
+    location.state?.paymentMode ||
+    (sessionId ? "ONLINE" : "COD")
+  ).toUpperCase();
+
+  const isCod = paymentMode === "COD";
+
   useEffect(() => {
-    // Refresh cart on successful payment
+    // Refresh cart on successful order / payment
     if (fetchCart) {
       fetchCart().catch(() => {});
     }
@@ -25,10 +35,14 @@ const PaymentSuccess: React.FC = () => {
             <CheckCircle2 size={54} className="success-icon" />
           </div>
 
-          <span className="payment-badge success-pill">Payment Confirmed</span>
+          <span className="payment-badge success-pill">
+            {isCod ? "Order Confirmed" : "Payment Confirmed"}
+          </span>
           <h1 className="payment-title">Thank you for your order!</h1>
           <p className="payment-desc">
-            Your payment via Stripe was processed successfully. We've received your order and our team has started preparing it for delivery.
+            {isCod
+              ? "Your Cash on Delivery order has been placed successfully. We've received your order and our team has started preparing it for delivery."
+              : "Your payment was processed successfully. We've received your order and our team has started preparing it for delivery."}
           </p>
 
           {sessionId && (
@@ -52,8 +66,17 @@ const PaymentSuccess: React.FC = () => {
           </div>
 
           <div className="payment-security-note">
-            <ShieldCheck size={16} />
-            <span>Secure 256-Bit Encrypted Payment processed via Stripe</span>
+            {isCod ? (
+              <>
+                <Banknote size={16} />
+                <span>Payment will be collected in cash upon delivery at your doorstep</span>
+              </>
+            ) : (
+              <>
+                <ShieldCheck size={16} />
+                <span>Secure 256-Bit Encrypted Payment processed via Stripe</span>
+              </>
+            )}
           </div>
         </div>
       </div>
