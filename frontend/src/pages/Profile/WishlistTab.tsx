@@ -38,7 +38,11 @@ const formatCurrency = (amount?: number | null): string => {
   return `₹${amount.toLocaleString("en-IN")}`;
 };
 
-export const WishlistTab: React.FC = () => {
+interface WishlistTabProps {
+  onCountChange?: (count: number) => void;
+}
+
+export const WishlistTab: React.FC<WishlistTabProps> = ({ onCountChange }) => {
   const { token, isAuthenticated } = useAuth();
   const { addToCart } = useCart();
   const navigate = useNavigate();
@@ -61,6 +65,7 @@ export const WishlistTab: React.FC = () => {
       const res = await getWishlist(token);
       if (res.success) {
         setProducts(res.products);
+        onCountChange?.(res.products.length);
       } else {
         setError(res.error || "Failed to load favourite items");
       }
@@ -83,8 +88,12 @@ export const WishlistTab: React.FC = () => {
       setRemovingId(productId);
       const res = await toggleWishlistItem(productId, token);
       if (res.success) {
-        setProducts((prev) => prev.filter((p) => p._id !== productId));
-        toast.success("Removed from favourite items");
+        setProducts((prev) => {
+          const updated = prev.filter((p) => p._id !== productId);
+          onCountChange?.(updated.length);
+          return updated;
+        });
+        toast.success("Removed from wishlist");
       } else {
         toast.error(res.error || "Failed to remove item");
       }
@@ -116,9 +125,15 @@ export const WishlistTab: React.FC = () => {
     <div className="wishlist-tab-container">
       {/* Header */}
       <div className="wishlist-tab-header">
-        <div>
-          <h3>Favourite Items ({products.length})</h3>
-          <p>Your curated wishlist of saved products. Move items to your cart anytime.</p>
+        <div className="wishlist-tab-title-wrap">
+          <div className="wishlist-tab-heading-row">
+            <h3>Wishlist</h3>
+            <span className="wishlist-count-badge-pill">
+              <Heart size={12} className="wishlist-count-badge-heart" fill="#e11d48" />
+              {products.length} {products.length === 1 ? "Item" : "Items"}
+            </span>
+          </div>
+          <p>Your curated collection of saved products. Move items to your cart anytime.</p>
         </div>
 
         {products.length > 0 && (

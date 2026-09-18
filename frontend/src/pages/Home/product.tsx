@@ -53,6 +53,7 @@ const ProductSection = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const [wishlist, setWishlist] = useState<Record<string, boolean>>({});
+  const [hiddenCartIds, setHiddenCartIds] = useState<Record<string, boolean>>({});
   const [recentlyAddedId, setRecentlyAddedId] = useState<string | null>(null);
   const [viewportWidth, setViewportWidth] = useState(0);
 
@@ -304,9 +305,11 @@ const ProductSection = () => {
         });
 
         setRecentlyAddedId(product.id);
+        setHiddenCartIds((prev) => ({ ...prev, [product.id]: true }));
         setTimeout(() => {
           setRecentlyAddedId((prev) => (prev === product.id ? null : prev));
-        }, 1500);
+          setHiddenCartIds((prev) => ({ ...prev, [product.id]: false }));
+        }, 3500);
       }
     } catch (error: any) {
       toast.error("Failed to add product to cart");
@@ -462,10 +465,11 @@ const ProductSection = () => {
 
                             <button
                               type="button"
-                              className={`product-slider-cart-btn ${recentlyAddedId === product.id ? "added" : ""}`}
+                              className={`product-slider-cart-btn ${hiddenCartIds[product.id] ? "hidden-cart-btn" : recentlyAddedId === product.id ? "added" : ""}`}
                               onClick={(e) => handleAddToCart(e, product)}
-                              title={recentlyAddedId === product.id ? "Added!" : "Add to Cart"}
-                              aria-label={recentlyAddedId === product.id ? "Added to cart" : "Add to Cart"}
+                              title={hiddenCartIds[product.id] ? "" : "Add to Cart"}
+                              aria-label={hiddenCartIds[product.id] ? "Added to cart" : "Add to Cart"}
+                              disabled={hiddenCartIds[product.id]}
                             >
                               {recentlyAddedId === product.id ? (
                                 <Check size={14} strokeWidth={2.5} />

@@ -15,17 +15,32 @@ import {
   Lock,
   Eye,
   EyeOff,
+  Heart,
+  Package,
+  MapPin,
+  ChevronRight,
 } from "lucide-react";
 import toast from "react-hot-toast";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
 
 interface AccountDetailsTabProps {
+  wishlistCount?: number | null;
+  orderCount?: number | null;
+  addressCount?: number | null;
   onNavigateToOrders?: () => void;
   onNavigateToWishlist?: () => void;
+  onNavigateToAddresses?: () => void;
 }
 
-export const AccountDetailsTab: React.FC<AccountDetailsTabProps> = () => {
+export const AccountDetailsTab: React.FC<AccountDetailsTabProps> = ({
+  wishlistCount,
+  orderCount,
+  addressCount,
+  onNavigateToOrders,
+  onNavigateToWishlist,
+  onNavigateToAddresses,
+}) => {
   const { user } = useAuth();
   const navigate = useNavigate();
 
@@ -222,6 +237,69 @@ export const AccountDetailsTab: React.FC<AccountDetailsTabProps> = () => {
         >
           <Edit3 size={15} />
           {isEditing ? "Cancel Editing" : "Edit Profile"}
+        </button>
+      </div>
+
+      {/* Quick Overview Stats with Wishlist Count Badge */}
+      <div className="profile-quick-stats-grid">
+        <button
+          type="button"
+          className="profile-quick-stat-card orders-stat-card"
+          onClick={onNavigateToOrders}
+        >
+          <div className="stat-card-icon-wrap orders-icon">
+            <Package size={18} />
+          </div>
+          <div className="stat-card-info">
+            <span className="stat-card-label">My Orders</span>
+            <div className="stat-card-val-row">
+              <span className="stat-card-value">
+                {orderCount !== null && orderCount !== undefined ? orderCount : 0}
+              </span>
+              <span className="stat-card-unit">placed</span>
+            </div>
+          </div>
+          <ChevronRight size={15} className="stat-card-arrow" />
+        </button>
+
+        <button
+          type="button"
+          className="profile-quick-stat-card wishlist-stat-card"
+          onClick={onNavigateToWishlist}
+        >
+          <div className="stat-card-icon-wrap wishlist-icon">
+            <Heart size={18} fill="#e11d48" />
+          </div>
+          <div className="stat-card-info">
+            <span className="stat-card-label">Wishlist</span>
+            <div className="stat-card-val-row">
+              <span className="stat-card-value wishlist-val">
+                {wishlistCount !== null && wishlistCount !== undefined ? wishlistCount : 0}
+              </span>
+              <span className="stat-card-unit">items saved</span>
+            </div>
+          </div>
+          <ChevronRight size={15} className="stat-card-arrow" />
+        </button>
+
+        <button
+          type="button"
+          className="profile-quick-stat-card addresses-stat-card"
+          onClick={onNavigateToAddresses}
+        >
+          <div className="stat-card-icon-wrap addresses-icon">
+            <MapPin size={18} />
+          </div>
+          <div className="stat-card-info">
+            <span className="stat-card-label">Saved Addresses</span>
+            <div className="stat-card-val-row">
+              <span className="stat-card-value">
+                {addressCount !== null && addressCount !== undefined ? `${addressCount}/3` : "0/3"}
+              </span>
+              <span className="stat-card-unit">locations</span>
+            </div>
+          </div>
+          <ChevronRight size={15} className="stat-card-arrow" />
         </button>
       </div>
 

@@ -28,6 +28,7 @@ import {
   markNotificationAsRead,
   type NotificationItem,
 } from "../../../services/notificationService";
+import { getWishlist } from "../../../services/wishlistService";
 
 const formatTimeAgo = (dateStr?: string) => {
   if (!dateStr) return "";
@@ -56,6 +57,7 @@ const Navbar = () => {
   const [notifDropdownOpen, setNotifDropdownOpen] = useState(false);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [unreadCount, setUnreadCount] = useState<number>(0);
+  const [wishlistCount, setWishlistCount] = useState<number | null>(null);
   const [loadingNotifications, setLoadingNotifications] = useState(false);
   const [isCartBouncing, setIsCartBouncing] = useState(false);
   const prevTotalRef = useRef(totalItems);
@@ -96,6 +98,19 @@ const Navbar = () => {
     }
   };
 
+  // Fetch wishlist count
+  const loadWishlistCount = async () => {
+    if (!isAuthenticated) return;
+    try {
+      const res = await getWishlist();
+      if (res.success) {
+        setWishlistCount(res.products?.length || 0);
+      }
+    } catch {
+      // silent
+    }
+  };
+
   // Fetch full notifications list from /api/notifications
   const loadNotifications = async () => {
     if (!isAuthenticated) return;
@@ -117,9 +132,19 @@ const Navbar = () => {
   useEffect(() => {
     if (isAuthenticated) {
       loadUnreadCount();
+      loadWishlistCount();
+
+      const handleWishlistUpdate = () => {
+        loadWishlistCount();
+      };
+      window.addEventListener("wishlist-updated", handleWishlistUpdate);
+      return () => {
+        window.removeEventListener("wishlist-updated", handleWishlistUpdate);
+      };
     } else {
       setNotifications([]);
       setUnreadCount(0);
+      setWishlistCount(null);
     }
   }, [isAuthenticated, location.pathname]);
 
@@ -503,8 +528,10 @@ const Navbar = () => {
                         className="dropdown-item"
                         onClick={closeMenu}
                       >
-                        <User size={16} className="dropdown-item-icon" />
-                        <span>Your Account</span>
+                        <div className="dropdown-item-left">
+                          <User size={16} className="dropdown-item-icon" />
+                          <span>Your Account</span>
+                        </div>
                       </Link>
 
                       <Link
@@ -512,8 +539,10 @@ const Navbar = () => {
                         className="dropdown-item"
                         onClick={closeMenu}
                       >
-                        <Package size={16} className="dropdown-item-icon" />
-                        <span>Orders</span>
+                        <div className="dropdown-item-left">
+                          <Package size={16} className="dropdown-item-icon" />
+                          <span>Orders</span>
+                        </div>
                       </Link>
 
                       <Link
@@ -521,8 +550,13 @@ const Navbar = () => {
                         className="dropdown-item"
                         onClick={closeMenu}
                       >
-                        <Heart size={16} className="dropdown-item-icon" />
-                        <span>Wishlist</span>
+                        <div className="dropdown-item-left">
+                          <Heart size={16} className="dropdown-item-icon" />
+                          <span>Wishlist</span>
+                        </div>
+                        {wishlistCount !== null && wishlistCount > 0 && (
+                          <span className="dropdown-count-badge wishlist-badge">{wishlistCount}</span>
+                        )}
                       </Link>
 
                       <Link
@@ -530,8 +564,10 @@ const Navbar = () => {
                         className="dropdown-item"
                         onClick={closeMenu}
                       >
-                        <HelpCircle size={16} className="dropdown-item-icon" />
-                        <span>Help & Support</span>
+                        <div className="dropdown-item-left">
+                          <HelpCircle size={16} className="dropdown-item-icon" />
+                          <span>Help & Support</span>
+                        </div>
                       </Link>
 
                       <div className="dropdown-divider" />
@@ -541,8 +577,10 @@ const Navbar = () => {
                         className="dropdown-item logout-item"
                         onClick={handleLogout}
                       >
-                        <LogOut size={16} className="dropdown-item-icon" />
-                        <span>Logout</span>
+                        <div className="dropdown-item-left">
+                          <LogOut size={16} className="dropdown-item-icon" />
+                          <span>Logout</span>
+                        </div>
                       </button>
                     </div>
                   )}

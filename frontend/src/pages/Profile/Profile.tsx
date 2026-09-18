@@ -34,6 +34,7 @@ interface NavItem {
   subtitle: string;
   icon: React.ReactNode;
   badge?: string | number | null;
+  badgeType?: "wishlist" | "orders" | "addresses" | "default";
 }
 
 export const Profile: React.FC = () => {
@@ -107,7 +108,7 @@ export const Profile: React.FC = () => {
     }
   }, [location.search]);
 
-  // Load badge counts in background
+  // Load badge counts in background & listen for live updates
   useEffect(() => {
     if (!isAuthenticated) return;
 
@@ -134,6 +135,22 @@ export const Profile: React.FC = () => {
     };
 
     loadCounts();
+
+    const handleWishlistUpdated = () => {
+      getWishlist(token).then((res) => {
+        if (res.success) {
+          setWishlistCount(res.products?.length || 0);
+        }
+      }).catch(() => {});
+    };
+
+    window.addEventListener("wishlist-updated", handleWishlistUpdated);
+    window.addEventListener("focus", loadCounts);
+
+    return () => {
+      window.removeEventListener("wishlist-updated", handleWishlistUpdated);
+      window.removeEventListener("focus", loadCounts);
+    };
   }, [isAuthenticated, token]);
 
   const handleTabChange = (tabId: ProfileTab) => {
@@ -196,13 +213,15 @@ export const Profile: React.FC = () => {
       subtitle: "Tracking, history & invoices",
       icon: <Package size={18} />,
       badge: orderCount !== null && orderCount > 0 ? orderCount : null,
+      badgeType: "orders",
     },
     {
       id: "wishlist",
-      label: "Favourite Items",
+      label: "Wishlist",
       subtitle: "Your saved products",
       icon: <Heart size={18} />,
       badge: wishlistCount !== null && wishlistCount > 0 ? wishlistCount : null,
+      badgeType: "wishlist",
     },
     {
       id: "addresses",
@@ -210,6 +229,7 @@ export const Profile: React.FC = () => {
       subtitle: "Delivery locations & defaults",
       icon: <MapPin size={18} />,
       badge: addressCount !== null ? `${addressCount}/3` : null,
+      badgeType: "addresses",
     },
   ];
 
@@ -241,8 +261,11 @@ export const Profile: React.FC = () => {
             </div>
 
             <div className="mobile-trigger-right">
-              {activeNavItem.badge && (
-                <span className="mobile-trigger-badge">{activeNavItem.badge}</span>
+              {activeNavItem.badge !== null && activeNavItem.badge !== undefined && (
+                <span className={`mobile-trigger-badge ${activeNavItem.badgeType ? `badge-${activeNavItem.badgeType}` : ""}`}>
+                  {activeNavItem.badgeType === "wishlist" && <Heart size={11} className="nav-badge-icon" fill="#e11d48" />}
+                  {activeNavItem.badge}
+                </span>
               )}
               <ChevronDown
                 size={18}
@@ -281,7 +304,12 @@ export const Profile: React.FC = () => {
                           <span className="nav-sub">{item.subtitle}</span>
                         </div>
                       </div>
-                      {item.badge && <span className="nav-badge">{item.badge}</span>}
+                      {item.badge !== null && item.badge !== undefined && (
+                        <span className={`nav-badge ${item.badgeType ? `nav-badge-${item.badgeType}` : ""}`}>
+                          {item.badgeType === "wishlist" && <Heart size={10} className="nav-badge-icon" fill="#e11d48" />}
+                          {item.badge}
+                        </span>
+                      )}
                     </button>
                   );
                 })}
@@ -380,7 +408,12 @@ export const Profile: React.FC = () => {
                   </div>
 
                   <div className="nav-item-right">
-                    {item.badge && <span className="nav-badge">{item.badge}</span>}
+                    {item.badge !== null && item.badge !== undefined && (
+                      <span className={`nav-badge ${item.badgeType ? `nav-badge-${item.badgeType}` : ""}`}>
+                        {item.badgeType === "wishlist" && <Heart size={10} className="nav-badge-icon" fill="#e11d48" />}
+                        {item.badge}
+                      </span>
+                    )}
                     <ChevronRight size={14} className="nav-arrow" />
                   </div>
                 </button>
@@ -448,14 +481,22 @@ export const Profile: React.FC = () => {
         <section className="profile-main-content">
           {activeTab === "account" && (
             <AccountDetailsTab
+              wishlistCount={wishlistCount}
+              orderCount={orderCount}
+              addressCount={addressCount}
               onNavigateToOrders={() => handleTabChange("orders")}
               onNavigateToWishlist={() => handleTabChange("wishlist")}
+              onNavigateToAddresses={() => handleTabChange("addresses")}
             />
           )}
 
           {activeTab === "orders" && <OrdersTab />}
 
-          {activeTab === "wishlist" && <WishlistTab />}
+          {activeTab === "wishlist" && (
+            <WishlistTab
+              onCountChange={(count) => setWishlistCount(count)}
+            />
+          )}
 
           {activeTab === "addresses" && <AddressesTab />}
         </section>

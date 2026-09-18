@@ -282,8 +282,8 @@ export const VariantSelectionModal: React.FC<VariantSelectionModalProps> = ({
 
       if (res.success) {
         setIsAdded(true);
-        toast.success(`${quantity} x "${currentProduct.name}${variantSuffix}" added to cart!`);
-        
+        // toast.success(`${quantity} x "${currentProduct.name}${variantSuffix}" added to cart!`);
+
         triggerFlyToCart({
           productName: `${currentProduct.name}${variantSuffix}`,
           price: currentPrice,

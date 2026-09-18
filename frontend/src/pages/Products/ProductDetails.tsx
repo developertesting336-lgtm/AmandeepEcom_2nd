@@ -259,7 +259,7 @@ const ProductDetails = () => {
         const variantSuffix = selectedVariant && selectedVariant.attributes && selectedVariant.attributes.length > 0
           ? ` (${selectedVariant.attributes.map(a => a.value).join(" / ")})`
           : "";
-        toast.success(`${quantity} x "${product.name}${variantSuffix}" added to cart!`);
+        // toast.success(`${quantity} x "${product.name}${variantSuffix}" added to cart!`);
 
         const currentPrice = selectedVariant
           ? (selectedVariant.salePrice && selectedVariant.salePrice > 0

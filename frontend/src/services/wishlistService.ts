@@ -81,6 +81,11 @@ export const getWishlist = async (token?: string | null): Promise<GetWishlistRes
         productsList = result;
       }
 
+      // Filter out null / undefined items (e.g. if a product was removed from DB)
+      productsList = productsList.filter(
+        (p) => p && typeof p === "object" && (p._id || (p as any).id)
+      );
+
       return {
         success: true,
         products: productsList,
@@ -100,6 +105,15 @@ export const getWishlist = async (token?: string | null): Promise<GetWishlistRes
       products: [],
       error: err.message || "Network error while fetching wishlist",
     };
+  }
+};
+
+/**
+ * Dispatches a custom window event to notify components that wishlist has updated
+ */
+export const notifyWishlistChanged = () => {
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent("wishlist-updated"));
   }
 };
 
@@ -129,6 +143,7 @@ export const toggleWishlistItem = async (
     const result = await response.json();
 
     if (response.ok && result.success !== false) {
+      notifyWishlistChanged();
       return {
         success: true,
         action: result.action || (result.message?.includes("removed") ? "removed" : "added"),
@@ -148,3 +163,4 @@ export const toggleWishlistItem = async (
     };
   }
 };
+

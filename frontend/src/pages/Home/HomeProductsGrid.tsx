@@ -49,6 +49,7 @@ const HomeProductsGrid = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [wishlist, setWishlist] = useState<Record<string, boolean>>({});
+  const [hiddenCartIds, setHiddenCartIds] = useState<Record<string, boolean>>({});
   const [variantModalProduct, setVariantModalProduct] = useState<Product | null>(null);
   const [isVariantModalOpen, setIsVariantModalOpen] = useState(false);
   const [recentlyAddedId, setRecentlyAddedId] = useState<string | null>(null);
@@ -123,7 +124,7 @@ const HomeProductsGrid = () => {
     }));
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/wishlist/toggle`, {
+      const response = await fetch(`${API_BASE_URL}/api/wishlist/${productId}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -186,9 +187,11 @@ const HomeProductsGrid = () => {
         });
 
         setRecentlyAddedId(prod._id);
+        setHiddenCartIds((prev) => ({ ...prev, [prod._id]: true }));
         setTimeout(() => {
           setRecentlyAddedId((prev) => (prev === prod._id ? null : prev));
-        }, 1500);
+          setHiddenCartIds((prev) => ({ ...prev, [prod._id]: false }));
+        }, 3500);
       }
     } catch (error: any) {
       toast.error("Failed to add product to cart");
@@ -301,10 +304,11 @@ const HomeProductsGrid = () => {
 
                     <button
                       type="button"
-                      className={`home-product-add-btn ${recentlyAddedId === prod._id ? "added" : ""}`}
+                      className={`home-product-add-btn ${hiddenCartIds[prod._id] ? "hidden-cart-btn" : recentlyAddedId === prod._id ? "added" : ""}`}
                       onClick={(e) => handleAddToCart(e, prod)}
-                      title={recentlyAddedId === prod._id ? "Added!" : "Add to Cart"}
-                      aria-label={recentlyAddedId === prod._id ? "Added to cart" : "Add to Cart"}
+                      title={hiddenCartIds[prod._id] ? "" : "Add to Cart"}
+                      aria-label={hiddenCartIds[prod._id] ? "Added to cart" : "Add to Cart"}
+                      disabled={hiddenCartIds[prod._id]}
                     >
                       {recentlyAddedId === prod._id ? (
                         <Check size={15} strokeWidth={2.5} />

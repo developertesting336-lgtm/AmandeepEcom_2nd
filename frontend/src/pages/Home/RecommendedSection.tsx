@@ -58,6 +58,7 @@ const RecommendedSection = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [wishlist, setWishlist] = useState<Record<string, boolean>>({});
+  const [hiddenCartIds, setHiddenCartIds] = useState<Record<string, boolean>>({});
   const [variantModalProduct, setVariantModalProduct] = useState<Product | null>(null);
   const [isVariantModalOpen, setIsVariantModalOpen] = useState(false);
   const [recentlyAddedId, setRecentlyAddedId] = useState<string | null>(null);
@@ -254,9 +255,11 @@ const RecommendedSection = () => {
         });
 
         setRecentlyAddedId(prod._id);
+        setHiddenCartIds((prev) => ({ ...prev, [prod._id]: true }));
         setTimeout(() => {
           setRecentlyAddedId((prev) => (prev === prod._id ? null : prev));
-        }, 1500);
+          setHiddenCartIds((prev) => ({ ...prev, [prod._id]: false }));
+        }, 3500);
       }
     } catch (error: any) {
       toast.error("Failed to add product to cart");
@@ -389,10 +392,11 @@ const RecommendedSection = () => {
 
                     <button
                       type="button"
-                      className={`recommended-cart-btn ${recentlyAddedId === prod._id ? "added" : ""}`}
+                      className={`recommended-cart-btn ${hiddenCartIds[prod._id] ? "hidden-cart-btn" : recentlyAddedId === prod._id ? "added" : ""}`}
                       onClick={(e) => handleAddToCart(e, prod)}
-                      title={recentlyAddedId === prod._id ? "Added!" : "Add to Cart"}
-                      aria-label={recentlyAddedId === prod._id ? "Added to cart" : "Add to Cart"}
+                      title={hiddenCartIds[prod._id] ? "" : "Add to Cart"}
+                      aria-label={hiddenCartIds[prod._id] ? "Added to cart" : "Add to Cart"}
+                      disabled={hiddenCartIds[prod._id]}
                     >
                       {recentlyAddedId === prod._id ? (
                         <Check size={15} strokeWidth={2.5} />

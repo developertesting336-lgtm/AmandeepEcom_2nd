@@ -223,6 +223,15 @@
   border: 1px solid var(--profile-primary-border);
   font-size: 11.5px;
   font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.mobile-trigger-badge.badge-wishlist {
+  background: #fff1f2;
+  color: #e11d48;
+  border-color: #fecdd3;
 }
 
 .mobile-trigger-chevron {
@@ -562,17 +571,41 @@
 }
 
 .nav-badge {
-  padding: 2px 7px;
-  background: #e2e8f0;
+  padding: 2px 8px;
+  background: #f1f5f9;
   color: var(--profile-text-dark);
   border-radius: 12px;
   font-size: 11px;
   font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid #e2e8f0;
+  transition: all 0.2s ease;
 }
 
-.sidebar-nav-item.active .nav-badge {
+.nav-badge-icon {
+  flex-shrink: 0;
+}
+
+.nav-badge-wishlist {
+  background: #fff1f2;
+  color: #e11d48;
+  border-color: #fecdd3;
+}
+
+.sidebar-nav-item.active .nav-badge,
+.mobile-dropdown-item.active .nav-badge {
   background: var(--profile-primary);
   color: #fff;
+  border-color: var(--profile-primary);
+}
+
+.sidebar-nav-item.active .nav-badge.nav-badge-wishlist,
+.mobile-dropdown-item.active .nav-badge.nav-badge-wishlist {
+  background: #e11d48;
+  color: #fff;
+  border-color: #e11d48;
 }
 
 .nav-arrow {
@@ -930,6 +963,130 @@
   box-shadow: none;
 }
 
+/* Quick Stats Grid with Wishlist Count Badge */
+.profile-quick-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+  width: 100%;
+}
+
+.profile-quick-stat-card {
+  background: var(--profile-card-bg);
+  border: 1.5px solid var(--profile-border);
+  border-radius: var(--profile-radius-md);
+  padding: 16px 18px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: var(--profile-shadow-sm);
+  position: relative;
+  overflow: hidden;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+
+.profile-quick-stat-card:hover {
+  border-color: var(--profile-primary);
+  transform: translateY(-2px);
+  box-shadow: var(--profile-shadow-md);
+}
+
+.profile-quick-stat-card.wishlist-stat-card:hover {
+  border-color: #f43f5e;
+  box-shadow: 0 4px 16px -2px rgba(244, 63, 94, 0.15);
+}
+
+.stat-card-icon-wrap {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+}
+
+.profile-quick-stat-card:hover .stat-card-icon-wrap {
+  transform: scale(1.08);
+}
+
+.stat-card-icon-wrap.orders-icon {
+  background: #f3effc;
+  color: var(--profile-primary);
+}
+
+.stat-card-icon-wrap.wishlist-icon {
+  background: #fff1f2;
+  color: #e11d48;
+}
+
+.stat-card-icon-wrap.addresses-icon {
+  background: #ecfdf5;
+  color: #059669;
+}
+
+.stat-card-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.stat-card-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--profile-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 2px;
+}
+
+.stat-card-val-row {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.stat-card-value {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--profile-text-dark);
+  line-height: 1.1;
+}
+
+.stat-card-value.wishlist-val {
+  color: #e11d48;
+}
+
+.stat-card-unit {
+  font-size: 11.5px;
+  color: var(--profile-text-muted);
+  font-weight: 500;
+}
+
+.stat-card-arrow {
+  color: var(--profile-text-muted);
+  opacity: 0.5;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.profile-quick-stat-card:hover .stat-card-arrow {
+  opacity: 1;
+  transform: translateX(3px);
+  color: var(--profile-primary);
+}
+
+.profile-quick-stat-card.wishlist-stat-card:hover .stat-card-arrow {
+  color: #e11d48;
+}
+
 /* Form Styles */
 .profile-form-grid {
   display: grid;
@@ -1164,11 +1321,42 @@
   box-sizing: border-box;
 }
 
-.wishlist-tab-header h3 {
-  font-size: 18px;
+.wishlist-tab-title-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.wishlist-tab-heading-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.wishlist-tab-heading-row h3 {
+  font-size: 20px;
   font-weight: 800;
-  margin: 0 0 4px;
+  margin: 0;
   color: var(--profile-text-dark);
+}
+
+.wishlist-count-badge-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 12px;
+  background: #fff1f2;
+  color: #e11d48;
+  border: 1px solid #fecdd3;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+  box-shadow: 0 1px 3px rgba(225, 29, 72, 0.08);
+}
+
+.wishlist-count-badge-heart {
+  color: #e11d48;
 }
 
 .wishlist-tab-header p {

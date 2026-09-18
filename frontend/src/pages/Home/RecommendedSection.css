@@ -360,6 +360,14 @@
   box-shadow: 0 4px 12px rgba(5, 150, 105, 0.4) !important;
 }
 
+.recommended-cart-btn.hidden-cart-btn {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  transform: scale(0.4) !important;
+  transition: opacity 0.35s ease, transform 0.35s ease, visibility 0.35s ease;
+}
+
 /* =========================================================
    SKELETON LOADER
 ========================================================= */
