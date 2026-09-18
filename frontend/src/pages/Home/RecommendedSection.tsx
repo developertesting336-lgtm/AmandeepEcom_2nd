@@ -4,7 +4,6 @@ import {
   Heart,
   ShoppingCart,
   ArrowRight,
-  Check,
 } from "lucide-react";
 import { triggerFlyToCart } from "../../components/common/FlyToCart/FlyToCart";
 import { useCart } from "../../context/cartContext";
@@ -58,10 +57,9 @@ const RecommendedSection = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [wishlist, setWishlist] = useState<Record<string, boolean>>({});
-  const [hiddenCartIds, setHiddenCartIds] = useState<Record<string, boolean>>({});
+  const [addedCartIds, setAddedCartIds] = useState<Record<string, boolean>>({});
   const [variantModalProduct, setVariantModalProduct] = useState<Product | null>(null);
   const [isVariantModalOpen, setIsVariantModalOpen] = useState(false);
-  const [recentlyAddedId, setRecentlyAddedId] = useState<string | null>(null);
 
   // Helper to extract list from various response envelopes
   const parseProductsResponse = (result: any): Product[] => {
@@ -223,6 +221,11 @@ const RecommendedSection = () => {
   const handleAddToCart = async (e: React.MouseEvent, prod: Product) => {
     e.stopPropagation();
 
+    if (addedCartIds[prod._id]) {
+      navigate("/cart");
+      return;
+    }
+
     const rawImg = prod.images && prod.images.length > 0 ? prod.images[0] : undefined;
     const imgUrl = formatImageUrl(rawImg, productFallback);
 
@@ -254,12 +257,10 @@ const RecommendedSection = () => {
           imageUrl: imgUrl,
         });
 
-        setRecentlyAddedId(prod._id);
-        setHiddenCartIds((prev) => ({ ...prev, [prod._id]: true }));
+        setAddedCartIds((prev) => ({ ...prev, [prod._id]: true }));
         setTimeout(() => {
-          setRecentlyAddedId((prev) => (prev === prod._id ? null : prev));
-          setHiddenCartIds((prev) => ({ ...prev, [prod._id]: false }));
-        }, 3500);
+          setAddedCartIds((prev) => ({ ...prev, [prod._id]: false }));
+        }, 100000); // Redirect to cart button active for 4.5 seconds
       }
     } catch (error: any) {
       toast.error("Failed to add product to cart");
@@ -392,14 +393,13 @@ const RecommendedSection = () => {
 
                     <button
                       type="button"
-                      className={`recommended-cart-btn ${hiddenCartIds[prod._id] ? "hidden-cart-btn" : recentlyAddedId === prod._id ? "added" : ""}`}
+                      className={`recommended-cart-btn ${addedCartIds[prod._id] ? "go-to-cart-btn" : ""}`}
                       onClick={(e) => handleAddToCart(e, prod)}
-                      title={hiddenCartIds[prod._id] ? "" : "Add to Cart"}
-                      aria-label={hiddenCartIds[prod._id] ? "Added to cart" : "Add to Cart"}
-                      disabled={hiddenCartIds[prod._id]}
+                      title={addedCartIds[prod._id] ? "Go to Cart" : "Add to Cart"}
+                      aria-label={addedCartIds[prod._id] ? "Go to Cart" : "Add to Cart"}
                     >
-                      {recentlyAddedId === prod._id ? (
-                        <Check size={15} strokeWidth={2.5} />
+                      {addedCartIds[prod._id] ? (
+                        <ShoppingCart size={16} strokeWidth={2.4} className="moving-cart-icon" />
                       ) : (
                         <ShoppingCart size={15} strokeWidth={2.2} />
                       )}
@@ -420,6 +420,15 @@ const RecommendedSection = () => {
             setVariantModalProduct(null);
           }}
           product={variantModalProduct}
+          onSuccess={() => {
+            if (variantModalProduct?._id) {
+              const pId = variantModalProduct._id;
+              setAddedCartIds((prev) => ({ ...prev, [pId]: true }));
+              setTimeout(() => {
+                setAddedCartIds((prev) => ({ ...prev, [pId]: false }));
+              }, 100000);
+            }
+          }}
         />
       )}
     </section>

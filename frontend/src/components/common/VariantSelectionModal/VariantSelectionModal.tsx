@@ -254,6 +254,12 @@ export const VariantSelectionModal: React.FC<VariantSelectionModalProps> = ({
   const imgUrl = formatImageUrl(currentProduct.images?.[0]);
 
   const handleAddToCart = async () => {
+    if (isAdded) {
+      onClose();
+      navigate("/cart");
+      return;
+    }
+
     if (!currentProduct?._id) return;
 
     if (!isAuthenticated) {
@@ -282,7 +288,6 @@ export const VariantSelectionModal: React.FC<VariantSelectionModalProps> = ({
 
       if (res.success) {
         setIsAdded(true);
-        // toast.success(`${quantity} x "${currentProduct.name}${variantSuffix}" added to cart!`);
 
         triggerFlyToCart({
           productName: `${currentProduct.name}${variantSuffix}`,
@@ -294,7 +299,7 @@ export const VariantSelectionModal: React.FC<VariantSelectionModalProps> = ({
         if (onSuccess) onSuccess(selectedVariantIndex);
         setTimeout(() => {
           onClose();
-        }, 700);
+        }, 1200);
       }
     } catch (err: any) {
       console.error("Modal Add To Cart Error:", err);
@@ -458,8 +463,8 @@ export const VariantSelectionModal: React.FC<VariantSelectionModalProps> = ({
           >
             {isAdded ? (
               <>
-                <Check size={18} />
-                <span>Added to Cart!</span>
+                <ShoppingCart size={19} className="vsm-moving-cart-icon" />
+                <span>Go to Cart</span>
               </>
             ) : adding ? (
               <>

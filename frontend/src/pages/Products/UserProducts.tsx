@@ -163,7 +163,7 @@ const UserProducts = () => {
   // Variant Selector Modal State
   const [variantModalProduct, setVariantModalProduct] = useState<Product | null>(null);
   const [isVariantModalOpen, setIsVariantModalOpen] = useState(false);
-  const [recentlyAddedId, setRecentlyAddedId] = useState<string | null>(null);
+  const [addedCartIds, setAddedCartIds] = useState<Record<string, boolean>>({});
 
   // Sync Search, Category, and Brand from URL query parameters
   useEffect(() => {
@@ -410,6 +410,11 @@ const UserProducts = () => {
   const handleAddToCart = async (e: React.MouseEvent, product: Product) => {
     e.stopPropagation();
 
+    if (addedCartIds[product._id]) {
+      navigate("/cart");
+      return;
+    }
+
     const rawImg = product.images && product.images.length > 0 ? product.images[0] : undefined;
     const imgUrl = formatImageUrl(rawImg, productFallback);
 
@@ -441,10 +446,10 @@ const UserProducts = () => {
           imageUrl: imgUrl,
         });
 
-        setRecentlyAddedId(product._id);
+        setAddedCartIds((prev) => ({ ...prev, [product._id]: true }));
         setTimeout(() => {
-          setRecentlyAddedId((prev) => (prev === product._id ? null : prev));
-        }, 1500);
+          setAddedCartIds((prev) => ({ ...prev, [product._id]: false }));
+        }, 100000);
       }
     } catch (error: any) {
       toast.error("Failed to add product to cart");
@@ -696,13 +701,13 @@ const UserProducts = () => {
 
                           <button
                             type="button"
-                            className={`user-product-cart-btn ${recentlyAddedId === product._id ? "added" : ""}`}
+                            className={`user-product-cart-btn ${addedCartIds[product._id] ? "go-to-cart-btn" : ""}`}
                             onClick={(e) => handleAddToCart(e, product)}
-                            title={recentlyAddedId === product._id ? "Added!" : "Add to Cart"}
-                            aria-label={recentlyAddedId === product._id ? "Added to cart" : "Add to Cart"}
+                            title={addedCartIds[product._id] ? "Go to Cart" : "Add to Cart"}
+                            aria-label={addedCartIds[product._id] ? "Go to Cart" : "Add to Cart"}
                           >
-                            {recentlyAddedId === product._id ? (
-                              <Check size={15} strokeWidth={2.5} />
+                            {addedCartIds[product._id] ? (
+                              <ShoppingCart size={16} strokeWidth={2.4} className="moving-cart-icon" />
                             ) : (
                               <ShoppingCart size={15} strokeWidth={2} />
                             )}
@@ -878,6 +883,15 @@ const UserProducts = () => {
             setVariantModalProduct(null);
           }}
           product={variantModalProduct}
+          onSuccess={() => {
+            if (variantModalProduct?._id) {
+              const pId = variantModalProduct._id;
+              setAddedCartIds((prev) => ({ ...prev, [pId]: true }));
+              setTimeout(() => {
+                setAddedCartIds((prev) => ({ ...prev, [pId]: false }));
+              }, 100000);
+            }
+          }}
         />
       )}
 

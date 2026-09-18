@@ -4,7 +4,6 @@ import {
   Heart,
   ShoppingCart,
   ArrowRight,
-  Check,
 } from "lucide-react";
 import { triggerFlyToCart } from "../../components/common/FlyToCart/FlyToCart";
 import { useCart } from "../../context/cartContext";
@@ -65,7 +64,7 @@ const SimilarProducts = ({ productId }: SimilarProductsProps) => {
   const [wishlist, setWishlist] = useState<Record<string, boolean>>({});
   const [variantModalProduct, setVariantModalProduct] = useState<Product | null>(null);
   const [isVariantModalOpen, setIsVariantModalOpen] = useState(false);
-  const [recentlyAddedId, setRecentlyAddedId] = useState<string | null>(null);
+  const [addedCartIds, setAddedCartIds] = useState<Record<string, boolean>>({});
 
   const parseProductsResponse = (result: any): Product[] => {
     if (!result) return [];
@@ -227,6 +226,11 @@ const SimilarProducts = ({ productId }: SimilarProductsProps) => {
   const handleAddToCart = async (e: React.MouseEvent, prod: Product) => {
     e.stopPropagation();
 
+    if (addedCartIds[prod._id]) {
+      navigate("/cart");
+      return;
+    }
+
     const rawImg = prod.images && prod.images.length > 0 ? prod.images[0] : undefined;
     const imgUrl = formatImageUrl(rawImg, productFallback);
 
@@ -258,10 +262,10 @@ const SimilarProducts = ({ productId }: SimilarProductsProps) => {
           imageUrl: imgUrl,
         });
 
-        setRecentlyAddedId(prod._id);
+        setAddedCartIds((prev) => ({ ...prev, [prod._id]: true }));
         setTimeout(() => {
-          setRecentlyAddedId((prev) => (prev === prod._id ? null : prev));
-        }, 1500);
+          setAddedCartIds((prev) => ({ ...prev, [prod._id]: false }));
+        }, 100000);
       }
     } catch (error: any) {
       toast.error("Failed to add product to cart");
@@ -397,13 +401,13 @@ const SimilarProducts = ({ productId }: SimilarProductsProps) => {
 
                     <button
                       type="button"
-                      className={`similar-cart-btn ${recentlyAddedId === prod._id ? "added" : ""}`}
+                      className={`similar-cart-btn ${addedCartIds[prod._id] ? "go-to-cart-btn" : ""}`}
                       onClick={(e) => handleAddToCart(e, prod)}
-                      title={recentlyAddedId === prod._id ? "Added!" : "Add to Cart"}
-                      aria-label={recentlyAddedId === prod._id ? "Added to cart" : "Add to Cart"}
+                      title={addedCartIds[prod._id] ? "Go to Cart" : "Add to Cart"}
+                      aria-label={addedCartIds[prod._id] ? "Go to Cart" : "Add to Cart"}
                     >
-                      {recentlyAddedId === prod._id ? (
-                        <Check size={15} strokeWidth={2.5} />
+                      {addedCartIds[prod._id] ? (
+                        <ShoppingCart size={16} strokeWidth={2.4} className="moving-cart-icon" />
                       ) : (
                         <ShoppingCart size={15} strokeWidth={2.2} />
                       )}
@@ -424,6 +428,15 @@ const SimilarProducts = ({ productId }: SimilarProductsProps) => {
             setVariantModalProduct(null);
           }}
           product={variantModalProduct}
+          onSuccess={() => {
+            if (variantModalProduct?._id) {
+              const pId = variantModalProduct._id;
+              setAddedCartIds((prev) => ({ ...prev, [pId]: true }));
+              setTimeout(() => {
+                setAddedCartIds((prev) => ({ ...prev, [pId]: false }));
+              }, 100000);
+            }
+          }}
         />
       )}
     </section>

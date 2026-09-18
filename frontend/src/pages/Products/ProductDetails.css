@@ -471,10 +471,24 @@
 }
 
 .pdp-btn-cart.added {
-  background-color: #059669 !important;
-  color: #ffffff !important;
-  border-color: #059669 !important;
-  box-shadow: 0 4px 14px rgba(5, 150, 105, 0.3) !important;
+  background-color: #fef08a !important;
+  color: #713f12 !important;
+  border-color: #fef08a !important;
+  box-shadow: 0 4px 14px rgba(254, 240, 138, 0.4) !important;
+}
+
+.pdp-btn-cart.added svg,
+.pdp-btn-cart.added .pdp-cart-icon-moving {
+  animation: pdpCartMove 0.75s ease-in-out infinite alternate;
+}
+
+@keyframes pdpCartMove {
+  0% {
+    transform: translateX(-3px);
+  }
+  100% {
+    transform: translateX(4px);
+  }
 }
 
 .pdp-btn-buy {

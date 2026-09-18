@@ -8,7 +8,6 @@ import {
   RotateCcw,
   Sparkles,
   Heart,
-  Check,
   Loader2,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -206,7 +205,9 @@ const ProductDetails = () => {
 
         if (fetchedProduct && typeof fetchedProduct === "object" && fetchedProduct._id) {
           setProduct(fetchedProduct);
-          setSelectedVariantIndex(-1);
+          const pVars = parseVariants(fetchedProduct.variants);
+          const actVars = pVars.filter((v: any) => v && (v.isActive === true || v.isActive === undefined || v.isActive === null || String(v.isActive) !== "false"));
+          setSelectedVariantIndex(actVars.length > 0 ? 0 : -1);
         } else {
           setProduct(null);
         }
@@ -236,6 +237,11 @@ const ProductDetails = () => {
     : null;
 
   const handleAddToCart = async () => {
+    if (isAdded) {
+      navigate("/cart");
+      return;
+    }
+
     if (!product?._id) return;
     if (!isAuthenticated) {
       navigate("/login");
@@ -277,7 +283,7 @@ const ProductDetails = () => {
         });
 
         setIsAdded(true);
-        setTimeout(() => setIsAdded(false), 1800);
+        setTimeout(() => setIsAdded(false), 100000);
       }
     } catch (error: any) {
       toast.error("Failed to add product to cart");
@@ -648,7 +654,10 @@ const ProductDetails = () => {
                         key={variant._id || idx}
                         type="button"
                         className={`pdp-variant-chip ${isSelected ? "active" : ""}`}
-                        onClick={() => setSelectedVariantIndex(idx)}
+                        onClick={() => {
+                          setSelectedVariantIndex(idx);
+                          setIsAdded(false);
+                        }}
                       >
                         <span className="pdp-variant-chip-name">{attrSummary}</span>
                         <span className="pdp-variant-chip-price">₹{Number(vPrice).toLocaleString("en-IN")}</span>
@@ -761,7 +770,7 @@ const ProductDetails = () => {
                         transition={{ duration: 0.2 }}
                         style={{ display: "inline-flex", alignItems: "center", gap: "8px" }}
                       >
-                        <Check size={18} strokeWidth={2.5} /> Added to Cart!
+                        <ShoppingCart size={19} strokeWidth={2.2} className="pdp-cart-icon-moving" /> Go to Cart
                       </motion.span>
                     ) : isAdding ? (
                       <motion.span
@@ -1062,10 +1071,11 @@ const ProductDetails = () => {
           onClose={() => setIsVariantModalOpen(false)}
           product={product}
           onSuccess={(vIdx) => {
-            // setAddedNotice(true);
             if (typeof vIdx === "number") {
               setSelectedVariantIndex(vIdx);
             }
+            setIsAdded(true);
+            setTimeout(() => setIsAdded(false), 100000);
           }}
         />
       )}

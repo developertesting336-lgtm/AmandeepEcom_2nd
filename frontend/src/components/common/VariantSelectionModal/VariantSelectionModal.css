@@ -433,8 +433,25 @@
 }
 
 .vsm-submit-btn.added {
-  background: #16a34a;
-  box-shadow: 0 4px 12px rgba(22, 163, 74, 0.25);
+  background: #fef08a !important;
+  color: #713f12 !important;
+  border: 1px solid #fef08a !important;
+  box-shadow: 0 4px 14px rgba(254, 240, 138, 0.4) !important;
+  animation: pulseCartBtn 1.8s infinite;
+}
+
+.vsm-submit-btn.added svg,
+.vsm-submit-btn.added .vsm-moving-cart-icon {
+  animation: modalCartMove 0.75s ease-in-out infinite alternate;
+}
+
+@keyframes modalCartMove {
+  0% {
+    transform: translateX(-3px);
+  }
+  100% {
+    transform: translateX(4px);
+  }
 }
 
 .vsm-btn-spinner {

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronLeft, ChevronRight, Heart, ShoppingCart, Check } from "lucide-react";
+import { ChevronLeft, ChevronRight, Heart, ShoppingCart } from "lucide-react";
 import { triggerFlyToCart } from "../../components/common/FlyToCart/FlyToCart";
 import { useCart } from "../../context/cartContext";
 import { useAuth } from "../../context/authContext";
@@ -53,8 +53,7 @@ const ProductSection = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const [wishlist, setWishlist] = useState<Record<string, boolean>>({});
-  const [hiddenCartIds, setHiddenCartIds] = useState<Record<string, boolean>>({});
-  const [recentlyAddedId, setRecentlyAddedId] = useState<string | null>(null);
+  const [addedCartIds, setAddedCartIds] = useState<Record<string, boolean>>({});
   const [viewportWidth, setViewportWidth] = useState(0);
 
   const viewportRef = useRef<HTMLDivElement>(null);
@@ -284,6 +283,11 @@ const ProductSection = () => {
   const handleAddToCart = async (e: React.MouseEvent, product: DisplayProduct) => {
     e.stopPropagation();
 
+    if (addedCartIds[product.id]) {
+      navigate("/cart");
+      return;
+    }
+
     if (!isAuthenticated) {
       navigate("/login");
       toast.error("Please login to add product to cart");
@@ -304,12 +308,10 @@ const ProductSection = () => {
           imageUrl: product.image,
         });
 
-        setRecentlyAddedId(product.id);
-        setHiddenCartIds((prev) => ({ ...prev, [product.id]: true }));
+        setAddedCartIds((prev) => ({ ...prev, [product.id]: true }));
         setTimeout(() => {
-          setRecentlyAddedId((prev) => (prev === product.id ? null : prev));
-          setHiddenCartIds((prev) => ({ ...prev, [product.id]: false }));
-        }, 3500);
+          setAddedCartIds((prev) => ({ ...prev, [product.id]: false }));
+        }, 100000); // Redirect to cart button active for 4.5 seconds
       }
     } catch (error: any) {
       toast.error("Failed to add product to cart");
@@ -465,14 +467,13 @@ const ProductSection = () => {
 
                             <button
                               type="button"
-                              className={`product-slider-cart-btn ${hiddenCartIds[product.id] ? "hidden-cart-btn" : recentlyAddedId === product.id ? "added" : ""}`}
+                              className={`product-slider-cart-btn ${addedCartIds[product.id] ? "go-to-cart-btn" : ""}`}
                               onClick={(e) => handleAddToCart(e, product)}
-                              title={hiddenCartIds[product.id] ? "" : "Add to Cart"}
-                              aria-label={hiddenCartIds[product.id] ? "Added to cart" : "Add to Cart"}
-                              disabled={hiddenCartIds[product.id]}
+                              title={addedCartIds[product.id] ? "Go to Cart" : "Add to Cart"}
+                              aria-label={addedCartIds[product.id] ? "Go to Cart" : "Add to Cart"}
                             >
-                              {recentlyAddedId === product.id ? (
-                                <Check size={14} strokeWidth={2.5} />
+                              {addedCartIds[product.id] ? (
+                                <ShoppingCart size={15} strokeWidth={2.4} className="moving-cart-icon" />
                               ) : (
                                 <ShoppingCart size={14} strokeWidth={2} />
                               )}
