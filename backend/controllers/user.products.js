@@ -4,6 +4,8 @@ import Product from "../models/Product.js";
 import Category from "../models/Category.js";
 import Wishlist from "../models/Wishlist.js";
 import UserViewProfile from "../models/UserViewProfile.js";
+import fuzzysort from "fuzzysort";
+import parseNaturalLanguageSearch from "../ai/nlSearch.js";
 
 
 
@@ -12,7 +14,7 @@ export const getProducts = async (req, res) => {
     // console.log("\n================ [GET /api/products] START ================");
     // console.log("📥 [1] Received Query Parameters:", req.query);
 
-    const {
+    let {
       search,
       category,
       subcategory,
@@ -25,51 +27,160 @@ export const getProducts = async (req, res) => {
       limit = 12,
     } = req.query;
 
+    // const filter = {
+    //   isActive: true,
+    // };
+
+
+
+
+    // // console.log("⚙️ [2] Base Filter Initialized:", JSON.stringify(filter));
+
+    // // =================================================
+    // // 1. SEARCH FILTER
+    // // =================================================
+    // if (search && search.trim()) {
+    //   const searchValue = search.trim().toLowerCase();
+    //   const escapedSearch = searchValue.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
+
+    //   // console.log(`🔍 [3] Processing Search -> raw: "${search}", normalized: "${searchValue}", regex: "${escapedSearch}"`);
+
+    //   const matchingCategories = await Category.find({
+    //     name: { $regex: escapedSearch, $options: "i" },
+    //     isActive: true,
+    //   }).select("_id name");
+
+    //   const categoryIds = matchingCategories.map((c) => c._id);
+    //   // console.log(`🔍 [3.1] Search Matched Categories (${matchingCategories.length}):`, matchingCategories.map((c) => ({ id: c._id, name: c.name })));
+
+    //   filter.$or = [
+    //     {
+    //       name: {
+    //         $regex: escapedSearch,
+    //         $options: "i",
+    //       },
+    //     },
+    //     {
+    //       brand: {
+    //         $regex: `\\b${escapedSearch}`,
+    //         $options: "i",
+    //       },
+    //     },
+    //   ];
+
+    //   if (categoryIds.length > 0) {
+    //     filter.$or.push({
+    //       category: { $in: categoryIds },
+    //     });
+    //   }
+
+    //   // console.log("🔍 [3.2] Filter after Search:", JSON.stringify(filter.$or, null, 2));
+    // }
+
+
     const filter = {
       isActive: true,
     };
 
-    // console.log("⚙️ [2] Base Filter Initialized:", JSON.stringify(filter));
-
+    let productScoreMap = new Map();
+    let aiIntent = null;
     // =================================================
-    // 1. SEARCH FILTER
+    // 1. SEARCH FILTER (AI Natural Language + Fuzzysort)
     // =================================================
     if (search && search.trim()) {
-      const searchValue = search.trim().toLowerCase();
-      const escapedSearch = searchValue.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
+      const searchValue = search.trim();
 
-      // console.log(`🔍 [3] Processing Search -> raw: "${search}", normalized: "${searchValue}", regex: "${escapedSearch}"`);
+      // Attempt AI natural language intent extraction
+      aiIntent = await parseNaturalLanguageSearch(searchValue);
 
-      const matchingCategories = await Category.find({
-        name: { $regex: escapedSearch, $options: "i" },
-        isActive: true,
-      }).select("_id name");
+      let effectiveSearchValue = searchValue;
 
-      const categoryIds = matchingCategories.map((c) => c._id);
-      // console.log(`🔍 [3.1] Search Matched Categories (${matchingCategories.length}):`, matchingCategories.map((c) => ({ id: c._id, name: c.name })));
+      if (aiIntent) {
+        if (aiIntent.keywords) {
+          effectiveSearchValue = aiIntent.keywords;
+        }
 
-      filter.$or = [
-        {
-          name: {
-            $regex: escapedSearch,
-            $options: "i",
-          },
-        },
-        {
-          brand: {
-            $regex: `\\b${escapedSearch}`,
-            $options: "i",
-          },
-        },
-      ];
+        // Soft DB match for AI-inferred category
+        if ((!category || category === "all") && aiIntent.category) {
+          const cleanCat = aiIntent.category.trim().replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
+          const matchedCat = await Category.findOne({
+            name: { $regex: cleanCat, $options: "i" },
+            isActive: true,
+          }).select("_id");
+          if (matchedCat) {
+            filter.category = matchedCat._id;
+          }
+        }
 
-      if (categoryIds.length > 0) {
-        filter.$or.push({
-          category: { $in: categoryIds },
-        });
+        // Soft DB match for AI-inferred subcategory
+        if (!subcategory && aiIntent.subcategory) {
+          const cleanSub = aiIntent.subcategory.trim().replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
+          const matchedSub = await Category.findOne({
+            name: { $regex: cleanSub, $options: "i" },
+            parent: { $ne: null },
+            isActive: true,
+          }).select("_id parent");
+          if (matchedSub && (!filter.category || String(matchedSub.parent) === String(filter.category))) {
+            filter.subcategory = matchedSub._id;
+          }
+        }
+
+        // Soft match for AI-inferred brand
+        if (!brand && aiIntent.brand) {
+          const escapedBrand = aiIntent.brand.trim().replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
+          filter.brand = { $regex: `\\b${escapedBrand}`, $options: "i" };
+        }
+
+        // Price bounds from AI intent
+        if (minPrice === undefined && aiIntent.minPrice !== null) {
+          minPrice = aiIntent.minPrice;
+        }
+        if (maxPrice === undefined && aiIntent.maxPrice !== null) {
+          maxPrice = aiIntent.maxPrice;
+        }
+
+        if (!stock && aiIntent.inStockOnly) {
+          stock = "inStock";
+        }
+        if (sort === "newest" && aiIntent.sort) {
+          sort = aiIntent.sort;
+        }
       }
 
-      // console.log("🔍 [3.2] Filter after Search:", JSON.stringify(filter.$or, null, 2));
+      const productCandidates = await Product.find(
+        { isActive: true },
+        { name: 1, brand: 1, short_description: 1 }
+      ).lean();
+
+      const fuzzyProductResults = fuzzysort.go(effectiveSearchValue, productCandidates, {
+        keys: ["name", "brand", "short_description"],
+        threshold: -10000,
+        limit: 200,
+      });
+
+      const matchedProductIds = fuzzyProductResults.map((r) => {
+        productScoreMap.set(String(r.obj._id), r.score);
+        return r.obj._id;
+      });
+
+      const categoryCandidates = await Category.find(
+        { isActive: true },
+        { name: 1 }
+      ).lean();
+
+      const fuzzyCategoryResults = fuzzysort.go(effectiveSearchValue, categoryCandidates, {
+        key: "name",
+        threshold: -10000,
+      });
+
+      const matchedCategoryIds = fuzzyCategoryResults.map((r) => r.obj._id);
+
+      filter.$or = [
+        { _id: { $in: matchedProductIds } },
+        ...(matchedCategoryIds.length > 0
+          ? [{ category: { $in: matchedCategoryIds } }]
+          : []),
+      ];
     }
 
     // =================================================
@@ -95,7 +206,7 @@ export const getProducts = async (req, res) => {
       if (categoryDoc) {
         // console.log(`📁 [4.1] Category Found in DB -> ID: ${categoryDoc._id}, Name: "${categoryDoc.name}"`);
         filter.category = categoryDoc._id;
-      } else {
+      } else if (!filter.$or) {
         // console.warn(`⚠️ [4.2] Category NOT Found in DB for query "${category}". Setting fallback regex on category fields.`);
         filter.$or = [
           { categoryName: { $regex: escapedCategory, $options: "i" } },
@@ -221,40 +332,73 @@ export const getProducts = async (req, res) => {
     // =================================================
     // 7. SORTING
     // =================================================
+    // let sortOption = {};
+
+    // switch (sort) {
+    //   case "price_asc":
+    //   case "price-low":
+    //     sortOption = { price: 1 };
+    //     break;
+
+    //   case "price_desc":
+    //   case "price-high":
+    //     sortOption = { price: -1 };
+    //     break;
+
+    //   case "name_asc":
+    //   case "name":
+    //     sortOption = { name: 1 };
+    //     break;
+
+    //   case "name_desc":
+    //     sortOption = { name: -1 };
+    //     break;
+
+    //   case "oldest":
+    //     sortOption = { createdAt: 1 };
+    //     break;
+
+    //   case "featured":
+    //   case "newest":
+    //   default:
+    //     sortOption = { createdAt: -1 };
+    //     break;
+    // }
+
     let sortOption = {};
+    let sortByRelevance = false;
 
-    switch (sort) {
-      case "price_asc":
-      case "price-low":
-        sortOption = { price: 1 };
-        break;
-
-      case "price_desc":
-      case "price-high":
-        sortOption = { price: -1 };
-        break;
-
-      case "name_asc":
-      case "name":
-        sortOption = { name: 1 };
-        break;
-
-      case "name_desc":
-        sortOption = { name: -1 };
-        break;
-
-      case "oldest":
-        sortOption = { createdAt: 1 };
-        break;
-
-      case "featured":
-      case "newest":
-      default:
-        sortOption = { createdAt: -1 };
-        break;
+    if (search && search.trim()) {
+      sortByRelevance = true; //  override normal sort when searching
+    } else {
+      switch (sort) {
+        case "price_asc":
+        case "price-low":
+          sortOption = { price: 1 };
+          break;
+        case "price_desc":
+        case "price-high":
+          sortOption = { price: -1 };
+          break;
+        case "name_asc":
+        case "name":
+          sortOption = { name: 1 };
+          break;
+        case "name_desc":
+          sortOption = { name: -1 };
+          break;
+        case "oldest":
+          sortOption = { createdAt: 1 };
+          break;
+        case "featured":
+        case "newest":
+        default:
+          sortOption = { createdAt: -1 };
+          break;
+      }
     }
 
-    // console.log(`🔃 [9] Sorting Option -> requested: "${sort}", resolved:`, sortOption);
+    // console.log(` [9] Sorting Option -> requested: "${sort}", resolved:`, sortOption);
 
     // =================================================
     // 8. PAGINATION
@@ -282,34 +426,83 @@ export const getProducts = async (req, res) => {
     // =================================================
     // console.log("🎯 [11] FINAL MONGO FILTER:", JSON.stringify(filter, null, 2));
 
-    const [products, totalProducts] = await Promise.all([
-      Product.find(filter)
-        .select(
-          [
-            "name",
-            "short_description",
-            "price",
-            "salePrice",
-            "images",
-            "brand",
-            "stock",
-            "sku",
-            "highlights",
-            "category",
-            "subcategory",
-            "isFeatured",
-            "createdAt",
-          ].join(" ")
-        )
-        .populate("category", "name")
-        .populate("subcategory", "name")
-        .sort(sortOption)
-        .skip(skip)
-        .limit(perPage)
-        .lean(),
+    // const [products, totalProducts] = await Promise.all([
+    //   Product.find(filter)
+    //     .select(
+    //       [
+    //         "name",
+    //         "short_description",
+    //         "price",
+    //         "salePrice",
+    //         "images",
+    //         "brand",
+    //         "stock",
+    //         "sku",
+    //         "highlights",
+    //         "category",
+    //         "subcategory",
+    //         "isFeatured",
+    //         "createdAt",
+    //       ].join(" ")
+    //     )
+    //     .populate("category", "name")
+    //     .populate("subcategory", "name")
+    //     .sort(sortOption)
+    //     .skip(skip)
+    //     .limit(perPage)
+    //     .lean(),
 
-      Product.countDocuments(filter),
-    ]);
+    //   Product.countDocuments(filter),
+    // ]);
+
+    // const totalPages = Math.ceil(totalProducts / perPage);
+
+    let products, totalProducts;
+
+    if (sortByRelevance) {
+      // Fetch ALL matches first (no skip/limit yet), sort by score, then paginate manually
+      const [allMatches, total] = await Promise.all([
+        Product.find(filter)
+          .select(
+            [
+              "name", "short_description", "price", "salePrice", "images",
+              "brand", "stock", "sku", "highlights", "category", "subcategory",
+              "isFeatured", "createdAt",
+            ].join(" ")
+          )
+          .populate("category", "name")
+          .populate("subcategory", "name")
+          .lean(),
+        Product.countDocuments(filter),
+      ]);
+
+      allMatches.sort((a, b) => {
+        const scoreA = productScoreMap.get(String(a._id)) ?? -Infinity;
+        const scoreB = productScoreMap.get(String(b._id)) ?? -Infinity;
+        return scoreB - scoreA; // higher score (better match) first
+      });
+
+      products = allMatches.slice(skip, skip + perPage);
+      totalProducts = total;
+    } else {
+      [products, totalProducts] = await Promise.all([
+        Product.find(filter)
+          .select(
+            [
+              "name", "short_description", "price", "salePrice", "images",
+              "brand", "stock", "sku", "highlights", "category", "subcategory",
+              "isFeatured", "createdAt",
+            ].join(" ")
+          )
+          .populate("category", "name")
+          .populate("subcategory", "name")
+          .sort(sortOption)
+          .skip(skip)
+          .limit(perPage)
+          .lean(),
+        Product.countDocuments(filter),
+      ]);
+    }
 
     const totalPages = Math.ceil(totalProducts / perPage);
 
@@ -340,6 +533,7 @@ export const getProducts = async (req, res) => {
           hasNextPage: currentPage < totalPages,
           hasPreviousPage: currentPage > 1,
         },
+        aiIntent: aiIntent || null,
       },
     });
 
