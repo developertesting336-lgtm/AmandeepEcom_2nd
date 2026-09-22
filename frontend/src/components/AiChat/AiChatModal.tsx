@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { useVoiceSearch } from "../../hooks/useVoiceSearch";
+
 import {
   MessageSquare,
   X,
@@ -9,6 +11,8 @@ import {
   // Sparkles,
   Bot,
   User as UserIcon,
+  Mic,
+  MicOff,
   // Trash2,
   ChevronDown,
   HelpCircle,
@@ -63,6 +67,16 @@ export const AiChatModal: React.FC = () => {
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
+
+  const { isListening, startListening, isSupported } = useVoiceSearch({
+    onResult: (transcriptText) => {
+      console.log("🛒 [Navbar Voice Search] Recognized text applied to search:", transcriptText);
+      // setSearchQuery(transcriptText);
+      // setInputValue(transcriptText);
+      handleSendMessage(transcriptText);
+    },
+  });
+
 
   useEffect(() => {
     if (isOpen) {
@@ -369,6 +383,26 @@ export const AiChatModal: React.FC = () => {
                   onChange={(e) => setInputValue(e.target.value)}
                   disabled={loading}
                 />
+
+                <button
+                  type="button"
+                  className={`voice-search-btn ${isListening ? "listening" : ""}`}
+                  onClick={startListening}
+                  title={
+                    !isSupported
+                      ? "Voice search not supported in this browser"
+                      : isListening
+                        ? "Listening... Click to stop"
+                        : "Search by voice"
+                  }
+                  aria-label={isListening ? "Stop voice search" : "Start voice search"}
+                >
+                  {isListening ? (
+                    <MicOff size={16} className="voice-mic-icon active" />
+                  ) : (
+                    <Mic size={16} className="voice-mic-icon" />
+                  )}
+                </button>
                 <button
                   type="submit"
                   className="ai-send-btn"
