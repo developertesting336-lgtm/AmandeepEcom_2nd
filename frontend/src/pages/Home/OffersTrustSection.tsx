@@ -28,7 +28,7 @@ const OFFERS = [
     tag: "New In",
     title: "Beauty & Health",
     desc: "Fresh arrivals, up to 30% off",
-    category: "beauty-health",
+    category: "beauty & health",
     accent: "green",
   },
 ];

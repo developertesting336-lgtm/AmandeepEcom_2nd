@@ -91,6 +91,51 @@
   color: #94a3b8;
 }
 
+.voice-search-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  color: #64748b;
+  padding: 6px 8px;
+  cursor: pointer;
+  flex-shrink: 0;
+  border-radius: 6px;
+  margin-right: 2px;
+  transition: all 0.2s ease;
+}
+
+.voice-search-btn:hover {
+  color: #7257c2;
+  background-color: #f1f5f9;
+}
+
+.voice-search-btn.listening {
+  color: #ef4444;
+  background-color: #fee2e2;
+  animation: voicePulse 1.2s infinite ease-in-out;
+}
+
+.voice-mic-icon.active {
+  color: #dc2626;
+}
+
+@keyframes voicePulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(239, 68, 68, 0);
+    transform: scale(1.08);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+    transform: scale(1);
+  }
+}
+
 .search-btn {
   display: flex;
   align-items: center;

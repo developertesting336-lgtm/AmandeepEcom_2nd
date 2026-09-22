@@ -18,9 +18,12 @@ import {
   CheckCircle2,
   Clock,
   HelpCircle,
+  Mic,
+  MicOff,
 } from "lucide-react";
 import "./Navbar.css";
 import logo from "../../../assets/logo.png";
+import { useVoiceSearch } from "../../../hooks/useVoiceSearch";
 import {
   fetchNotifications,
   fetchUnreadCount,
@@ -61,6 +64,14 @@ const Navbar = () => {
   const [loadingNotifications, setLoadingNotifications] = useState(false);
   const [isCartBouncing, setIsCartBouncing] = useState(false);
   const prevTotalRef = useRef(totalItems);
+
+  // Voice Search integration with console testing logs
+  const { isListening, startListening, isSupported } = useVoiceSearch({
+    onResult: (transcriptText) => {
+      console.log("🛒 [Navbar Voice Search] Recognized text applied to search:", transcriptText);
+      setSearchQuery(transcriptText);
+    },
+  });
 
   // Trigger bounce on flight arrival event or when totalItems increases
   useEffect(() => {
@@ -278,10 +289,29 @@ const Navbar = () => {
               <input
                 type="text"
                 className="search-input"
-                placeholder="Search products..."
+                placeholder={isListening ? "Listening... Speak now 🎙️" : "Search products..."}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
+              <button
+                type="button"
+                className={`voice-search-btn ${isListening ? "listening" : ""}`}
+                onClick={startListening}
+                title={
+                  !isSupported
+                    ? "Voice search not supported in this browser"
+                    : isListening
+                    ? "Listening... Click to stop"
+                    : "Search by voice"
+                }
+                aria-label={isListening ? "Stop voice search" : "Start voice search"}
+              >
+                {isListening ? (
+                  <MicOff size={16} className="voice-mic-icon active" />
+                ) : (
+                  <Mic size={16} className="voice-mic-icon" />
+                )}
+              </button>
               <button type="submit" className="search-btn" aria-label="Search">
                 <Search size={16} strokeWidth={2} />
               </button>
