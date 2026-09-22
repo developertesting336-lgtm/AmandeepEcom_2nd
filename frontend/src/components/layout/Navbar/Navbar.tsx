@@ -207,19 +207,52 @@ const Navbar = () => {
     setMenuOpen(false);
   }, [location.pathname]);
 
-  // Live search triggering navigate on searchQuery change
+  // Sync search input state with URL search param on page load or external URL changes
   useEffect(() => {
-    if (searchQuery.trim()) {
-      navigate(`/products?search=${encodeURIComponent(searchQuery.trim())}`);
-    } else {
-      if (
-        window.location.pathname.startsWith("/products") &&
-        window.location.search.includes("search=")
+    const params = new URLSearchParams(location.search);
+    const urlSearch = params.get("search") || "";
+    if (urlSearch !== searchQuery) {
+      setSearchQuery(urlSearch);
+    }
+  }, [location.pathname, location.search]);
+
+  // Debounced search navigation on searchQuery changes
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const currentUrlSearch = params.get("search") || "";
+    const trimmed = searchQuery.trim();
+
+    // Avoid navigation loop if query already matches the active URL search parameter
+    if (trimmed === currentUrlSearch) {
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      if (trimmed) {
+        navigate(`/products?search=${encodeURIComponent(trimmed)}`);
+      } else if (
+        location.pathname.startsWith("/products") &&
+        currentUrlSearch
       ) {
         navigate("/products");
       }
+    }, 350);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery, location.pathname, location.search, navigate]);
+
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmed = searchQuery.trim();
+    if (trimmed) {
+      navigate(`/products?search=${encodeURIComponent(trimmed)}`);
+    } else if (
+      location.pathname.startsWith("/products") &&
+      location.search.includes("search=")
+    ) {
+      navigate("/products");
     }
-  }, [searchQuery]);
+  };
 
   const closeMenu = () => {
     setMenuOpen(false);
@@ -285,7 +318,7 @@ const Navbar = () => {
 
           {/* SEARCH BAR (Hidden for Admin) */}
           {user?.role !== "admin" && (
-            <form className="search-form" onSubmit={(e) => e.preventDefault()}>
+            <form className="search-form" onSubmit={handleSearchSubmit}>
               <input
                 type="text"
                 className="search-input"
