@@ -216,7 +216,50 @@
   font-weight: 700;
   color: #0f172a;
   line-height: 1.35;
-  margin: 0 0 8px;
+  margin: 0 0 6px;
+}
+
+.pdp-rating-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.pdp-rating-badge-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #10b981;
+  color: #ffffff;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: all 0.15s ease;
+}
+
+.pdp-rating-badge-link:hover {
+  background: #059669;
+  transform: translateY(-1px);
+}
+
+.pdp-rating-badge-link .pdp-star-icon {
+  fill: #ffffff;
+}
+
+.pdp-reviews-count-link {
+  font-size: 13px;
+  color: #6366f1;
+  font-weight: 600;
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.pdp-reviews-count-link:hover {
+  color: #4f46e5;
+  text-decoration: underline;
 }
 
 .pdp-meta-row {

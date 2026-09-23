@@ -17,11 +17,13 @@ import {
   AlertTriangle,
   Clock,
   CheckCheck,
+  Star,
 } from "lucide-react";
 import { useAuth } from "../../context/authContext";
 import { useCart } from "../../context/cartContext";
 import { getUserOrders, cancelUserOrder } from "../../services/orderService";
 import type { UserOrder, UserOrderItem } from "../../services/orderService";
+import ReviewModal from "../../components/common/ReviewModal/ReviewModal";
 import productFallback from "../../assets/1.jpeg";
 import Footer from "../Home/footersection";
 import "./UserOrders.css";
@@ -176,6 +178,14 @@ const UserOrders: React.FC<UserOrdersProps> = ({ hideFooter = false, isEmbedded 
   const [customReason, setCustomReason] = useState<string>("");
   const [isSubmittingCancel, setIsSubmittingCancel] = useState<boolean>(false);
   const [cancelError, setCancelError] = useState<string>("");
+
+  // Review Modal State
+  const [reviewProduct, setReviewProduct] = useState<{
+    _id: string;
+    name: string;
+    image?: string;
+  } | null>(null);
+  const [isReviewModalOpen, setIsReviewModalOpen] = useState<boolean>(false);
 
   const fetchOrders = async () => {
     try {
@@ -342,7 +352,9 @@ const UserOrders: React.FC<UserOrdersProps> = ({ hideFooter = false, isEmbedded 
               const address = order.shippingAddress || order.address;
               const paymentMode = (order.paymentMode || order.paymentMethod || "COD").toUpperCase();
               const stage = getStepperStage(order.orderStatus || order.status, order.paymentStatus);
-              const isCancelled = (order.orderStatus || order.status || "").toLowerCase().includes("cancel");
+              const orderStatusLower = (order.orderStatus || order.status || "").toLowerCase();
+              const isCancelled = orderStatusLower.includes("cancel");
+              const isDelivered = orderStatusLower.includes("deliver");
               const payStatus = (order.paymentStatus || "").toLowerCase();
               const payBadge = getPaymentStatusBadge(order.paymentStatus, paymentMode === "COD");
 
@@ -520,18 +532,39 @@ const UserOrders: React.FC<UserOrdersProps> = ({ hideFooter = false, isEmbedded 
                           </>
                         );
 
-                        return prodId ? (
-                          <Link
-                            key={item._id || idx}
-                            to={`/product/${prodId}`}
-                            className="pro-product-row pro-product-clickable"
-                            title={`View details for ${prodName}`}
-                          >
-                            {productContent}
-                          </Link>
-                        ) : (
+                        return (
                           <div key={item._id || idx} className="pro-product-row">
-                            {productContent}
+                            <Link
+                              to={prodId ? `/product/${prodId}` : "#"}
+                              className={`pro-product-inner-link ${prodId ? "pro-product-clickable" : ""}`}
+                              title={prodId ? `View details for ${prodName}` : prodName}
+                            >
+                              {productContent}
+                            </Link>
+
+                            {/* Review button ONLY on the items when order is DELIVERED */}
+                            {isDelivered && prodId && (
+                              <div className="product-row-actions">
+                                <button
+                                  type="button"
+                                  className="pro-rate-review-btn"
+                                  title={`Rate & Review ${prodName}`}
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    setReviewProduct({
+                                      _id: prodId,
+                                      name: prodName,
+                                      image: formatImageUrl(prodImgUrl),
+                                    });
+                                    setIsReviewModalOpen(true);
+                                  }}
+                                >
+                                  <Star size={13} className="star-icon" />
+                                  <span>Write Review</span>
+                                </button>
+                              </div>
+                            )}
                           </div>
                         );
                       })
@@ -633,7 +666,7 @@ const UserOrders: React.FC<UserOrdersProps> = ({ hideFooter = false, isEmbedded 
                         <span>{addingToCartId === order._id ? "Adding..." : "Buy Again"}</span>
                       </button>
 
-                      {!isCancelled && (
+                      {!isCancelled && !isDelivered && (
                         <button
                           className="cancel-order-btn"
                           onClick={() => handleOpenCancelModal(order)}
@@ -757,6 +790,25 @@ const UserOrders: React.FC<UserOrdersProps> = ({ hideFooter = false, isEmbedded 
           </div>
         </div>
       )}
+
+      {/* Review Modal for Delivered Products */}
+      <ReviewModal
+        isOpen={isReviewModalOpen}
+        onClose={() => {
+          setIsReviewModalOpen(false);
+          setReviewProduct(null);
+        }}
+        product={reviewProduct}
+        token={token}
+        onReviewSuccess={(_review, isUpdated) => {
+          setToastMessage(
+            isUpdated
+              ? "Review updated successfully!"
+              : "Thank you! Your review has been submitted successfully."
+          );
+          setTimeout(() => setToastMessage(""), 4000);
+        }}
+      />
 
       {!hideFooter && <Footer />}
     </div>

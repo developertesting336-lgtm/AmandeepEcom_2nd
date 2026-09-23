@@ -9,6 +9,7 @@ import {
   Sparkles,
   Heart,
   Loader2,
+  Star,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { triggerFlyToCart } from "../../components/common/FlyToCart/FlyToCart";
@@ -19,6 +20,7 @@ import Footer from "../Home/footersection";
 import SimilarProducts from "./SimilarProducts";
 import RecommendedSection from "../Home/RecommendedSection";
 import VariantSelectionModal, { isProductWithVariants, parseVariants } from "../../components/common/VariantSelectionModal/VariantSelectionModal";
+import ProductReviews from "../../components/common/ProductReviews/ProductReviews";
 import "./ProductDetails.css";
 
 import product1 from "../../assets/1.jpeg";
@@ -77,6 +79,15 @@ interface Product {
   hasVariants?: boolean;
   variants?: ProductVariant[];
   details?: ProductDetailsSpec | string;
+  ratingsAverage?: number;
+  ratingsCount?: number;
+  ratingDistribution?: {
+    1: number;
+    2: number;
+    3: number;
+    4: number;
+    5: number;
+  };
   manufacturer?:
   | string
   | {
@@ -613,6 +624,47 @@ const ProductDetails = () => {
             {/* PRODUCT TITLE */}
             <h2 className="pdp-product-title">{product.name}</h2>
 
+            {/* RATING SNIPPET */}
+            <div className="pdp-rating-row">
+              <a
+                href="#product-reviews-container"
+                className="pdp-rating-badge-link"
+                onClick={(e) => {
+                  e.preventDefault();
+                  window.dispatchEvent(new CustomEvent("open-product-reviews"));
+                  setTimeout(() => {
+                    document
+                      .getElementById("product-reviews-container")
+                      ?.scrollIntoView({ behavior: "smooth" });
+                  }, 50);
+                }}
+              >
+                <span className="pdp-star-val">
+                  {product.ratingsAverage && product.ratingsAverage > 0
+                    ? product.ratingsAverage.toFixed(1)
+                    : "0.0"}
+                </span>
+                <Star size={12} className="pdp-star-icon" />
+              </a>
+              <a
+                href="#product-reviews-container"
+                className="pdp-reviews-count-link"
+                onClick={(e) => {
+                  e.preventDefault();
+                  window.dispatchEvent(new CustomEvent("open-product-reviews"));
+                  setTimeout(() => {
+                    document
+                      .getElementById("product-reviews-container")
+                      ?.scrollIntoView({ behavior: "smooth" });
+                  }, 50);
+                }}
+              >
+                {product.ratingsCount && product.ratingsCount > 0
+                  ? `${product.ratingsCount} ${product.ratingsCount === 1 ? "Rating" : "Ratings"}`
+                  : "No reviews yet"}
+              </a>
+            </div>
+
             {/* STOCK STATUS */}
             {/* <div className="pdp-meta-row">
               <span className="pdp-stock-text">
@@ -1060,6 +1112,15 @@ const ProductDetails = () => {
             </div>
           )}
         </div>
+
+        {/* CUSTOMER REVIEWS & RATINGS SECTION */}
+        {product && (
+          <ProductReviews
+            productId={product._id}
+            productName={product.name}
+            productImage={imagesList[0]}
+          />
+        )}
       </div>
 
       {productId && <SimilarProducts productId={productId} />}
