@@ -403,6 +403,26 @@ const productSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+
+    // =========================
+    // REFERRAL & REWARDS CONFIG
+    // =========================
+    referral: {
+      isEnabled: {
+        type: Boolean,
+        default: true,
+      },
+      discountAmount: {
+        type: Number,
+        default: 50,
+        min: [0, "Discount amount cannot be negative"],
+      },
+      rewardPoints: {
+        type: Number,
+        default: 100,
+        min: [0, "Reward points cannot be negative"],
+      },
+    },
     // =========================
     // RATINGS & REVIEWS
     // =========================

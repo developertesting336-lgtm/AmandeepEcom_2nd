@@ -24,6 +24,7 @@ import aiRoutes from './routes/ai.routes.js'
 import inquiryRoutes from './routes/inquiry.routes.js'
 import videoPromoRoutes from './routes/videoPromo.routes.js'
 import reviewRoutes from './routes/review.routes.js'
+import referralRoutes from './routes/referral.routes.js'
 import cookieParser from "cookie-parser";
 
 
@@ -96,6 +97,7 @@ app.use('/api/ai', aiRoutes)
 app.use('/api/contact', inquiryRoutes)
 app.use('/api', videoPromoRoutes)
 app.use('/api/reviews', reviewRoutes)
+app.use('/api/referral', referralRoutes)
 
 
 

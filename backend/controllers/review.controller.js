@@ -321,6 +321,7 @@ export const deleteReview = async (req, res) => {
 export const voteHelpfulReview = async (req, res) => {
   try {
     const { reviewId } = req.params;
+    // const userId = req.user._id;
 
     if (!mongoose.Types.ObjectId.isValid(reviewId)) {
       return res.status(400).json({
