@@ -403,11 +403,52 @@ const productSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    // =========================
+    // RATINGS & REVIEWS
+    // =========================
+
+    ratingsAverage: {
+      type: Number,
+      default: 0,
+      min: [0, "Rating cannot be negative"],
+      max: [5, "Rating cannot exceed 5"],
+      set: (val) => Math.round(val * 10) / 10,
+    },
+
+    ratingsCount: {
+      type: Number,
+      default: 0,
+      min: [0, "Rating count cannot be negative"],
+    },
+
+    // Star-by-star breakdown: count of users giving 1, 2, 3, 4, and 5 stars
+    ratingDistribution: {
+      1: { type: Number, default: 0, min: 0 },
+      2: { type: Number, default: 0, min: 0 },
+      3: { type: Number, default: 0, min: 0 },
+      4: { type: Number, default: 0, min: 0 },
+      5: { type: Number, default: 0, min: 0 },
+    },
   },
   {
     timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true },
   }
 );
+
+
+// ==========================================
+// VIRTUALS
+// ==========================================
+
+productSchema.virtual("rating").get(function () {
+  return this.ratingsAverage;
+});
+
+productSchema.virtual("numReviews").get(function () {
+  return this.ratingsCount;
+});
 
 
 // ==========================================
@@ -439,6 +480,7 @@ productSchema.index({ subcategory: 1 });
 productSchema.index({ brand: 1 });
 productSchema.index({ isActive: 1 });
 productSchema.index({ isFeatured: 1 });
+productSchema.index({ ratingsAverage: -1 });
 productSchema.index({ createdAt: -1 });
 
 
