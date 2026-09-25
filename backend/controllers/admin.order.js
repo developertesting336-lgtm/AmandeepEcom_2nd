@@ -3,6 +3,7 @@ import User from '../models/user.js'
 import Product from '../models/Product.js'
 import stripe from "../config/stripe.js";
 import { createNotification } from "./notification.controller.js";
+import { formatOrderResponse } from "./user.order.js";
 
 
 
@@ -104,7 +105,7 @@ export const getOrdersForadmin = async (req, res) => {
             };
         }
 
-        const orders = await Order.find(filter)
+        const rawOrders = await Order.find(filter)
             .populate({
                 path: "products.productId",
                 select: "name images sku price salePrice variants",
@@ -114,6 +115,8 @@ export const getOrdersForadmin = async (req, res) => {
                 select: "name email phone",
             })
             .sort({ createdAt: -1 });
+
+        const orders = rawOrders.map(formatOrderResponse);
 
         return res.status(200).json({
             success: true,

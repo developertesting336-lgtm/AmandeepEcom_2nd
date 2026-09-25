@@ -617,7 +617,11 @@ const UserOrders: React.FC<UserOrdersProps> = ({ hideFooter = false, isEmbedded 
                           <span>PAYMENT & SUMMARY</span>
                         </div>
                         <span className="payment-mode-txt">
-                          {paymentMode === "COD" ? "Cash on Delivery" : "Online Payment"}
+                          {paymentMode === "POINTS" || (order.paymentMode || "").toLowerCase() === "points"
+                            ? "Paid with Reward Points"
+                            : paymentMode === "COD"
+                              ? "Cash on Delivery"
+                              : "Online Payment"}
                         </span>
                       </div>
 
@@ -632,6 +636,24 @@ const UserOrders: React.FC<UserOrdersProps> = ({ hideFooter = false, isEmbedded 
                           <span className="data-lbl">Items Total:</span>
                           <span className="data-val bold-val">{formatCurrency(itemsTotal)}</span>
                         </div>
+                        {/* Referral Discount if available */}
+                        {Number((order as any).discount || order.referralDiscount) > 0 && (
+                          <div className="summary-data-row" style={{ color: "#16a34a" }}>
+                            <span className="data-lbl" style={{ color: "#16a34a" }}>Referral Discount:</span>
+                            <span className="data-val bold-val" style={{ color: "#16a34a" }}>
+                              - {formatCurrency(Number((order as any).discount || order.referralDiscount))}
+                            </span>
+                          </div>
+                        )}
+                        {/* Points Discount if available */}
+                        {Number((order as any).pointDiscount || order.pointsDiscount || order.pointsUsed) > 0 && (
+                          <div className="summary-data-row" style={{ color: "#d97706" }}>
+                            <span className="data-lbl" style={{ color: "#d97706" }}>Reward Points:</span>
+                            <span className="data-val bold-val" style={{ color: "#d97706" }}>
+                              - {formatCurrency(Number((order as any).pointDiscount || order.pointsDiscount || order.pointsUsed))}
+                            </span>
+                          </div>
+                        )}
                         <div className="summary-data-row">
                           <span className="data-lbl">Delivery Charges:</span>
                           <span className="data-val bold-val">

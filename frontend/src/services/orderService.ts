@@ -125,6 +125,13 @@ export interface UserOrder {
   items?: UserOrderItem[];
   itemsTotal?: number;
   deliveryCharges?: number;
+  referralDiscount?: number;
+  discount?: number;
+  pointDiscount?: number;
+  pointsDiscount?: number;
+  pointsUsed?: number;
+  totalDiscount?: number;
+  appliedReferrals?: any[];
   orderTotal?: number;
   totalAmount?: number;
   amount?: number;
@@ -410,6 +417,66 @@ export const getUserOrders = async (token?: string | null): Promise<GetOrdersRes
       success: false,
       orders: [],
       error: err.message || "Network error while fetching orders",
+    };
+  }
+};
+
+export interface GetOrderByIdResponse {
+  success: boolean;
+  order?: UserOrder;
+  discount?: number;
+  pointDiscount?: number;
+  pointsDiscount?: number;
+  referralDiscount?: number;
+  totalDiscount?: number;
+  message?: string;
+  error?: string;
+}
+
+export const getOrderById = async (
+  orderId: string,
+  token?: string | null
+): Promise<GetOrderByIdResponse> => {
+  try {
+    const activeToken = token || localStorage.getItem("token");
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    };
+
+    if (activeToken) {
+      headers["Authorization"] = `Bearer ${activeToken}`;
+    }
+
+    const response = await fetch(`${API_BASE_URL}/api/order/${orderId}`, {
+      method: "GET",
+      headers,
+      credentials: "include",
+    });
+
+    const result = await response.json();
+
+    if (response.ok && result.success !== false) {
+      return {
+        success: true,
+        order: result.order || result.data || result,
+        discount: result.discount ?? result.order?.discount,
+        pointDiscount: result.pointDiscount ?? result.order?.pointDiscount,
+        pointsDiscount: result.pointsDiscount ?? result.order?.pointsDiscount,
+        referralDiscount: result.referralDiscount ?? result.order?.referralDiscount,
+        totalDiscount: result.totalDiscount ?? result.order?.totalDiscount,
+        message: result.message || "Order fetched successfully",
+      };
+    } else {
+      return {
+        success: false,
+        error: result.message || "Failed to fetch order details",
+      };
+    }
+  } catch (err: any) {
+    console.error("Error fetching order by id:", err);
+    return {
+      success: false,
+      error: err.message || "Network error while connecting to server",
     };
   }
 };

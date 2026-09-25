@@ -391,11 +391,46 @@ export const cod = async (req, res) => {
     }
 };
 
+/**
+ * Helper to ensure discount and pointDiscount fields are always provided if available
+ */
+export const formatOrderResponse = (orderDoc) => {
+    if (!orderDoc) return null;
+    const order = orderDoc.toObject ? orderDoc.toObject() : { ...orderDoc };
+
+    // Referral discount
+    let referralDiscount = Number(order.referralDiscount) || 0;
+    if (referralDiscount === 0 && Array.isArray(order.appliedReferrals) && order.appliedReferrals.length > 0) {
+        referralDiscount = order.appliedReferrals.reduce(
+            (sum, ref) => sum + (Number(ref.totalDiscount) || Number(ref.discountAmount) || 0),
+            0
+        );
+    }
+
+    // Points discount and points used
+    const pointsUsed = Number(order.pointsUsed) || 0;
+    const pointsDiscount = Number(order.pointsDiscount) || pointsUsed;
+
+    // Total discount
+    const totalDiscount = referralDiscount + pointsDiscount;
+
+    return {
+        ...order,
+        // Standardized discount fields for easy consumption
+        discount: referralDiscount > 0 ? referralDiscount : 0,
+        referralDiscount: referralDiscount > 0 ? referralDiscount : 0,
+        pointDiscount: pointsDiscount > 0 ? pointsDiscount : 0,
+        pointsDiscount: pointsDiscount > 0 ? pointsDiscount : 0,
+        pointsUsed: pointsUsed > 0 ? pointsUsed : 0,
+        totalDiscount: totalDiscount > 0 ? totalDiscount : 0,
+    };
+};
+
 export const getUserOrders = async (req, res) => {
     try {
         const userId = req.user._id;
 
-        const orders = await Order.find({
+        const rawOrders = await Order.find({
             user: userId,
         })
             .populate({
@@ -404,7 +439,7 @@ export const getUserOrders = async (req, res) => {
             })
             .sort({ createdAt: -1 });
 
-        // console.log("orders", orders.products)
+        const orders = rawOrders.map(formatOrderResponse);
 
         return res.status(200).json({
             success: true,
@@ -423,7 +458,7 @@ export const getUserOrders = async (req, res) => {
 
 export const getOrderById = async (req, res) => {
     try {
-        const order = await Order.findOne({
+        const rawOrder = await Order.findOne({
             orderId: req.params.orderId,
             user: req.user._id,
         }).populate({
@@ -431,16 +466,23 @@ export const getOrderById = async (req, res) => {
             select: "name images price salePrice brand category variants",
         });
 
-        if (!order) {
+        if (!rawOrder) {
             return res.status(404).json({
                 success: false,
                 message: "Order not found",
             });
         }
 
+        const order = formatOrderResponse(rawOrder);
+
         return res.status(200).json({
             success: true,
             order,
+            discount: order.discount,
+            pointDiscount: order.pointDiscount,
+            pointsDiscount: order.pointsDiscount,
+            referralDiscount: order.referralDiscount,
+            totalDiscount: order.totalDiscount,
         });
     } catch (error) {
         console.error("Get order by id error:", error);
