@@ -67,6 +67,12 @@ interface DetailsState {
   dimUnit: "cm" | "mm" | "m" | "inch";
 }
 
+interface ReferralState {
+  isEnabled: boolean;
+  discountAmount: string;
+  rewardPoints: string;
+}
+
 interface ProductFormState {
   name: string;
   short_description: string;
@@ -85,6 +91,7 @@ interface ProductFormState {
   warranty: WarrantyState;
   returnPolicy: ReturnPolicyState;
   details: DetailsState;
+  referral: ReferralState;
   isFeatured: boolean;
   isActive: boolean;
 }
@@ -138,6 +145,11 @@ const INITIAL_STATE: ProductFormState = {
     width: "",
     height: "",
     dimUnit: "cm",
+  },
+  referral: {
+    isEnabled: false,
+    discountAmount: "0",
+    rewardPoints: "0",
   },
   isFeatured: false,
   isActive: true,
@@ -606,6 +618,14 @@ const AddProduct = () => {
         formData.append("returnPolicy", JSON.stringify(productPayload.returnPolicy));
       }
       formData.append("details", JSON.stringify(productPayload.details));
+      formData.append(
+        "referral",
+        JSON.stringify({
+          isEnabled: form.referral.isEnabled,
+          discountAmount: Math.max(0, Number(form.referral.discountAmount) || 0),
+          rewardPoints: Math.max(0, Number(form.referral.rewardPoints) || 0),
+        })
+      );
 
       images.forEach((file) => {
         formData.append("images", file);
@@ -1679,6 +1699,80 @@ const AddProduct = () => {
                 <span className="toggle-thumb" />
               </span>
             </label>
+          </div>
+
+          {/* Referral & Rewards Program */}
+          <div className="form-card">
+            <h2 className="form-card-title">Referral & Earn Program</h2>
+
+            <label className="toggle-row">
+              <span>Enable Referral Program</span>
+              <input
+                type="checkbox"
+                name="referralEnabled"
+                checked={form.referral.isEnabled}
+                onChange={(e) =>
+                  setForm((prev) => ({
+                    ...prev,
+                    referral: {
+                      ...prev.referral,
+                      isEnabled: e.target.checked,
+                    },
+                  }))
+                }
+              />
+              <span className="toggle-track">
+                <span className="toggle-thumb" />
+              </span>
+            </label>
+
+            {form.referral.isEnabled && (
+              <div style={{ marginTop: "16px", display: "flex", flexDirection: "column", gap: "12px" }}>
+                <div className="form-group">
+                  <label>Friend Discount (₹)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    placeholder="e.g. 50"
+                    value={form.referral.discountAmount}
+                    onChange={(e) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        referral: {
+                          ...prev.referral,
+                          discountAmount: e.target.value,
+                        },
+                      }))
+                    }
+                  />
+                  <small style={{ color: "var(--text-secondary, #64748b)", marginTop: "4px", display: "block" }}>
+                    Instant discount the friend receives when purchasing via link.
+                  </small>
+                </div>
+
+                <div className="form-group">
+                  <label>Referrer Reward Points (1 pt = ₹1)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    placeholder="e.g. 100"
+                    value={form.referral.rewardPoints}
+                    onChange={(e) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        referral: {
+                          ...prev.referral,
+                          rewardPoints: e.target.value,
+                        },
+                      }))
+                    }
+                  />
+                  <small style={{ color: "var(--text-secondary, #64748b)", marginTop: "4px", display: "block" }}>
+                    Points awarded to user once friend's order is delivered.
+                  </small>
+                </div>
+              </div>
+            )}
           </div>
 
           <button

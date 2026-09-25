@@ -19,8 +19,12 @@ import {
   CheckCircle2,
   CreditCard,
   Banknote,
+  Tag,
+  Coins,
+  Sparkles,
+  X,
 } from "lucide-react";
-import { useCart } from "../../context/cartContext";
+import { useCart, clearAllStoredReferrals, clearStoredRewardPoints } from "../../context/cartContext";
 import { useAuth } from "../../context/authContext";
 import {
   fetchUserAddresses,
@@ -123,8 +127,20 @@ const getItemPricing = (item: any) => {
 
 const Checkout: React.FC = () => {
   const navigate = useNavigate();
-  const { token } = useAuth();
-  const { cartItems = [], totalItems = 0, subtotal = 0, loading = false, updateQuantity, fetchCart } = useCart();
+  const { token, user } = useAuth();
+  const {
+    cartItems = [],
+    totalItems = 0,
+    subtotal = 0,
+    loading = false,
+    updateQuantity,
+    fetchCart,
+    appliedReferrals = {},
+    appliedPoints = 0,
+    userRewardPoints = 0,
+    applyRewardPoints,
+    removeRewardPoints,
+  } = useCart();
 
   // Multi-step state: 1 = Address & Summary, 2 = Payment
   const [currentStep, setCurrentStep] = useState<1 | 2>(1);
@@ -326,11 +342,39 @@ const Checkout: React.FC = () => {
       return acc + effectivePrice * qty;
     }, 0) || Number(subtotal) || 0;
 
+  // Calculate referral discount per-unit matching backend logic
+  const safeReferralDiscount = safeItems.reduce((acc, item) => {
+    const pid = item.product?._id ? String(item.product._id) : null;
+    if (pid && appliedReferrals[pid]) {
+      const ref = appliedReferrals[pid];
+      const unitDiscount = Number(ref.discountAmount || 0);
+      const { effectivePrice } = getItemPricing(item);
+      const effectiveUnitDiscount = Math.min(effectivePrice, unitDiscount);
+      const qty = Number(item?.quantity) || 1;
+      return acc + effectiveUnitDiscount * qty;
+    }
+    return acc;
+  }, 0);
+
+  // Active referral tokens for products currently in the order
+  const activeReferralTokens = Object.values(appliedReferrals)
+    .filter((ref) =>
+      safeItems.some((item) => item.product && String(item.product._id) === String(ref.productId))
+    )
+    .map((ref) => ref.token);
+
   const isFreeShipping = safeSubtotal >= 499;
   const deliveryCharge = isFreeShipping || safeItems.length === 0 ? 0 : 99;
+  const grossCheckoutAmount = Math.max(0, safeSubtotal - safeReferralDiscount) + deliveryCharge;
+
+  // Reward points calculations for checkout
+  const availableUserPoints = Number(user?.rewardPoints) || userRewardPoints || 0;
+  const maxCheckoutPoints = Math.min(availableUserPoints, grossCheckoutAmount);
+  const safePointsDiscount = Math.min(appliedPoints, maxCheckoutPoints);
+
   const totalDiscount = Math.max(0, totalMrp - safeSubtotal);
-  const totalPayable = safeSubtotal + deliveryCharge;
-  const totalSavings = totalDiscount + (isFreeShipping && safeItems.length > 0 ? 99 : 0);
+  const totalPayable = Math.max(0, grossCheckoutAmount - safePointsDiscount);
+  const totalSavings = totalDiscount + safeReferralDiscount + safePointsDiscount + (isFreeShipping && safeItems.length > 0 ? 99 : 0);
 
   const selectedAddress = addresses.find((a) => a.id === selectedAddressId) || (addresses.length > 0 ? addresses[0] : undefined);
 
@@ -379,6 +423,11 @@ const Checkout: React.FC = () => {
               price: effectivePrice,
             };
           }),
+          referralTokens: activeReferralTokens,
+          referralDiscount: safeReferralDiscount,
+          pointsToRedeem: safePointsDiscount,
+          usedPoints: safePointsDiscount,
+          pointsDiscount: safePointsDiscount,
           paymentMode: "ONLINE",
           address: {
             fullName: selectedAddress.fullName,
@@ -410,17 +459,41 @@ const Checkout: React.FC = () => {
 
         const res = await placestripeOrder(payload, token);
 
-        if (res.success && res.url) {
-          // Clear cart or prepare before redirect
-          if (fetchCart) {
-            fetchCart().catch(() => { });
+        if (res.success) {
+          // If 100% covered by points, no payment gateway needed!
+          if (res.isFullyCoveredByPoints || res.orderTotal === 0 || !res.url) {
+            clearAllStoredReferrals();
+            clearStoredRewardPoints();
+            removeRewardPoints?.();
+            window.dispatchEvent(new Event("reward-points-updated"));
+            if (fetchCart) {
+              await fetchCart().catch(() => {});
+            }
+            navigate(
+              `/payment-success?orderId=${encodeURIComponent(res.orderId || "")}&paymentMode=POINTS&orderTotal=0`,
+              {
+                state: {
+                  orderId: res.orderId,
+                  paymentMode: "POINTS",
+                  orderTotal: 0,
+                },
+              }
+            );
+            return;
           }
-          // Redirect to Stripe Checkout Session
-          window.location.href = res.url;
-        } else {
-          alert(res.error || "Failed to create Stripe payment checkout session. Please try again.");
-          setIsPlacingOrder(false);
+
+          if (res.url) {
+            // Remaining payment balance: redirect to Stripe
+            if (fetchCart) {
+              fetchCart().catch(() => {});
+            }
+            window.location.href = res.url;
+            return;
+          }
         }
+
+        alert(res.error || "Failed to create Stripe payment checkout session. Please try again.");
+        setIsPlacingOrder(false);
       } catch (err: any) {
         console.error("Stripe payment error:", err);
         alert(err.message || "An unexpected error occurred while initiating payment.");
@@ -448,6 +521,11 @@ const Checkout: React.FC = () => {
               price: effectivePrice,
             };
           }),
+          referralTokens: activeReferralTokens,
+          referralDiscount: safeReferralDiscount,
+          pointsToRedeem: safePointsDiscount,
+          usedPoints: safePointsDiscount,
+          pointsDiscount: safePointsDiscount,
           paymentMode: "COD",
           address: {
             fullName: selectedAddress.fullName,
@@ -466,16 +544,21 @@ const Checkout: React.FC = () => {
         console.log(res);
 
         if (res.success && res.orderId) {
+          clearAllStoredReferrals();
+          clearStoredRewardPoints();
+          removeRewardPoints?.();
+          window.dispatchEvent(new Event("reward-points-updated"));
           if (fetchCart) {
             await fetchCart();
           }
-          const finalTotal = res.orderTotal || totalPayable;
+          const finalTotal = res.orderTotal !== undefined ? res.orderTotal : totalPayable;
+          const finalMode = res.isFullyCoveredByPoints || finalTotal === 0 ? "POINTS" : "COD";
           navigate(
-            `/payment-success?orderId=${encodeURIComponent(res.orderId)}&paymentMode=COD&orderTotal=${finalTotal}`,
+            `/payment-success?orderId=${encodeURIComponent(res.orderId)}&paymentMode=${finalMode}&orderTotal=${finalTotal}`,
             {
               state: {
                 orderId: res.orderId,
-                paymentMode: "COD",
+                paymentMode: finalMode,
                 orderTotal: finalTotal,
               },
             }
@@ -1044,6 +1127,15 @@ const Checkout: React.FC = () => {
                                   </>
                                 )}
                               </div>
+
+                              {prod?._id && appliedReferrals[prod._id] && (
+                                <div className="checkout-item-referral-tag">
+                                  <Tag size={12} />
+                                  <span>
+                                    -₹{Math.min(effectivePrice, Number(appliedReferrals[prod._id].discountAmount || 0)).toLocaleString("en-IN")} Referral Applied (x{item.quantity || 1})
+                                  </span>
+                                </div>
+                              )}
                             </div>
                           </div>
 
@@ -1135,79 +1227,137 @@ const Checkout: React.FC = () => {
                 {/* 2. PAYMENT METHODS CARD */}
                 <section className="checkout-section-card">
                   <div className="section-header-row">
-                    <h2 className="section-title">Select Payment Method</h2>
-                    <span className="payment-badge green">100% Safe & Secure</span>
+                    <h2 className="section-title">
+                      {totalPayable === 0 ? "Payment Status" : "Select Payment Method"}
+                    </h2>
+                    <span className="payment-badge green">
+                      {totalPayable === 0 ? "Fully Covered" : "100% Safe & Secure"}
+                    </span>
                   </div>
 
-                  <div className="payment-methods-list">
-                    {/* OPTION 1: ONLINE PAYMENT (STRIPE) */}
+                  {totalPayable === 0 ? (
                     <div
-                      className={`payment-method-card ${paymentMethod === "ONLINE" ? "selected" : ""}`}
-                      onClick={() => setPaymentMethod("ONLINE")}
+                      style={{
+                        background: "linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)",
+                        border: "1.5px solid #f59e0b",
+                        borderRadius: "14px",
+                        padding: "20px 22px",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "16px",
+                        boxShadow: "0 2px 8px rgba(245, 158, 11, 0.12)",
+                      }}
                     >
-                      <div className="payment-method-header">
-                        <div className="payment-method-radio-wrap">
-                          <div className="payment-radio-circle">
-                            {paymentMethod === "ONLINE" && <div className="payment-radio-inner" />}
+                      <div
+                        style={{
+                          width: "48px",
+                          height: "48px",
+                          borderRadius: "50%",
+                          background: "#fef3c7",
+                          border: "2px solid #d97706",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          flexShrink: 0,
+                        }}
+                      >
+                        <Coins size={26} color="#d97706" />
+                      </div>
+                      <div>
+                        <h3
+                          style={{
+                            margin: "0 0 4px 0",
+                            fontSize: "16px",
+                            fontWeight: 700,
+                            color: "#92400e",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "6px",
+                          }}
+                        >
+                          Fully Covered by Reward Points! ✨
+                        </h3>
+                        <p style={{ margin: 0, fontSize: "13px", color: "#b45309", lineHeight: 1.5 }}>
+                          Your order total is <strong>₹0</strong> after redeeming {safePointsDiscount} reward points.
+                          No additional payment (neither cards nor cash) is needed. Click the button below to confirm your order immediately!
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="payment-methods-list">
+                      {/* OPTION 1: ONLINE PAYMENT (STRIPE) */}
+                      <div
+                        className={`payment-method-card ${paymentMethod === "ONLINE" ? "selected" : ""}`}
+                        onClick={() => setPaymentMethod("ONLINE")}
+                      >
+                        <div className="payment-method-header">
+                          <div className="payment-method-radio-wrap">
+                            <div className="payment-radio-circle">
+                              {paymentMethod === "ONLINE" && <div className="payment-radio-inner" />}
+                            </div>
+                            <div className="payment-method-icon-title">
+                              <div className="payment-method-icon-box">
+                                <CreditCard size={22} />
+                              </div>
+                              <div className="payment-method-text-group">
+                                <span className="payment-method-title">Pay Online (Cards, UPI, Net Banking, Wallets)</span>
+                                <span className="payment-method-desc">
+                                  {safePointsDiscount > 0
+                                    ? `Pay remaining ₹${totalPayable.toLocaleString("en-IN")} via Stripe Gateway`
+                                    : "Instant & secure payment processed via Stripe Gateway"}
+                                </span>
+                              </div>
+                            </div>
                           </div>
-                          <div className="payment-method-icon-title">
-                            <div className="payment-method-icon-box">
-                              <CreditCard size={22} />
-                            </div>
-                            <div className="payment-method-text-group">
-                              <span className="payment-method-title">Pay Online (Cards, UPI, Net Banking, Wallets)</span>
-                              <span className="payment-method-desc">
-                                Instant & secure payment processed via Stripe Gateway
-                              </span>
-                            </div>
+                          <span className="payment-badge blue">Powered by Stripe</span>
+                        </div>
+
+                        <div className="payment-sub-info-row">
+                          <span>Accepted Methods:</span>
+                          <div className="payment-supported-icons">
+                            <span className="payment-pill-tag">Credit/Debit Cards</span>
+                            <span className="payment-pill-tag">UPI (GPay, PhonePe, Paytm)</span>
+                            <span className="payment-pill-tag">Net Banking</span>
                           </div>
                         </div>
-                        <span className="payment-badge blue">Powered by Stripe</span>
                       </div>
 
-                      <div className="payment-sub-info-row">
-                        <span>Accepted Methods:</span>
-                        <div className="payment-supported-icons">
-                          <span className="payment-pill-tag">Credit/Debit Cards</span>
-                          <span className="payment-pill-tag">UPI (GPay, PhonePe, Paytm)</span>
-                          <span className="payment-pill-tag">Net Banking</span>
+                      {/* OPTION 2: CASH ON DELIVERY (COD) */}
+                      <div
+                        className={`payment-method-card ${paymentMethod === "COD" ? "selected" : ""}`}
+                        onClick={() => setPaymentMethod("COD")}
+                      >
+                        <div className="payment-method-header">
+                          <div className="payment-method-radio-wrap">
+                            <div className="payment-radio-circle">
+                              {paymentMethod === "COD" && <div className="payment-radio-inner" />}
+                            </div>
+                            <div className="payment-method-icon-title">
+                              <div className="payment-method-icon-box cod">
+                                <Banknote size={22} />
+                              </div>
+                              <div className="payment-method-text-group">
+                                <span className="payment-method-title">Cash on Delivery (COD)</span>
+                                <span className="payment-method-desc">
+                                  {safePointsDiscount > 0
+                                    ? `Pay remaining ₹${totalPayable.toLocaleString("en-IN")} cash or UPI when delivered`
+                                    : "Pay with cash or UPI to the delivery courier when your order arrives"}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                          <span className="payment-badge green">Pay on Delivery</span>
+                        </div>
+
+                        <div className="payment-sub-info-row">
+                          <span>Convenience:</span>
+                          <span style={{ color: "#16a34a", fontWeight: 600 }}>
+                            ✓ No extra convenience charges
+                          </span>
                         </div>
                       </div>
                     </div>
-
-                    {/* OPTION 2: CASH ON DELIVERY (COD) */}
-                    <div
-                      className={`payment-method-card ${paymentMethod === "COD" ? "selected" : ""}`}
-                      onClick={() => setPaymentMethod("COD")}
-                    >
-                      <div className="payment-method-header">
-                        <div className="payment-method-radio-wrap">
-                          <div className="payment-radio-circle">
-                            {paymentMethod === "COD" && <div className="payment-radio-inner" />}
-                          </div>
-                          <div className="payment-method-icon-title">
-                            <div className="payment-method-icon-box cod">
-                              <Banknote size={22} />
-                            </div>
-                            <div className="payment-method-text-group">
-                              <span className="payment-method-title">Cash on Delivery (COD)</span>
-                              <span className="payment-method-desc">
-                                Pay with cash or UPI to the delivery courier when your order arrives
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                        <span className="payment-badge green">Pay on Delivery</span>
-                      </div>
-
-                      <div className="payment-sub-info-row">
-                        <span>Convenience:</span>
-                        <span style={{ color: "#16a34a", fontWeight: 600 }}>
-                          ✓ No extra convenience charges
-                        </span>
-                      </div>
-                    </div>
-                  </div>
+                  )}
                 </section>
 
                 {/* PAY NOW / PLACE ORDER CTA */}
@@ -1219,9 +1369,11 @@ const Checkout: React.FC = () => {
                 >
                   {isPlacingOrder
                     ? "PROCESSING ORDER..."
-                    : paymentMethod === "ONLINE"
-                      ? `PAY WITH STRIPE (₹${totalPayable.toLocaleString("en-IN")}) →`
-                      : `CONFIRM CASH ON DELIVERY ORDER (₹${totalPayable.toLocaleString("en-IN")})`}
+                    : totalPayable === 0
+                      ? "PLACE ORDER WITH REWARD POINTS (₹0) →"
+                      : paymentMethod === "ONLINE"
+                        ? `PAY REMAINING (₹${totalPayable.toLocaleString("en-IN")}) WITH STRIPE →`
+                        : `CONFIRM CASH ON DELIVERY (₹${totalPayable.toLocaleString("en-IN")})`}
                 </button>
 
                 <button
@@ -1239,6 +1391,55 @@ const Checkout: React.FC = () => {
           <aside className="checkout-summary-card">
             <h2 className="checkout-summary-title">Order Summary</h2>
 
+            {/* Reward Points Widget in Checkout */}
+            {user && availableUserPoints > 0 && (
+              <div className="checkout-points-card">
+                {safePointsDiscount > 0 ? (
+                  <div className="checkout-points-applied-row">
+                    <div className="checkout-points-left">
+                      <Coins size={15} color="#d97706" />
+                      <span>
+                        <strong>{safePointsDiscount} Points</strong> Applied (-₹{safePointsDiscount.toLocaleString("en-IN")})
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      className="checkout-remove-points-btn"
+                      onClick={removeRewardPoints}
+                      title="Remove reward points"
+                      aria-label="Remove reward points"
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="checkout-points-avail-row">
+                    <div className="checkout-points-left">
+                      <div className="checkout-points-icon-bubble">
+                        <Coins size={15} />
+                      </div>
+                      <div className="checkout-points-text-group">
+                        <span className="checkout-points-label">Redeem Reward Points</span>
+                        <span className="checkout-points-sub">
+                          Save <strong>₹{maxCheckoutPoints.toLocaleString("en-IN")}</strong> with your {availableUserPoints} pts
+                        </span>
+                      </div>
+                    </div>
+                    {maxCheckoutPoints > 0 && (
+                      <button
+                        type="button"
+                        className="checkout-apply-points-btn"
+                        onClick={() => applyRewardPoints(maxCheckoutPoints)}
+                      >
+                        <Sparkles size={12} className="btn-sparkle-icon" />
+                        <span>Apply</span>
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
             <div className="checkout-summary-row">
               <span>{totalDiscount > 0 ? "Total MRP" : "Item Subtotal"} ({totalItems} {totalItems === 1 ? "item" : "items"})</span>
               <span>
@@ -1250,6 +1451,24 @@ const Checkout: React.FC = () => {
               <div className="checkout-summary-row discount-text">
                 <span>Discount on MRP</span>
                 <span>-₹{totalDiscount.toLocaleString("en-IN")}</span>
+              </div>
+            )}
+
+            {safeReferralDiscount > 0 && (
+              <div className="checkout-summary-row discount-text referral-discount-row">
+                <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+                  <Tag size={14} /> Referral Discount
+                </span>
+                <span>-₹{safeReferralDiscount.toLocaleString("en-IN")}</span>
+              </div>
+            )}
+
+            {safePointsDiscount > 0 && (
+              <div className="checkout-summary-row discount-text points-discount-row">
+                <span style={{ display: "inline-flex", alignItems: "center", gap: "6px", color: "#92400e" }}>
+                  <Coins size={14} color="#d97706" /> Reward Points ({safePointsDiscount} Pts)
+                </span>
+                <span style={{ color: "#b45309", fontWeight: 800 }}>-₹{safePointsDiscount.toLocaleString("en-IN")}</span>
               </div>
             )}
 

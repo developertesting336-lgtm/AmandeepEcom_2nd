@@ -3,7 +3,7 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-const redisUrl =
+let redisUrl =
   process.env.REDIS_URL ||
   process.env.REDIS_PUBLIC_URL ||
   process.env.REDIS_PRIVATE_URL ||
@@ -15,10 +15,18 @@ const redisOptions = {
     return delay;
   },
   maxRetriesPerRequest: 3,
+  enableReadyCheck: true,
 };
 
-// Handle TLS if using a secure rediss:// connection (e.g. Railway public endpoint)
-if (redisUrl.startsWith("rediss://")) {
+// Handle TLS for secure connections (rediss://) or managed cloud providers like Upstash
+const isUpstash = redisUrl.includes("upstash.io");
+const isSecureProtocol = redisUrl.startsWith("rediss://");
+
+if (isUpstash || isSecureProtocol) {
+  // If Upstash URL was provided with redis://, convert to rediss:// for ioredis
+  if (redisUrl.startsWith("redis://")) {
+    redisUrl = redisUrl.replace(/^redis:\/\//, "rediss://");
+  }
   redisOptions.tls = {
     rejectUnauthorized: false,
   };
@@ -26,12 +34,24 @@ if (redisUrl.startsWith("rediss://")) {
 
 const redis = new Redis(redisUrl, redisOptions);
 
-redis.on("connect", () => {
-  console.log("Redis Connected Successfully (Railway/Remote)");
+redis.on("ready", () => {
+  console.log("Redis Ready & Connected Successfully (Upstash/Remote)");
 });
 
 redis.on("error", (err) => {
   console.error("Redis Connection Error:", err.message);
+});
+
+redis.on("reconnecting", (delay) => {
+  console.warn(`⚠️ Redis reconnecting in ${delay}ms...`);
+});
+
+// Graceful shutdown
+process.on("SIGINT", async () => {
+  await redis.quit();
+});
+process.on("SIGTERM", async () => {
+  await redis.quit();
 });
 
 export default redis;

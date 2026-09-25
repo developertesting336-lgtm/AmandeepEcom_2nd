@@ -966,3 +966,491 @@
   background-color: #d1fae5;
   color: #047857;
 }
+
+/* =====================================================
+   APPLIED REFERRAL BANNER (WHEN VISITING WITH REF LINK)
+===================================================== */
+.pdp-applied-referral-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  background: linear-gradient(135deg, #ecfdf5 0%, #f0fdf4 100%);
+  border: 1px solid #a7f3d0;
+  border-radius: 12px;
+  padding: 14px 18px;
+  margin-top: 14px;
+  margin-bottom: 6px;
+}
+
+.pdp-applied-referral-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.pdp-applied-referral-emoji {
+  font-size: 24px;
+  line-height: 1;
+}
+
+.pdp-applied-referral-title {
+  font-size: 14.5px;
+  font-weight: 700;
+  color: #065f46;
+  margin-bottom: 2px;
+}
+
+.pdp-applied-referral-desc {
+  font-size: 13px;
+  color: #047857;
+}
+
+.pdp-applied-referral-badge {
+  background-color: #059669;
+  color: #ffffff;
+  font-size: 12.5px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 20px;
+  white-space: nowrap;
+  letter-spacing: 0.3px;
+}
+
+/* =====================================================
+   REFER & EARN PROMOTIONAL CARD
+===================================================== */
+.pdp-referral-promo-card {
+  background: linear-gradient(135deg, #eff6ff 0%, #f8fafc 100%);
+  border: 1.5px dashed #93c5fd;
+  border-radius: 14px;
+  padding: 18px 20px;
+  margin-top: 18px;
+  margin-bottom: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.pdp-referral-promo-card:hover {
+  border-color: #3b82f6;
+  box-shadow: 0 4px 14px rgba(59, 130, 246, 0.08);
+}
+
+.pdp-referral-promo-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.pdp-referral-promo-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.pdp-referral-gift-wrap {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: #dbeafe;
+  color: #2563eb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.pdp-referral-promo-title {
+  margin: 0;
+  font-size: 15.5px;
+  font-weight: 700;
+  color: #1e3a8a;
+  letter-spacing: -0.2px;
+}
+
+.pdp-referral-promo-subtitle {
+  margin: 2px 0 0;
+  font-size: 12.5px;
+  color: #475569;
+}
+
+.pdp-referral-pill {
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 20px;
+  white-space: nowrap;
+  letter-spacing: 0.3px;
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.25);
+}
+
+.pdp-referral-benefits-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.pdp-referral-benefit-item {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.pdp-benefit-icon {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.pdp-benefit-label {
+  display: block;
+  font-size: 11.5px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.pdp-benefit-value {
+  display: block;
+  font-size: 13.5px;
+  color: #0f172a;
+  font-weight: 700;
+}
+
+.pdp-referral-share-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: #2563eb;
+  color: #ffffff;
+  font-size: 13.5px;
+  font-weight: 600;
+  padding: 10px 18px;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: 100%;
+}
+
+.pdp-referral-share-btn:hover:not(:disabled) {
+  background: #1d4ed8;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+}
+
+.pdp-referral-share-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+/* =====================================================
+   REFERRAL SHARE MODAL
+===================================================== */
+.pdp-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 16px;
+}
+
+.pdp-referral-modal {
+  background: #ffffff;
+  border-radius: 18px;
+  width: 100%;
+  max-width: 480px;
+  box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+}
+
+.pdp-modal-header {
+  padding: 20px 22px 16px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.pdp-modal-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.pdp-modal-icon-badge {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  background: #eff6ff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.pdp-modal-title {
+  margin: 0;
+  font-size: 16.5px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.pdp-modal-subtitle {
+  margin: 3px 0 0;
+  font-size: 12.5px;
+  color: #64748b;
+}
+
+.pdp-modal-close-btn {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 8px;
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pdp-modal-close-btn:hover {
+  color: #0f172a;
+  background: #f1f5f9;
+}
+
+.pdp-modal-body {
+  padding: 20px 22px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.pdp-referral-rewards-summary {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.pdp-summary-box {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 12px 14px;
+  text-align: center;
+}
+
+.pdp-summary-label {
+  display: block;
+  font-size: 12px;
+  color: #64748b;
+  margin-bottom: 4px;
+  font-weight: 500;
+}
+
+.pdp-summary-amt {
+  display: block;
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.pdp-summary-amt.friend {
+  color: #059669;
+}
+
+.pdp-summary-amt.you {
+  color: #2563eb;
+}
+
+.pdp-modal-field-label {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #334155;
+  margin-bottom: -8px;
+}
+
+.pdp-link-copy-box {
+  display: flex;
+  align-items: center;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #f8fafc;
+  transition: border-color 0.2s ease;
+}
+
+.pdp-link-copy-box:focus-within {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
+}
+
+.pdp-link-input {
+  flex: 1;
+  padding: 10px 14px;
+  font-size: 13px;
+  border: none;
+  background: transparent;
+  color: #0f172a;
+  outline: none;
+  font-family: inherit;
+  text-overflow: ellipsis;
+}
+
+.pdp-copy-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  background: #2563eb;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  white-space: nowrap;
+}
+
+.pdp-copy-btn:hover {
+  background: #1d4ed8;
+}
+
+.pdp-copy-btn.copied {
+  background: #059669;
+}
+
+.pdp-share-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.pdp-whatsapp-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: #25d366;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 11px 16px;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.15s ease;
+}
+
+.pdp-whatsapp-btn:hover {
+  background: #22bf5b;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(37, 211, 102, 0.3);
+}
+
+.pdp-referral-applied-tag {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #065f46;
+  background-color: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  padding: 3px 8px;
+  border-radius: 6px;
+  margin-left: 8px;
+  vertical-align: middle;
+}
+
+/* =====================================================
+   CENTER SCREEN CELEBRATION POPUP
+===================================================== */
+.pdp-center-celebration-wrap {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100000;
+  pointer-events: none;
+  padding: 16px;
+}
+
+.pdp-center-celebration-card {
+  pointer-events: auto;
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 2px solid #34d399;
+  border-radius: 22px;
+  padding: 24px 32px;
+  text-align: center;
+  box-shadow: 0 25px 50px -12px rgba(16, 185, 129, 0.28), 0 0 0 1px rgba(16, 185, 129, 0.12);
+  max-width: 380px;
+  width: 90%;
+  animation: celebration-pulse 2s infinite ease-in-out;
+  cursor: default;
+}
+
+@keyframes celebration-pulse {
+  0%, 100% {
+    box-shadow: 0 20px 40px -10px rgba(16, 185, 129, 0.3);
+  }
+  50% {
+    box-shadow: 0 25px 60px -5px rgba(37, 99, 235, 0.35);
+  }
+}
+
+.pdp-center-celebration-icon {
+  font-size: 46px;
+  line-height: 1;
+  margin-bottom: 10px;
+  filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.1));
+}
+
+.pdp-center-celebration-title {
+  margin: 0 0 6px;
+  font-size: 19px;
+  font-weight: 800;
+  background: linear-gradient(135deg, #065f46 0%, #059669 50%, #2563eb 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  letter-spacing: -0.3px;
+}
+
+.pdp-center-celebration-subtitle {
+  margin: 0 0 14px;
+  font-size: 14px;
+  color: #334155;
+  font-weight: 500;
+}
+
+.pdp-center-celebration-highlight {
+  font-weight: 800;
+  color: #059669;
+}
+
+.pdp-center-celebration-price-pill {
+  display: inline-block;
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: #ffffff;
+  font-size: 13.5px;
+  font-weight: 700;
+  padding: 6px 18px;
+  border-radius: 20px;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.35);
+  letter-spacing: 0.2px;
+}

@@ -64,6 +64,43 @@ const orderSchema = new mongoose.Schema(
             min: 0,
         },
 
+        referralDiscount: {
+            type: Number,
+            default: 0,
+            min: 0,
+        },
+
+        pointsUsed: {
+            type: Number,
+            default: 0,
+            min: 0,
+        },
+
+        pointsDiscount: {
+            type: Number,
+            default: 0,
+            min: 0,
+        },
+
+        appliedReferrals: [
+            {
+                productId: {
+                    type: mongoose.Schema.Types.ObjectId,
+                    ref: "Product",
+                },
+                token: { type: String },
+                jti: { type: String },
+                creatorId: {
+                    type: mongoose.Schema.Types.ObjectId,
+                    ref: "User",
+                },
+                discountAmount: { type: Number, default: 0 },
+                rewardPoints: { type: Number, default: 0 },
+                quantity: { type: Number, default: 1 },
+                totalDiscount: { type: Number, default: 0 },
+            },
+        ],
+
         deliveryCharges: {
             type: Number,
             default: 0,
@@ -128,7 +165,7 @@ const orderSchema = new mongoose.Schema(
 
         paymentMode: {
             type: String,
-            enum: ["online", "cod"],
+            enum: ["online", "cod", "points"],
             required: true,
         },
 

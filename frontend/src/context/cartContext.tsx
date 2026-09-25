@@ -3,6 +3,7 @@ import {
   useContext,
   useEffect,
   useState,
+  useCallback,
   type ReactNode,
 } from "react";
 import { useAuth } from "./authContext";
@@ -43,11 +44,168 @@ export interface AddToCartResult {
   message?: string;
 }
 
+export interface ActiveReferral {
+  token: string;
+  productId: string;
+  productName?: string;
+  discountAmount: number;
+  rewardPoints: number;
+  creatorId?: string;
+  originalPrice?: number;
+  regularPrice?: number;
+  updatedPrice?: number;
+  discountedPrice?: number;
+  timestamp?: number;
+}
+
+export const getStoredReferrals = (): Record<string, ActiveReferral> => {
+  try {
+    const rawMulti = localStorage.getItem("active_referrals");
+    let map: Record<string, ActiveReferral> = {};
+    if (rawMulti) {
+      const parsed = JSON.parse(rawMulti);
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+        map = parsed;
+      }
+    }
+    // Backward compatibility with legacy active_referral
+    const rawSingle = localStorage.getItem("active_referral");
+    if (rawSingle) {
+      try {
+        const single = JSON.parse(rawSingle);
+        if (single && single.productId && !map[single.productId]) {
+          map[single.productId] = single;
+          localStorage.setItem("active_referrals", JSON.stringify(map));
+        }
+      } catch {}
+    }
+    return map;
+  } catch {
+    return {};
+  }
+};
+
+export const saveStoredReferrals = (refs: Record<string, ActiveReferral>) => {
+  try {
+    localStorage.setItem("active_referrals", JSON.stringify(refs));
+    const values = Object.values(refs);
+    if (values.length > 0) {
+      const latest = values[values.length - 1];
+      localStorage.setItem("active_referral", JSON.stringify(latest));
+      localStorage.setItem("referral_token", latest.token);
+      localStorage.setItem("referral_product_id", latest.productId);
+    } else {
+      localStorage.removeItem("active_referral");
+      localStorage.removeItem("referral_token");
+      localStorage.removeItem("referral_product_id");
+    }
+    window.dispatchEvent(new Event("storage"));
+  } catch (e) {
+    console.error("Failed to save referrals to localStorage", e);
+  }
+};
+
+export const removeStoredReferral = (productId: string) => {
+  try {
+    const current = getStoredReferrals();
+    delete current[productId];
+    localStorage.setItem("active_referrals", JSON.stringify(current));
+
+    const rawSingle = localStorage.getItem("active_referral");
+    if (rawSingle) {
+      try {
+        const single = JSON.parse(rawSingle);
+        if (single?.productId === productId) {
+          localStorage.removeItem("active_referral");
+          localStorage.removeItem("referral_token");
+          localStorage.removeItem("referral_product_id");
+        }
+      } catch {}
+    }
+
+    const remaining = Object.values(current);
+    if (remaining.length > 0) {
+      const latest = remaining[remaining.length - 1];
+      localStorage.setItem("active_referral", JSON.stringify(latest));
+      localStorage.setItem("referral_token", latest.token);
+      localStorage.setItem("referral_product_id", latest.productId);
+    } else {
+      localStorage.removeItem("active_referral");
+      localStorage.removeItem("referral_token");
+      localStorage.removeItem("referral_product_id");
+    }
+
+    window.dispatchEvent(new Event("storage"));
+  } catch (e) {
+    console.error("Failed to remove referral from localStorage", e);
+  }
+};
+
+export const clearAllStoredReferrals = () => {
+  try {
+    localStorage.removeItem("active_referrals");
+    localStorage.removeItem("active_referral");
+    localStorage.removeItem("referral_token");
+    localStorage.removeItem("referral_product_id");
+    window.dispatchEvent(new Event("storage"));
+  } catch (e) {
+    console.error("Failed to clear referrals from localStorage", e);
+  }
+};
+
+// ==========================================
+// REWARD POINTS LOCALSTORAGE HELPERS
+// ==========================================
+export const getStoredRewardPoints = (): number => {
+  try {
+    const raw = localStorage.getItem("applied_reward_points");
+    if (!raw) return 0;
+    const num = parseInt(raw, 10);
+    return isNaN(num) || num < 0 ? 0 : num;
+  } catch {
+    return 0;
+  }
+};
+
+export const saveStoredRewardPoints = (points: number) => {
+  try {
+    if (points > 0) {
+      localStorage.setItem("applied_reward_points", points.toString());
+    } else {
+      localStorage.removeItem("applied_reward_points");
+    }
+    window.dispatchEvent(new Event("storage"));
+  } catch (e) {
+    console.error("Failed to save reward points to localStorage", e);
+  }
+};
+
+export const clearStoredRewardPoints = () => {
+  try {
+    localStorage.removeItem("applied_reward_points");
+    window.dispatchEvent(new Event("storage"));
+  } catch (e) {
+    console.error("Failed to clear reward points from localStorage", e);
+  }
+};
+
 interface CartContextType {
   cartItems: CartItem[];
   totalItems: number;
   subtotal: number;
   loading: boolean;
+  appliedReferrals: Record<string, ActiveReferral>;
+  appliedReferral: ActiveReferral | null;
+  referralDiscount: number;
+  removeReferral: (productId?: string) => void;
+  syncReferralFromStorage: () => void;
+  // Reward Points Support
+  appliedPoints: number;
+  pointsDiscount: number;
+  maxRedeemablePoints: number;
+  userRewardPoints: number;
+  applyRewardPoints: (points?: number) => void;
+  removeRewardPoints: () => void;
   addToCart: (
     productId: string,
     quantity?: number,
@@ -79,12 +237,161 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   const [totalItems, setTotalItems] = useState<number>(0);
   const [subtotal, setSubtotal] = useState<number>(0);
   const [loading, setLoading] = useState<boolean>(false);
+  const [appliedReferrals, setAppliedReferrals] = useState<Record<string, ActiveReferral>>({});
+  const [appliedPoints, setAppliedPoints] = useState<number>(() => getStoredRewardPoints());
+
+  // Sync referrals from localStorage on mount & when storage events trigger
+  const syncReferralFromStorage = useCallback(() => {
+    try {
+      const storedMap = getStoredReferrals();
+      const uid = (user?._id || user?.id)?.toString();
+
+      if (uid) {
+        let changed = false;
+        const validMap: Record<string, ActiveReferral> = {};
+        for (const [pid, ref] of Object.entries(storedMap)) {
+          if (ref.creatorId && uid === ref.creatorId.toString()) {
+            removeStoredReferral(pid);
+            changed = true;
+          } else {
+            validMap[pid] = ref;
+          }
+        }
+        if (changed) {
+          toast.error("You cannot use your own referral links", {
+            id: "self-referral-cart-toast",
+            icon: "⚠️",
+          });
+          setAppliedReferrals(validMap);
+          return;
+        }
+      }
+
+      setAppliedReferrals((prev) => {
+        const prevKeys = Object.keys(prev);
+        const nextKeys = Object.keys(storedMap);
+        if (prevKeys.length === 0 && nextKeys.length === 0) {
+          return prev;
+        }
+        if (
+          prevKeys.length === nextKeys.length &&
+          prevKeys.every(
+            (k) =>
+              prev[k]?.token === storedMap[k]?.token &&
+              prev[k]?.discountAmount === storedMap[k]?.discountAmount
+          )
+        ) {
+          return prev;
+        }
+        return storedMap;
+      });
+    } catch {
+      setAppliedReferrals((prev) => (Object.keys(prev).length === 0 ? prev : {}));
+    }
+  }, [user]);
+
+  // Sync applied reward points from localStorage
+  const syncRewardPointsFromStorage = useCallback(() => {
+    try {
+      const stored = getStoredRewardPoints();
+      setAppliedPoints(stored);
+    } catch {
+      setAppliedPoints(0);
+    }
+  }, []);
+
+  useEffect(() => {
+    syncReferralFromStorage();
+    syncRewardPointsFromStorage();
+    const handleStorage = () => {
+      syncReferralFromStorage();
+      syncRewardPointsFromStorage();
+    };
+    window.addEventListener("storage", handleStorage);
+    return () => window.removeEventListener("storage", handleStorage);
+  }, [syncReferralFromStorage, syncRewardPointsFromStorage]);
+
+  const removeReferral = (productId?: string) => {
+    if (productId) {
+      removeStoredReferral(productId);
+      setAppliedReferrals((prev) => {
+        const copy = { ...prev };
+        delete copy[productId];
+        return copy;
+      });
+      toast.success("Referral discount removed", { id: `cart-referral-remove-${productId}` });
+    } else {
+      clearAllStoredReferrals();
+      setAppliedReferrals({});
+      toast.success("Referral discounts removed", { id: "cart-referral-remove" });
+    }
+  };
+
+  // Determine sum of discounts for all referred products currently in cart (per-unit based)
+  const referralDiscount = (() => {
+    let total = 0;
+
+    for (const item of cartItems) {
+      const pid = item.product?._id ? String(item.product._id) : null;
+      if (pid && appliedReferrals[pid]) {
+        const ref = appliedReferrals[pid];
+        const unitDiscount = Number(ref.discountAmount || 0);
+        const itemPrice =
+          item.price ??
+          (item.product.salePrice && item.product.salePrice < item.product.price
+            ? item.product.salePrice
+            : item.product.price);
+
+        const effectiveUnitDiscount = Math.min(itemPrice, unitDiscount);
+        total += effectiveUnitDiscount * item.quantity;
+      }
+    }
+    return total;
+  })();
+
+  const appliedReferral = Object.values(appliedReferrals)[0] || null;
+
+  // Reward points calculations
+  const userRewardPoints = Number(user?.rewardPoints) || 0;
+  const deliveryFee = subtotal >= 499 || cartItems.length === 0 ? 0 : 99;
+  const cartAmountAfterReferral = Math.max(0, subtotal - referralDiscount) + deliveryFee;
+  const maxRedeemablePoints = Math.min(userRewardPoints, Math.floor(cartAmountAfterReferral));
+  const pointsDiscount = Math.min(appliedPoints, maxRedeemablePoints);
+
+  const applyRewardPoints = (points?: number) => {
+    if (userRewardPoints <= 0) {
+      toast.error("You have no reward points to redeem", { id: "no-points-toast" });
+      return;
+    }
+    if (maxRedeemablePoints <= 0) {
+      toast.error("Cart total is already 0 or no points can be redeemed", { id: "max-points-zero-toast" });
+      return;
+    }
+
+    const toApply =
+      points !== undefined
+        ? Math.min(Math.max(1, Math.floor(points)), maxRedeemablePoints)
+        : maxRedeemablePoints;
+
+    saveStoredRewardPoints(toApply);
+    setAppliedPoints(toApply);
+    toast.success(`Applied ${toApply} Reward Points (₹${toApply} OFF)!`, {
+      id: "points-applied-toast",
+      icon: "🪙",
+    });
+  };
+
+  const removeRewardPoints = () => {
+    clearStoredRewardPoints();
+    setAppliedPoints(0);
+    toast.success("Reward points removed", { id: "points-removed-toast" });
+  };
 
   // ==========================================
   // CALCULATE CART TOTALS
   // ==========================================
 
-  const calculateTotals = (items: CartItem[]) => {
+  const calculateTotals = useCallback((items: CartItem[]) => {
     const total = items.reduce((acc, item) => acc + item.quantity, 0);
 
     const subTotal = items.reduce(
@@ -95,13 +402,13 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
     setTotalItems(total);
     setSubtotal(subTotal);
-  };
+  }, []);
 
   // ==========================================
   // PARSE CART RESPONSE
   // ==========================================
 
-  const parseCartResponse = (data: any) => {
+  const parseCartResponse = useCallback((data: any) => {
     if (!data) return;
 
     const rawItems =
@@ -164,13 +471,13 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
     setCartItems(formattedItems);
     calculateTotals(formattedItems);
-  };
+  }, [calculateTotals]);
 
   // ==========================================
   // FETCH CART WHEN USER LOGS IN
   // ==========================================
 
-  const fetchCart = async () => {
+  const fetchCart = useCallback(async () => {
     if (!isAuthenticated || user?.role === "admin") {
       return;
     }
@@ -201,7 +508,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [isAuthenticated, user?.role, logout, parseCartResponse]);
 
   useEffect(() => {
     if (isAuthenticated && user?.role !== "admin") {
@@ -357,7 +664,15 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       const match =
         item.product._id === productId &&
         (!variantId || item.variantId === variantId);
-      return match ? { ...item, quantity } : item;
+      if (match) {
+        const itemPrice =
+          item.price ??
+          (item.product.salePrice && item.product.salePrice < item.product.price
+            ? item.product.salePrice
+            : item.product.price);
+        return { ...item, quantity, lineTotal: itemPrice * quantity };
+      }
+      return item;
     });
 
     setCartItems(updatedItems);
@@ -479,6 +794,17 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         totalItems,
         subtotal,
         loading,
+        appliedReferrals,
+        appliedReferral,
+        referralDiscount,
+        removeReferral,
+        syncReferralFromStorage,
+        appliedPoints,
+        pointsDiscount,
+        maxRedeemablePoints,
+        userRewardPoints,
+        applyRewardPoints,
+        removeRewardPoints,
         addToCart,
         updateQuantity,
         removeFromCart,

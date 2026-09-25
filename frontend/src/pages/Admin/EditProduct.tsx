@@ -66,6 +66,12 @@ interface DetailsState {
   dimUnit: "cm" | "mm" | "m" | "inch";
 }
 
+interface ReferralState {
+  isEnabled: boolean;
+  discountAmount: string;
+  rewardPoints: string;
+}
+
 interface ProductImageItem {
   public_id?: string;
   url: string;
@@ -202,6 +208,13 @@ const EditProduct = () => {
     width: "",
     height: "",
     dimUnit: "cm",
+  });
+
+  // Referral & Rewards
+  const [referral, setReferral] = useState<ReferralState>({
+    isEnabled: false,
+    discountAmount: "0",
+    rewardPoints: "0",
   });
 
   // Images
@@ -448,6 +461,31 @@ const EditProduct = () => {
             width: d?.dimensions?.width ? String(d.dimensions.width) : "",
             height: d?.dimensions?.height ? String(d.dimensions.height) : "",
             dimUnit: d?.dimensions?.unit || "cm",
+          });
+        }
+
+        if (prod.referral) {
+          const r =
+            typeof prod.referral === "string"
+              ? (() => {
+                  try {
+                    return JSON.parse(prod.referral);
+                  } catch {
+                    return {};
+                  }
+                })()
+              : prod.referral;
+
+          setReferral({
+            isEnabled: Boolean(r?.isEnabled),
+            discountAmount:
+              r?.discountAmount !== undefined && r?.discountAmount !== null
+                ? String(r.discountAmount)
+                : "0",
+            rewardPoints:
+              r?.rewardPoints !== undefined && r?.rewardPoints !== null
+                ? String(r.rewardPoints)
+                : "0",
           });
         }
 
@@ -818,6 +856,14 @@ const EditProduct = () => {
           unit: details.dimUnit,
         },
       }));
+      formData.append(
+        "referral",
+        JSON.stringify({
+          isEnabled: referral.isEnabled,
+          discountAmount: Math.max(0, Number(referral.discountAmount) || 0),
+          rewardPoints: Math.max(0, Number(referral.rewardPoints) || 0),
+        })
+      );
       formData.append("existingImages", JSON.stringify(existingImages));
 
       for (let i = 0; i < existingImages.length; i++) {
@@ -1765,6 +1811,70 @@ const EditProduct = () => {
                 <span className="toggle-thumb" />
               </span>
             </label>
+          </div>
+
+          {/* Referral & Rewards Program */}
+          <div className="edit-card">
+            <h3 className="edit-card-title">Referral & Earn Program</h3>
+
+            <label className="toggle-row">
+              <span>Enable Referral Program</span>
+              <input
+                type="checkbox"
+                checked={referral.isEnabled}
+                onChange={(e) =>
+                  setReferral((prev) => ({
+                    ...prev,
+                    isEnabled: e.target.checked,
+                  }))
+                }
+              />
+              <span className="toggle-track">
+                <span className="toggle-thumb" />
+              </span>
+            </label>
+
+            {referral.isEnabled && (
+              <div style={{ marginTop: "16px", display: "flex", flexDirection: "column", gap: "12px" }}>
+                <div className="edit-group">
+                  <label>Friend Discount (₹)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    placeholder="e.g. 50"
+                    value={referral.discountAmount}
+                    onChange={(e) =>
+                      setReferral((prev) => ({
+                        ...prev,
+                        discountAmount: e.target.value,
+                      }))
+                    }
+                  />
+                  <small style={{ color: "#64748b", marginTop: "4px", display: "block" }}>
+                    Instant discount the friend receives when purchasing via link.
+                  </small>
+                </div>
+
+                <div className="edit-group">
+                  <label>Referrer Reward Points (1 pt = ₹1)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    placeholder="e.g. 100"
+                    value={referral.rewardPoints}
+                    onChange={(e) =>
+                      setReferral((prev) => ({
+                        ...prev,
+                        rewardPoints: e.target.value,
+                      }))
+                    }
+                  />
+                  <small style={{ color: "#64748b", marginTop: "4px", display: "block" }}>
+                    Points awarded to user once friend's order is delivered.
+                  </small>
+                </div>
+              </div>
+            )}
           </div>
 
           <button

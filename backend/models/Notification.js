@@ -32,6 +32,7 @@ const notificationSchema = new mongoose.Schema(
 
                 "PROMOTION",
                 "SYSTEM",
+                "REFERRAL_REWARD",
             ],
         },
 

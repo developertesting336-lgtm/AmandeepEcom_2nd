@@ -307,6 +307,333 @@
   flex-shrink: 0;
 }
 
+/* =====================================================
+   REWARD POINTS BADGE & TOOLTIP
+   ===================================================== */
+.reward-points-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.reward-points-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 38px;
+  padding: 0 12px 0 6px;
+  border-radius: 9999px;
+  background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+  border: 1.5px solid #fcd34d;
+  color: #78350f;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 1px 3px rgba(245, 158, 11, 0.15);
+  user-select: none;
+  text-decoration: none;
+  position: relative;
+}
+
+.reward-points-badge:hover,
+.reward-points-badge.active {
+  background: linear-gradient(135deg, #ffffff 0%, #fef08a 100%);
+  border-color: #f59e0b;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(245, 158, 11, 0.28);
+}
+
+.reward-coin-circle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  color: #ffffff;
+  box-shadow: inset 0 1px 1.5px rgba(255, 255, 255, 0.7), 0 1.5px 3px rgba(180, 83, 9, 0.35);
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  flex-shrink: 0;
+}
+
+.reward-points-badge:hover .reward-coin-circle {
+  transform: rotate(18deg) scale(1.08);
+}
+
+.reward-coin-icon {
+  color: #ffffff;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.2));
+}
+
+.reward-points-num {
+  font-size: 13.5px;
+  font-weight: 800;
+  color: #78350f;
+  letter-spacing: -0.2px;
+  line-height: 1;
+}
+
+.reward-points-unit {
+  font-size: 11px;
+  font-weight: 700;
+  color: #b45309;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+/* Tooltip Popup on Hover / Pointing */
+.reward-points-tooltip {
+  position: absolute;
+  top: calc(100% + 11px);
+  right: -10px;
+  width: 290px;
+  background-color: #ffffff;
+  border: 1px solid #fde68a;
+  border-radius: 14px;
+  box-shadow: 0 14px 35px -4px rgba(15, 23, 42, 0.16),
+              0 6px 16px -4px rgba(245, 158, 11, 0.12);
+  z-index: 1150;
+  padding: 14px 16px;
+  transform-origin: top right;
+  animation: dropdownFadeSlide 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  box-sizing: border-box;
+  text-align: left;
+}
+
+.reward-tooltip-arrow {
+  position: absolute;
+  top: -6px;
+  right: 28px;
+  width: 12px;
+  height: 12px;
+  background-color: #ffffff;
+  border-left: 1px solid #fde68a;
+  border-top: 1px solid #fde68a;
+  transform: rotate(45deg);
+}
+
+.reward-tooltip-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.reward-tooltip-badge-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #92400e;
+  background-color: #fef3c7;
+  padding: 3px 8px;
+  border-radius: 6px;
+}
+
+.reward-tooltip-badge-pill .gold-coin-svg {
+  color: #d97706;
+}
+
+.reward-rate-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 800;
+  color: #047857;
+  background-color: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  padding: 2px 7px;
+  border-radius: 6px;
+  letter-spacing: 0.2px;
+}
+
+.reward-tooltip-balance-card {
+  background: linear-gradient(135deg, #fffdf5 0%, #fef3c7 100%);
+  border: 1px solid #fde68a;
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin-bottom: 10px;
+}
+
+.reward-balance-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
+  font-weight: 700;
+  color: #78350f;
+  margin-bottom: 5px;
+}
+
+.reward-balance-value {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 800;
+  color: #b45309;
+}
+
+.reward-balance-value .inline-coin {
+  color: #d97706;
+}
+
+.reward-discount-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  padding-top: 5px;
+  border-top: 1px dashed #fcd34d;
+  color: #92400e;
+}
+
+.reward-discount-amount {
+  font-weight: 800;
+  color: #047857;
+  background: #ecfdf5;
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+.reward-tooltip-rule {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #0f172a;
+  background-color: #f8fafc;
+  border: 1px dashed #cbd5e1;
+  padding: 8px 10px;
+  border-radius: 8px;
+  margin-bottom: 8px;
+}
+
+.rule-sparkle {
+  color: #f59e0b;
+  flex-shrink: 0;
+}
+
+.reward-tooltip-hint {
+  font-size: 11.5px;
+  color: #64748b;
+  line-height: 1.4;
+  margin: 0 0 10px 0;
+}
+
+.reward-tooltip-footer {
+  border-top: 1px solid #f1f5f9;
+  padding-top: 8px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.reward-view-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #b45309;
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.reward-view-link:hover {
+  color: #78350f;
+  text-decoration: underline;
+}
+
+/* Dropdown menu item for Reward points */
+.reward-dropdown-item:hover {
+  background-color: #fffbeb !important;
+  color: #b45309 !important;
+}
+
+.reward-dropdown-coin-icon {
+  color: #f59e0b !important;
+}
+
+.reward-pts-badge {
+  background: #fef3c7 !important;
+  color: #92400e !important;
+  border: 1px solid #fcd34d !important;
+  font-weight: 800 !important;
+}
+
+/* Mobile Drawer Points Banner */
+.mobile-points-banner {
+  display: none;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  padding: 11px 14px;
+  background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+  border: 1.5px solid #fcd34d;
+  border-radius: 10px;
+  margin-bottom: 8px;
+  box-sizing: border-box;
+}
+
+.mobile-points-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.mobile-points-coin-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  color: #ffffff;
+  box-shadow: 0 1.5px 4px rgba(180, 83, 9, 0.35);
+  flex-shrink: 0;
+}
+
+.mobile-points-info {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.mobile-points-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: #92400e;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.mobile-points-amount {
+  font-size: 14px;
+  font-weight: 800;
+  color: #78350f;
+}
+
+.mobile-points-rate {
+  font-size: 11px;
+  font-weight: 800;
+  color: #047857;
+  background-color: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  padding: 2px 6px;
+  border-radius: 5px;
+}
+
+.mobile-points-benefit {
+  font-size: 11.5px;
+  color: #78350f;
+  background-color: rgba(255, 255, 255, 0.7);
+  padding: 5px 8px;
+  border-radius: 6px;
+  border-left: 3px solid #f59e0b;
+}
+
 /* Notification Dropdown Component */
 .notif-dropdown-wrapper {
   position: relative;
@@ -930,6 +1257,10 @@
     right: 0;
     margin-left: 6px;
   }
+
+  .mobile-points-banner {
+    display: flex;
+  }
 }
 
 @media (max-width: 600px) {
@@ -946,6 +1277,34 @@
   .search-btn {
     padding: 7px 10px;
   }
+
+  .reward-points-badge {
+    height: 34px;
+    padding: 0 8px 0 4px;
+    gap: 5px;
+  }
+
+  .reward-coin-circle {
+    width: 22px;
+    height: 22px;
+  }
+
+  .reward-points-num {
+    font-size: 12px;
+  }
+
+  .reward-points-unit {
+    display: none;
+  }
+
+  .reward-points-tooltip {
+    right: -45px;
+    width: 260px;
+  }
+
+  .reward-tooltip-arrow {
+    right: 65px;
+  }
 }
 
 @media (max-width: 420px) {
@@ -954,5 +1313,14 @@
   }
   .search-form {
     max-width: 150px;
+  }
+
+  .reward-points-tooltip {
+    right: -60px;
+    width: 245px;
+  }
+
+  .reward-tooltip-arrow {
+    right: 80px;
   }
 }

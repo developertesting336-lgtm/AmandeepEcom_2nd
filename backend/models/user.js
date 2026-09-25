@@ -51,6 +51,12 @@ const userSchema = new mongoose.Schema(
       default: true,
     },
 
+    rewardPoints: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+
     addresses: [
       {
         fullName: {

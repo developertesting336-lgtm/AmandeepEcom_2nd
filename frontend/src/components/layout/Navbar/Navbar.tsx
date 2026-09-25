@@ -20,6 +20,8 @@ import {
   HelpCircle,
   Mic,
   MicOff,
+  Coins,
+  ArrowRight,
 } from "lucide-react";
 import "./Navbar.css";
 import logo from "../../../assets/logo.png";
@@ -51,19 +53,21 @@ const formatTimeAgo = (dateStr?: string) => {
 
 const Navbar = () => {
   const location = useLocation();
-  const { user, isAuthenticated, logout } = useAuth();
+  const { user, isAuthenticated, logout, refreshUser } = useAuth();
   const { totalItems } = useCart();
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const [notifDropdownOpen, setNotifDropdownOpen] = useState(false);
+  const [pointsTooltipOpen, setPointsTooltipOpen] = useState(false);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [unreadCount, setUnreadCount] = useState<number>(0);
   const [wishlistCount, setWishlistCount] = useState<number | null>(null);
   const [loadingNotifications, setLoadingNotifications] = useState(false);
   const [isCartBouncing, setIsCartBouncing] = useState(false);
   const prevTotalRef = useRef(totalItems);
+  const pointsRef = useRef<HTMLDivElement>(null);
 
   // Voice Search integration with console testing logs
   const { isListening, startListening, isSupported } = useVoiceSearch({
@@ -144,13 +148,20 @@ const Navbar = () => {
     if (isAuthenticated) {
       loadUnreadCount();
       loadWishlistCount();
+      refreshUser?.();
 
       const handleWishlistUpdate = () => {
         loadWishlistCount();
       };
+      const handlePointsUpdate = () => {
+        refreshUser?.();
+      };
+
       window.addEventListener("wishlist-updated", handleWishlistUpdate);
+      window.addEventListener("reward-points-updated", handlePointsUpdate);
       return () => {
         window.removeEventListener("wishlist-updated", handleWishlistUpdate);
+        window.removeEventListener("reward-points-updated", handlePointsUpdate);
       };
     } else {
       setNotifications([]);
@@ -176,6 +187,9 @@ const Navbar = () => {
       if (notifDropdownRef.current && !notifDropdownRef.current.contains(target)) {
         setNotifDropdownOpen(false);
       }
+      if (pointsRef.current && !pointsRef.current.contains(target)) {
+        setPointsTooltipOpen(false);
+      }
       if (navRef.current && !navRef.current.contains(target)) {
         setMenuOpen(false);
       }
@@ -186,6 +200,7 @@ const Navbar = () => {
         setMenuOpen(false);
         setProfileDropdownOpen(false);
         setNotifDropdownOpen(false);
+        setPointsTooltipOpen(false);
       }
     };
 
@@ -205,6 +220,7 @@ const Navbar = () => {
     setProfileDropdownOpen(false);
     setNotifDropdownOpen(false);
     setMenuOpen(false);
+    setPointsTooltipOpen(false);
   }, [location.pathname]);
 
   // Sync search input state with URL search param on page load or external URL changes
@@ -258,6 +274,7 @@ const Navbar = () => {
     setMenuOpen(false);
     setProfileDropdownOpen(false);
     setNotifDropdownOpen(false);
+    setPointsTooltipOpen(false);
   };
 
   const handleLogout = () => {
@@ -294,7 +311,12 @@ const Navbar = () => {
     if (upperType.includes("ORDER") || upperType.includes("DELIVER")) {
       return <Package size={16} />;
     }
-    if (upperType.includes("PROMO") || upperType.includes("DISCOUNT")) {
+    if (
+      upperType.includes("PROMO") ||
+      upperType.includes("DISCOUNT") ||
+      upperType.includes("REFERRAL") ||
+      upperType.includes("REWARD")
+    ) {
       return <Sparkles size={16} />;
     }
     return <CheckCircle2 size={16} />;
@@ -305,6 +327,7 @@ const Navbar = () => {
   }
 
   const userInitial = user?.name ? user.name.charAt(0).toUpperCase() : "U";
+  const rewardPoints = Number(user?.rewardPoints) || 0;
 
   return (
     <>
@@ -353,6 +376,89 @@ const Navbar = () => {
 
           {/* Static Right Actions (Visible on Mobile next to 3-line Menu Toggle and on Desktop) */}
           <div className="navbar-top-actions">
+            {/* Reward Points Badge with Hover / Pointing Tooltip */}
+            {isAuthenticated && user?.role !== "admin" && (
+              <div
+                className="reward-points-wrapper"
+                ref={pointsRef}
+                onMouseEnter={() => setPointsTooltipOpen(true)}
+                onMouseLeave={() => setPointsTooltipOpen(false)}
+              >
+                <button
+                  type="button"
+                  id="navbar-reward-points-badge"
+                  className={`reward-points-badge ${pointsTooltipOpen ? "active" : ""}`}
+                  onClick={() => {
+                    setPointsTooltipOpen((prev) => !prev);
+                    setNotifDropdownOpen(false);
+                    setProfileDropdownOpen(false);
+                  }}
+                  aria-expanded={pointsTooltipOpen}
+                  aria-label={`Reward Points: ${rewardPoints} points. 1 point = 1 rupee discount.`}
+                  title="Reward Points: 1 Point = 1 Rupee (₹1) Discount"
+                >
+                  <span className="reward-coin-circle">
+                    <Coins size={15} className="reward-coin-icon" />
+                  </span>
+                  <span className="reward-points-num">
+                    {rewardPoints.toLocaleString("en-IN")}
+                  </span>
+                  <span className="reward-points-unit">Pts</span>
+                </button>
+
+                {/* Dropdown Tooltip on pointing/hovering */}
+                {pointsTooltipOpen && (
+                  <div className="reward-points-tooltip" role="tooltip">
+                    <div className="reward-tooltip-arrow" />
+
+                    <div className="reward-tooltip-header">
+                      <div className="reward-tooltip-badge-pill">
+                        <Coins size={14} className="gold-coin-svg" />
+                        <span>Reward Points</span>
+                      </div>
+                      <span className="reward-rate-badge">1 Pt = ₹1 Off</span>
+                    </div>
+
+                    <div className="reward-tooltip-balance-card">
+                      <div className="reward-balance-row">
+                        <span className="reward-balance-label">Available Points</span>
+                        <span className="reward-balance-value">
+                          <Coins size={14} className="inline-coin" />
+                          {rewardPoints.toLocaleString("en-IN")} Pts
+                        </span>
+                      </div>
+                      <div className="reward-discount-row">
+                        <span className="reward-discount-label">Discount Value</span>
+                        <span className="reward-discount-amount">₹{rewardPoints.toLocaleString("en-IN")} Discount</span>
+                      </div>
+                    </div>
+
+                    <div className="reward-tooltip-rule">
+                      <Sparkles size={13} className="rule-sparkle" />
+                      <span>
+                        <strong>1 Point = 1 Rupee (₹1) Discount</strong> on your orders!
+                      </span>
+                    </div>
+
+                    <p className="reward-tooltip-hint">
+                      Earn more points every time friends purchase using your referral link.
+                    </p>
+
+                    <div className="reward-tooltip-footer">
+                      <Link
+                        to="/profile?tab=referrals"
+                        className="reward-view-link"
+                        onClick={closeMenu}
+                      >
+                        <span>View Referral Dashboard</span>
+                        <ArrowRight size={13} />
+                      </Link>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Notification Bell Dropdown Container */}
             {isAuthenticated && user?.role !== "admin" && (
               <div className="notif-dropdown-wrapper" ref={notifDropdownRef}>
@@ -362,6 +468,7 @@ const Navbar = () => {
                   onClick={() => {
                     setNotifDropdownOpen(!notifDropdownOpen);
                     setProfileDropdownOpen(false);
+                    setPointsTooltipOpen(false);
                   }}
                   aria-expanded={notifDropdownOpen}
                   aria-label="Notifications"
@@ -473,6 +580,7 @@ const Navbar = () => {
                 setMenuOpen(!menuOpen);
                 setNotifDropdownOpen(false);
                 setProfileDropdownOpen(false);
+                setPointsTooltipOpen(false);
               }}
               aria-label="Toggle navigation"
               aria-expanded={menuOpen}
@@ -516,6 +624,25 @@ const Navbar = () => {
             {/* Normal User */}
             {isAuthenticated && user?.role !== "admin" && (
               <>
+                {/* Mobile Drawer Points Banner (Visible only in mobile slideout) */}
+                <div className="mobile-points-banner">
+                  <div className="mobile-points-top">
+                    <div className="mobile-points-coin-box">
+                      <Coins size={20} className="reward-coin-icon" />
+                    </div>
+                    <div className="mobile-points-info">
+                      <span className="mobile-points-title">Reward Balance</span>
+                      <span className="mobile-points-amount">
+                        {rewardPoints.toLocaleString("en-IN")} Points
+                      </span>
+                    </div>
+                    <span className="mobile-points-rate">1 Pt = ₹1 Off</span>
+                  </div>
+                  <div className="mobile-points-benefit">
+                    <span>1 Point = 1 Rupee discount on your next order</span>
+                  </div>
+                </div>
+
                 <Link
                   to="/cart"
                   id="navbar-cart-link"
@@ -551,6 +678,7 @@ const Navbar = () => {
                     onClick={() => {
                       setProfileDropdownOpen(!profileDropdownOpen);
                       setNotifDropdownOpen(false);
+                      setPointsTooltipOpen(false);
                     }}
                     aria-expanded={profileDropdownOpen}
                     aria-label="User account menu"
@@ -620,6 +748,20 @@ const Navbar = () => {
                         {wishlistCount !== null && wishlistCount > 0 && (
                           <span className="dropdown-count-badge wishlist-badge">{wishlistCount}</span>
                         )}
+                      </Link>
+
+                      <Link
+                        to="/profile?tab=referrals"
+                        className="dropdown-item reward-dropdown-item"
+                        onClick={closeMenu}
+                      >
+                        <div className="dropdown-item-left">
+                          <Coins size={16} className="dropdown-item-icon reward-dropdown-coin-icon" />
+                          <span>Reward Points</span>
+                        </div>
+                        <span className="dropdown-count-badge reward-pts-badge">
+                          {rewardPoints.toLocaleString("en-IN")} Pts
+                        </span>
                       </Link>
 
                       <Link

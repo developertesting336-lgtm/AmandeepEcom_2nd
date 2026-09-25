@@ -16,17 +16,19 @@ import {
   ArrowRight,
   X,
   Loader2,
+  Coins,
 } from "lucide-react";
 import { AccountDetailsTab } from "./AccountDetailsTab";
 import { OrdersTab } from "./OrdersTab";
 import { WishlistTab } from "./WishlistTab";
 import { AddressesTab } from "./AddressesTab";
+import { RewardsTab } from "./RewardsTab";
 import { getUserOrders } from "../../services/orderService";
 import { getWishlist } from "../../services/wishlistService";
 import { fetchUserAddresses } from "../../services/addressService";
 import "./profile.css";
 
-export type ProfileTab = "account" | "orders" | "wishlist" | "addresses";
+export type ProfileTab = "account" | "orders" | "wishlist" | "addresses" | "rewards" | "referrals";
 
 interface NavItem {
   id: ProfileTab;
@@ -57,7 +59,7 @@ export const Profile: React.FC = () => {
   const currentTabParam = (queryParams.get("tab") as ProfileTab) || "account";
 
   const [activeTab, setActiveTab] = useState<ProfileTab>(
-    ["account", "orders", "wishlist", "addresses"].includes(currentTabParam)
+    ["account", "orders", "wishlist", "addresses", "rewards", "referrals"].includes(currentTabParam)
       ? currentTabParam
       : "account"
   );
@@ -103,7 +105,7 @@ export const Profile: React.FC = () => {
   // Sync tab with URL parameter changes
   useEffect(() => {
     const tabParam = (new URLSearchParams(location.search).get("tab") as ProfileTab) || "account";
-    if (["account", "orders", "wishlist", "addresses"].includes(tabParam)) {
+    if (["account", "orders", "wishlist", "addresses", "rewards", "referrals"].includes(tabParam)) {
       setActiveTab(tabParam);
     }
   }, [location.search]);
@@ -230,6 +232,14 @@ export const Profile: React.FC = () => {
       icon: <MapPin size={18} />,
       badge: addressCount !== null ? `${addressCount}/3` : null,
       badgeType: "addresses",
+    },
+    {
+      id: "rewards",
+      label: "Reward Points",
+      subtitle: "Points earned & used history",
+      icon: <Coins size={18} />,
+      badge: user?.rewardPoints && user.rewardPoints > 0 ? `${user.rewardPoints} Pts` : null,
+      badgeType: "default",
     },
   ];
 
@@ -499,6 +509,8 @@ export const Profile: React.FC = () => {
           )}
 
           {activeTab === "addresses" && <AddressesTab />}
+
+          {(activeTab === "rewards" || activeTab === "referrals") && <RewardsTab />}
         </section>
       </div>
 

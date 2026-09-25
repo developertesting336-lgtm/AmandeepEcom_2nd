@@ -108,6 +108,7 @@ export const addProduct = async (req, res) => {
       variants,
       isFeatured,
       isActive,
+      referral,
     } = req.body;
 
     if (
@@ -244,6 +245,11 @@ export const addProduct = async (req, res) => {
     let parsedReturnPolicy = null;
     let parsedDetails = {};
     let parsedVariants = [];
+    let parsedReferral = {
+      isEnabled: false,
+      discountAmount: 0,
+      rewardPoints: 0,
+    };
     const isVariantProduct = hasVariants === true || hasVariants === "true";
 
     try {
@@ -318,6 +324,32 @@ export const addProduct = async (req, res) => {
 
         if (parsed && typeof parsed === "object") {
           parsedDetails = parsed;
+        }
+      }
+
+      if (
+        referral &&
+        referral !== "null" &&
+        referral !== "undefined"
+      ) {
+        const parsed =
+          typeof referral === "string"
+            ? JSON.parse(referral)
+            : referral;
+
+        if (parsed && typeof parsed === "object") {
+          parsedReferral = {
+            isEnabled:
+              parsed.isEnabled === true || parsed.isEnabled === "true",
+            discountAmount: Math.max(
+              0,
+              Number(parsed.discountAmount) || 0
+            ),
+            rewardPoints: Math.max(
+              0,
+              Number(parsed.rewardPoints) || 0
+            ),
+          };
         }
       }
 
@@ -434,6 +466,7 @@ export const addProduct = async (req, res) => {
         isActive === undefined
           ? true
           : isActive === true || isActive === "true",
+      referral: parsedReferral,
     });
 
     return res.status(201).json({
@@ -699,13 +732,17 @@ export const getProduct = async (req, res) => {
       );
     }
 
-
-
+    const productData = product.toObject ? product.toObject() : product;
+    productData.referral = {
+      isEnabled: Boolean(productData.referral?.isEnabled),
+      discountAmount: Number(productData.referral?.discountAmount || 0),
+      rewardPoints: Number(productData.referral?.rewardPoints || 0),
+    };
 
     return res.status(200).json({
       success: true,
       data: {
-        product,
+        product: productData,
       },
     });
 
@@ -747,6 +784,7 @@ export const updateProduct = async (req, res) => {
       variants,
       isFeatured,
       isActive,
+      referral,
     } = req.body;
 
     // --------------------------------------------------
@@ -1338,6 +1376,56 @@ export const updateProduct = async (req, res) => {
       product.isActive =
         isActive === true ||
         isActive === "true";
+    }
+
+    // --------------------------------------------------
+    // REFERRAL & REWARDS
+    // --------------------------------------------------
+
+    if (referral !== undefined) {
+      try {
+        if (
+          referral === null ||
+          referral === "" ||
+          referral === "null" ||
+          referral === "undefined"
+        ) {
+          product.referral = {
+            isEnabled: false,
+            discountAmount: 0,
+            rewardPoints: 0,
+          };
+        } else {
+          const parsedReferral =
+            typeof referral === "string"
+              ? JSON.parse(referral)
+              : referral;
+
+          if (
+            parsedReferral &&
+            typeof parsedReferral === "object"
+          ) {
+            product.referral = {
+              isEnabled:
+                parsedReferral.isEnabled === true ||
+                parsedReferral.isEnabled === "true",
+              discountAmount: Math.max(
+                0,
+                Number(parsedReferral.discountAmount) || 0
+              ),
+              rewardPoints: Math.max(
+                0,
+                Number(parsedReferral.rewardPoints) || 0
+              ),
+            };
+          }
+        }
+      } catch {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid referral configuration data",
+        });
+      }
     }
 
     // --------------------------------------------------

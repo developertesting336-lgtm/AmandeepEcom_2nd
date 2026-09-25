@@ -1,11 +1,12 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../../context/authContext";
 import "./Login.css";
 
 
 const Login = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   const { login } = useAuth()
 
@@ -61,8 +62,13 @@ const Login = () => {
 
       login(data.user);
 
+      const redirectParam = searchParams.get("redirect");
+
       if (data.user.role === "admin") {
         navigate("/admin/dashboard");
+      }
+      else if (redirectParam) {
+        navigate(decodeURIComponent(redirectParam));
       }
       else {
         navigate("/");

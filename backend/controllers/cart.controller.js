@@ -131,6 +131,8 @@ export const addToCart = async (req, res) => {
 
 export const getCart = async (req, res) => {
   try {
+
+    // console.log("cart api hitted")
     const cart = await Cart.findOne({
       user: req.user._id,
     }).populate({

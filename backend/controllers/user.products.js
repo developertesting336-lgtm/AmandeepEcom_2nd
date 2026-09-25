@@ -467,7 +467,7 @@ export const getProducts = async (req, res) => {
             [
               "name", "short_description", "price", "salePrice", "images",
               "brand", "stock", "sku", "highlights", "category", "subcategory",
-              "isFeatured", "createdAt",
+              "isFeatured", "createdAt", "referral"
             ].join(" ")
           )
           .populate("category", "name")
@@ -491,7 +491,7 @@ export const getProducts = async (req, res) => {
             [
               "name", "short_description", "price", "salePrice", "images",
               "brand", "stock", "sku", "highlights", "category", "subcategory",
-              "isFeatured", "createdAt",
+              "isFeatured", "createdAt", "referral"
             ].join(" ")
           )
           .populate("category", "name")

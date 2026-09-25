@@ -186,6 +186,7 @@ export const verifyRegisterOtp = async (req, res) => {
           email: user.email,
           role: user.role,
           phone: user.phone,
+          rewardPoints: user.rewardPoints || 0,
         },
       },
     });
@@ -342,6 +343,7 @@ export const loginUser = async (req, res) => {
         name: user.name,
         email: user.email,
         role: user.role,
+        rewardPoints: user.rewardPoints || 0,
       },
     });
   } catch (error) {

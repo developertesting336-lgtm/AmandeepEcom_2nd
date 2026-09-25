@@ -13,6 +13,11 @@ export interface PlaceCodOrderPayload {
     quantity: number;
     price?: number;
   }>;
+  referralTokens?: string[];
+  referralDiscount?: number;
+  pointsToRedeem?: number;
+  usedPoints?: number;
+  pointsDiscount?: number;
   paymentMode: string;
   address: {
     fullName: string;
@@ -30,6 +35,8 @@ export interface PlaceCodOrderResponse {
   success: boolean;
   orderId?: string;
   orderTotal?: number;
+  paymentMode?: string;
+  isFullyCoveredByPoints?: boolean;
   data?: any;
   message?: string;
   error?: string;
@@ -161,6 +168,11 @@ export interface PlaceStripeOrderPayload {
     quantity: number;
     price?: number;
   }>;
+  referralTokens?: string[];
+  referralDiscount?: number;
+  pointsToRedeem?: number;
+  usedPoints?: number;
+  pointsDiscount?: number;
   paymentMode?: string;
   address?: {
     fullName?: string;
@@ -201,6 +213,9 @@ export interface PlaceStripeOrderResponse {
   checkoutUrl?: string;
   sessionId?: string;
   orderId?: string;
+  orderTotal?: number;
+  paymentMode?: string;
+  isFullyCoveredByPoints?: boolean;
   data?: any;
   message?: string;
   error?: string;
@@ -253,6 +268,8 @@ export const placeCodOrder = async (
         success: true,
         orderId,
         orderTotal,
+        paymentMode: result.paymentMode || (result.isFullyCoveredByPoints ? "points" : "cod"),
+        isFullyCoveredByPoints: Boolean(result.isFullyCoveredByPoints),
         data: result.data || result,
         message: result.message || "Order placed successfully!",
       };
@@ -305,11 +322,21 @@ export const placestripeOrder = async (
         result.data?.sessionUrl ||
         result.data?.checkoutUrl;
 
+      const orderTotal =
+        result.orderTotal ??
+        result.order?.orderTotal ??
+        result.data?.orderTotal ??
+        result.data?.order?.orderTotal ??
+        (result.isFullyCoveredByPoints ? 0 : undefined);
+
       return {
         success: true,
         url: redirectUrl,
         sessionId: result.sessionId || result.session?.id || result.data?.id,
         orderId: result.orderId || result.order?._id || result.data?.orderId,
+        orderTotal,
+        paymentMode: result.paymentMode || (result.isFullyCoveredByPoints ? "points" : "online"),
+        isFullyCoveredByPoints: Boolean(result.isFullyCoveredByPoints),
         data: result.data || result,
         message: result.message || "Stripe checkout session created successfully",
       };

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import {
   ArrowLeft,
   ShoppingCart,
@@ -10,12 +10,24 @@ import {
   Heart,
   Loader2,
   Star,
+  Share2,
+  Gift,
+  Copy,
+  Check,
+  X,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { triggerFlyToCart } from "../../components/common/FlyToCart/FlyToCart";
-import { useCart } from "../../context/cartContext";
+import {
+  useCart,
+  getStoredReferrals,
+  saveStoredReferrals,
+  removeStoredReferral,
+  type ActiveReferral,
+} from "../../context/cartContext";
 import { useAuth } from "../../context/authContext";
 import toast from "react-hot-toast";
+import confetti from "canvas-confetti";
 import Footer from "../Home/footersection";
 import SimilarProducts from "./SimilarProducts";
 import RecommendedSection from "../Home/RecommendedSection";
@@ -24,6 +36,54 @@ import ProductReviews from "../../components/common/ProductReviews/ProductReview
 import "./ProductDetails.css";
 
 import product1 from "../../assets/1.jpeg";
+
+export const triggerReferralCelebration = () => {
+  // Center cannon burst
+  confetti({
+    particleCount: 90,
+    spread: 75,
+    origin: { y: 0.6 },
+    colors: ["#2563eb", "#10b981", "#f59e0b", "#ec4899", "#8b5cf6"],
+    zIndex: 99999,
+  });
+
+  // Left cannon burst
+  setTimeout(() => {
+    confetti({
+      particleCount: 60,
+      angle: 60,
+      spread: 60,
+      origin: { x: 0, y: 0.65 },
+      colors: ["#10b981", "#059669", "#34d399", "#fbbf24"],
+      zIndex: 99999,
+    });
+  }, 180);
+
+  // Right cannon burst
+  setTimeout(() => {
+    confetti({
+      particleCount: 60,
+      angle: 120,
+      spread: 60,
+      origin: { x: 1, y: 0.65 },
+      colors: ["#2563eb", "#3b82f6", "#60a5fa", "#f43f5e"],
+      zIndex: 99999,
+    });
+  }, 360);
+
+  // Floating star / circle shower
+  setTimeout(() => {
+    confetti({
+      particleCount: 45,
+      spread: 100,
+      origin: { y: 0.4 },
+      shapes: ["circle"],
+      scalar: 1.2,
+      colors: ["#f59e0b", "#10b981", "#6366f1", "#ec4899"],
+      zIndex: 99999,
+    });
+  }, 550);
+};
 
 type ProductImageItem = string | { public_id?: string; url?: string; _id?: string };
 
@@ -78,6 +138,11 @@ interface Product {
   isFeatured: boolean;
   hasVariants?: boolean;
   variants?: ProductVariant[];
+  referral?: {
+    isEnabled?: boolean;
+    discountAmount?: number;
+    rewardPoints?: number;
+  };
   details?: ProductDetailsSpec | string;
   ratingsAverage?: number;
   ratingsCount?: number;
@@ -138,9 +203,10 @@ const safeParse = (val: any) => {
 
 const ProductDetails = () => {
   const { productId } = useParams<{ productId: string }>();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { addToCart } = useCart();
-  const { isAuthenticated } = useAuth();
+  const { user, isAuthenticated } = useAuth();
 
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
@@ -153,6 +219,160 @@ const ProductDetails = () => {
   const [isVariantModalOpen, setIsVariantModalOpen] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
   const [isAdded, setIsAdded] = useState(false);
+
+  // Referral states
+  const [appliedReferral, setAppliedReferral] = useState<ActiveReferral | null>(null);
+  const [isGeneratingReferral, setIsGeneratingReferral] = useState(false);
+  const [referralShareModalOpen, setReferralShareModalOpen] = useState(false);
+  const [generatedReferralLink, setGeneratedReferralLink] = useState("");
+  const [copiedLink, setCopiedLink] = useState(false);
+
+  // Sync active referral for this product from localStorage on mount or product change
+  useEffect(() => {
+    try {
+      if (!productId) {
+        setAppliedReferral(null);
+        return;
+      }
+      const allRefs = getStoredReferrals();
+      const thisRef = allRefs[productId];
+      if (thisRef) {
+        const uid = (user?._id || user?.id)?.toString();
+        if (uid && thisRef.creatorId && uid === thisRef.creatorId.toString()) {
+          removeStoredReferral(productId);
+          setAppliedReferral(null);
+          toast.error("You cannot use your own referral link", {
+            id: "referral-toast",
+            icon: "⚠️",
+          });
+        } else {
+          setAppliedReferral(thisRef);
+        }
+      } else {
+        setAppliedReferral(null);
+      }
+    } catch {
+      setAppliedReferral(null);
+    }
+  }, [productId, user]);
+
+  // ==========================================================
+  // VERIFY REFERRAL TOKEN (?ref=...) WITH BACKEND BEFORE STORING
+  // ==========================================================
+  useEffect(() => {
+    const refToken = searchParams.get("ref") || searchParams.get("refToken");
+    if (!refToken || !refToken.trim()) return;
+
+    const cleanToken = refToken.trim();
+
+    const validateToken = async () => {
+      try {
+        const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
+        const currentUserId = (user?._id || user?.id)?.toString();
+
+        const res = await fetch(`${API_BASE_URL}/api/referral/validate`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+          body: JSON.stringify({
+            token: cleanToken,
+            currentUserId,
+          }),
+        });
+
+        const result = await res.json();
+
+        // Check if self-referral was rejected
+        if (
+          result.isSelfReferral ||
+          (currentUserId && result.data?.creatorId && currentUserId === result.data.creatorId.toString())
+        ) {
+          if (productId) {
+            removeStoredReferral(productId);
+          }
+          setAppliedReferral(null);
+
+          toast.error("You cannot use your own referral link", {
+            id: "referral-toast",
+            icon: "⚠️",
+          });
+
+          if (productId) {
+            navigate(`/product/${productId}`, { replace: true });
+          }
+          return;
+        }
+
+        if (res.ok && result.success && result.data) {
+          // Token is valid! Store into multi-referral storage without overwriting other products
+          const targetPid = String(result.data.productId || productId);
+          const refPayload: ActiveReferral = {
+            token: cleanToken,
+            productId: targetPid,
+            productName: product?.name || result.data.productName || "Product",
+            discountAmount: result.data.discountAmount,
+            rewardPoints: result.data.rewardPoints,
+            creatorId: result.data.creatorId,
+            originalPrice: result.data.originalPrice,
+            regularPrice: result.data.regularPrice,
+            updatedPrice: result.data.updatedPrice,
+            discountedPrice: result.data.discountedPrice,
+            timestamp: Date.now(),
+          };
+
+          const allRefs = getStoredReferrals();
+          allRefs[targetPid] = refPayload;
+          saveStoredReferrals(allRefs);
+          setAppliedReferral(refPayload);
+
+          // Trigger confetti celebration!
+          triggerReferralCelebration();
+
+          const newPriceText = result.data.updatedPrice !== undefined ? ` New Price: ₹${result.data.updatedPrice}!` : "";
+          toast.success(
+            `Referral discount of ₹${result.data.discountAmount} applied!${newPriceText}`,
+            {
+              id: "referral-toast",
+              icon: "🎉",
+            }
+          );
+        } else {
+          // Token is INVALID or EXPIRED or ALREADY USED
+          if (productId) {
+            removeStoredReferral(productId);
+          }
+          setAppliedReferral(null);
+
+          toast.error(result.message || "Invalid or expired referral link", {
+            id: "referral-toast",
+          });
+
+          // Redirect to clean product page (removes ?ref= from URL)
+          if (productId) {
+            navigate(`/product/${productId}`, { replace: true });
+          }
+        }
+      } catch (err) {
+        console.error("Referral validation error:", err);
+        if (productId) {
+          removeStoredReferral(productId);
+        }
+        setAppliedReferral(null);
+
+        toast.error("Could not verify referral link", {
+          id: "referral-toast",
+        });
+
+        if (productId) {
+          navigate(`/product/${productId}`, { replace: true });
+        }
+      }
+    };
+
+    validateToken();
+  }, [searchParams, productId, navigate, user, product?.name]);
 
   useEffect(() => {
     const fetchWishlist = async () => {
@@ -216,6 +436,14 @@ const ProductDetails = () => {
 
         if (fetchedProduct && typeof fetchedProduct === "object" && fetchedProduct._id) {
           setProduct(fetchedProduct);
+          if (productId) {
+            const allRefs = getStoredReferrals();
+            if (allRefs[productId] && (!allRefs[productId].productName || allRefs[productId].productName === "Product")) {
+              allRefs[productId].productName = fetchedProduct.name;
+              saveStoredReferrals(allRefs);
+              setAppliedReferral((prev) => (prev ? { ...prev, productName: fetchedProduct.name } : null));
+            }
+          }
           const pVars = parseVariants(fetchedProduct.variants);
           const actVars = pVars.filter((v: any) => v && (v.isActive === true || v.isActive === undefined || v.isActive === null || String(v.isActive) !== "false"));
           setSelectedVariantIndex(actVars.length > 0 ? 0 : -1);
@@ -255,7 +483,8 @@ const ProductDetails = () => {
 
     if (!product?._id) return;
     if (!isAuthenticated) {
-      navigate("/login");
+      const returnUrl = encodeURIComponent(window.location.pathname + window.location.search);
+      navigate(`/login?redirect=${returnUrl}`);
       toast.error("Please login to add product to cart");
       return;
     }
@@ -306,7 +535,8 @@ const ProductDetails = () => {
   const handleBuyNow = async () => {
     if (!product?._id) return;
     if (!isAuthenticated) {
-      navigate("/login");
+      const returnUrl = encodeURIComponent(window.location.pathname + window.location.search);
+      navigate(`/login?redirect=${returnUrl}`);
       toast.error("Please login to proceed to checkout");
       return;
     }
@@ -332,6 +562,62 @@ const ProductDetails = () => {
       toast.dismiss(toastId);
       toast.error("Failed to proceed to checkout");
     }
+  };
+
+  const handleShareAndEarn = async () => {
+    if (!isAuthenticated) {
+      const returnUrl = encodeURIComponent(window.location.pathname + window.location.search);
+      navigate(`/login?redirect=${returnUrl}`);
+      toast.error("Please login to generate your referral link", {
+        id: "referral-auth-toast",
+        icon: "🔒",
+      });
+      return;
+    }
+
+    try {
+      setIsGeneratingReferral(true);
+      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
+      const res = await fetch(`${API_BASE_URL}/api/referral/create-link`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({ productId: product?._id || productId }),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success && data.data?.referralLink) {
+        setGeneratedReferralLink(data.data.referralLink);
+        setReferralShareModalOpen(true);
+      } else {
+        toast.error(data.message || "Failed to generate referral link");
+      }
+    } catch (err) {
+      console.error("Referral link generation failed:", err);
+      toast.error("Error creating referral link. Please try again.");
+    } finally {
+      setIsGeneratingReferral(false);
+    }
+  };
+
+  const handleCopyReferralLink = async () => {
+    if (!generatedReferralLink) return;
+    try {
+      await navigator.clipboard.writeText(generatedReferralLink);
+      setCopiedLink(true);
+      toast.success("Referral link copied to clipboard!", { icon: "📋" });
+      setTimeout(() => setCopiedLink(false), 2500);
+    } catch {
+      toast.error("Failed to copy link");
+    }
+  };
+
+  const handleWhatsAppShare = () => {
+    if (!generatedReferralLink || !product) return;
+    const text = `Hey! Check out ${product.name} on Amandeep Store. Use my referral link to get an instant ₹${product.referral?.discountAmount || 0} discount: ${generatedReferralLink}`;
+    window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, "_blank");
   };
 
   const toggleWishlist = async () => {
@@ -430,12 +716,20 @@ const ProductDetails = () => {
     ? (selectedVariant.salePrice !== undefined && selectedVariant.salePrice !== null ? Number(selectedVariant.salePrice) : null)
     : (product.salePrice !== undefined && product.salePrice !== null ? Number(product.salePrice) : null);
 
-  const currentPrice = rawSalePrice && rawSalePrice < basePrice ? rawSalePrice : basePrice;
-  const hasDiscount = Boolean(rawSalePrice && rawSalePrice < basePrice);
+  const regularPrice = rawSalePrice && rawSalePrice < basePrice ? rawSalePrice : basePrice;
+
+  // Referral discount application
+  const referralDiscount =
+    appliedReferral && (appliedReferral.productId === product._id || !appliedReferral.productId) && appliedReferral.discountAmount
+      ? Number(appliedReferral.discountAmount)
+      : 0;
+
+  const currentPrice = referralDiscount > 0 ? Math.max(0, regularPrice - referralDiscount) : regularPrice;
+  const hasDiscount = Boolean((rawSalePrice && rawSalePrice < basePrice) || referralDiscount > 0);
   const discountPercent = hasDiscount
-    ? Math.round(((basePrice - (rawSalePrice || 0)) / basePrice) * 100)
+    ? Math.round(((basePrice - currentPrice) / basePrice) * 100)
     : 0;
-  const savingsAmount = hasDiscount ? basePrice - (rawSalePrice || 0) : 0;
+  const savingsAmount = hasDiscount ? basePrice - currentPrice : 0;
 
   const rawImages =
     product.images && product.images.length > 0
@@ -735,7 +1029,70 @@ const ProductDetails = () => {
                   </span>
                 </>
               )}
+              {referralDiscount > 0 && (
+                <span className="pdp-referral-applied-tag">
+                  ₹{referralDiscount} Referral Discount Applied
+                </span>
+              )}
             </div>
+
+            {/* REFER & EARN PROMO CARD */}
+            {product.referral?.isEnabled && (
+              <div className="pdp-referral-promo-card">
+                <div className="pdp-referral-promo-header">
+                  <div className="pdp-referral-promo-title-wrap">
+                    <div className="pdp-referral-gift-wrap">
+                      <Gift size={18} className="pdp-referral-gift-icon" />
+                    </div>
+                    <div>
+                      <h4 className="pdp-referral-promo-title">Refer & Earn Rewards</h4>
+                      <p className="pdp-referral-promo-subtitle">
+                        Share this product with friends and earn rewards on every order!
+                      </p>
+                    </div>
+                  </div>
+                  <span className="pdp-referral-pill">
+                    Earn ₹{product.referral.rewardPoints || 0}
+                  </span>
+                </div>
+
+                <div className="pdp-referral-benefits-grid">
+                  <div className="pdp-referral-benefit-item">
+                    <span className="pdp-benefit-icon">
+                      <Gift size={16} color="#2563eb" />
+                    </span>
+                    <div>
+                      <span className="pdp-benefit-label">Friend Gets</span>
+                      <strong className="pdp-benefit-value">₹{product.referral.discountAmount || 0} OFF</strong>
+                    </div>
+                  </div>
+                  <div className="pdp-referral-benefit-item">
+                    <span className="pdp-benefit-icon">🪙</span>
+                    <div>
+                      <span className="pdp-benefit-label">You Earn</span>
+                      <strong className="pdp-benefit-value">{product.referral.rewardPoints || 0} Points (₹{product.referral.rewardPoints || 0})</strong>
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  className="pdp-referral-share-btn"
+                  onClick={handleShareAndEarn}
+                  disabled={isGeneratingReferral}
+                >
+                  {isGeneratingReferral ? (
+                    <>
+                      <Loader2 size={16} className="animate-spin" /> Generating Link...
+                    </>
+                  ) : (
+                    <>
+                      <Share2 size={16} /> Share & Earn ₹{product.referral.rewardPoints || 0}
+                    </>
+                  )}
+                </button>
+              </div>
+            )}
 
             {/* KEY HIGHLIGHTS (DYNAMIC FROM BACKEND) */}
             {highlightsList.length > 0 && (
@@ -1140,6 +1497,100 @@ const ProductDetails = () => {
           }}
         />
       )}
+
+      {/* REFERRAL SHARE MODAL */}
+      <AnimatePresence>
+        {referralShareModalOpen && (
+          <div
+            className="pdp-modal-overlay"
+            onClick={() => setReferralShareModalOpen(false)}
+          >
+            <motion.div
+              className="pdp-referral-modal"
+              onClick={(e) => e.stopPropagation()}
+              initial={{ opacity: 0, scale: 0.95, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 15 }}
+              transition={{ duration: 0.2 }}
+            >
+              <div className="pdp-modal-header">
+                <div className="pdp-modal-title-wrap">
+                  <div className="pdp-modal-icon-badge">
+                    <Gift size={22} color="#2563eb" />
+                  </div>
+                  <div>
+                    <h3 className="pdp-modal-title">Share & Earn Rewards</h3>
+                    <p className="pdp-modal-subtitle">
+                      Your friend gets ₹{product?.referral?.discountAmount || 0} OFF, you earn {product?.referral?.rewardPoints || 0} points!
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className="pdp-modal-close-btn"
+                  onClick={() => setReferralShareModalOpen(false)}
+                  aria-label="Close modal"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className="pdp-modal-body">
+                <div className="pdp-referral-rewards-summary">
+                  <div className="pdp-summary-box">
+                    <span className="pdp-summary-label">Friend's Discount</span>
+                    <span className="pdp-summary-amt friend">
+                      ₹{product?.referral?.discountAmount || 0} OFF
+                    </span>
+                  </div>
+                  <div className="pdp-summary-box">
+                    <span className="pdp-summary-label">Your Reward</span>
+                    <span className="pdp-summary-amt you">
+                      +{product?.referral?.rewardPoints || 0} Points
+                    </span>
+                  </div>
+                </div>
+
+                <label className="pdp-modal-field-label">Your Unique Referral Link</label>
+                <div className="pdp-link-copy-box">
+                  <input
+                    type="text"
+                    readOnly
+                    value={generatedReferralLink}
+                    className="pdp-link-input"
+                    onClick={(e) => (e.target as HTMLInputElement).select()}
+                  />
+                  <button
+                    type="button"
+                    className={`pdp-copy-btn ${copiedLink ? "copied" : ""}`}
+                    onClick={handleCopyReferralLink}
+                  >
+                    {copiedLink ? (
+                      <>
+                        <Check size={16} /> Copied!
+                      </>
+                    ) : (
+                      <>
+                        <Copy size={16} /> Copy
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                <div className="pdp-share-actions">
+                  <button
+                    type="button"
+                    className="pdp-whatsapp-btn"
+                    onClick={handleWhatsAppShare}
+                  >
+                    <span>💬 Share on WhatsApp</span>
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       <Footer />
     </div>
