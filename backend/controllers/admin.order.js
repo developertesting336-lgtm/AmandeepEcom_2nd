@@ -212,7 +212,7 @@ export const updatedOrderByAdmin = async (req, res) => {
         return res.status(200).json({
             success: true,
             message: "Order updated successfully",
-            order,
+            order: formatOrderResponse(order),
         });
 
     } catch (error) {
@@ -316,7 +316,7 @@ export const refundGenrate = async (req, res) => {
             success: true,
             message: "Refund processed successfully",
             refundId: refund.id,
-            order,
+            order: formatOrderResponse(order),
         });
 
     } catch (error) {

@@ -17,6 +17,7 @@ import Orders from "./pages/Admin/Orders";
 import Users from "./pages/Admin/Users";
 import AdminInquiries from "./pages/Admin/Inquiries";
 import PromoBanners from "./pages/Admin/PromoBanners";
+import TopOffersAdmin from "./pages/Admin/TopOffersAdmin";
 import UserProducts from "./pages/Products/UserProducts";
 import ProductDetails from "./pages/Products/ProductDetails";
 import Cart from "./pages/Cart/Cart";
@@ -134,6 +135,8 @@ function App() {
         <Route path="/admin/inquiries" element={<AdminInquiries />} />
         <Route path="/admin/promos" element={<PromoBanners />} />
         <Route path="/admin/video-promos" element={<PromoBanners />} />
+        <Route path="/admin/top-offers" element={<TopOffersAdmin />} />
+        <Route path="/admin/offers" element={<TopOffersAdmin />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/admin/add/product" element={<AddProduct />} />
         <Route path="/admin/products/edit/:productId" element={<EditProduct />} />

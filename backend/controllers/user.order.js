@@ -2,6 +2,7 @@ import Order from '../models/Order.js'
 import Product from '../models/Product.js'
 import Cart from '../models/Cart.js';
 import User from '../models/user.js';
+import Referral from '../models/Referral.js';
 import mongoose from 'mongoose'
 import jwt from "jsonwebtoken";
 import redis from "../config/redis.js";
@@ -60,11 +61,23 @@ const verifyAndCalculateReferrals = async (referralTokens, orderProducts, curren
             continue;
         }
 
-        // Verify JTI exists in Redis (ensuring token is active and single-use)
-        const redisKey = `referral:jti:${decoded.jti}`;
-        const redisData = await redis.get(redisKey);
-        if (!redisData) {
-            console.warn("Referral token not found in Redis or already burned:", decoded.jti);
+        // Verify Referral exists in MongoDB and is active / unexpired
+        const referralRecord = await Referral.findOne({
+            jti: decoded.jti,
+            status: "active",
+            expiresAt: { $gt: new Date() },
+        });
+
+        // --- Redis check (commented out) ---
+        // const redisKey = `referral:jti:${decoded.jti}`;
+        // const redisData = await redis.get(redisKey);
+        // if (!redisData) {
+        //     console.warn("Referral token not found in Redis or already burned:", decoded.jti);
+        //     continue;
+        // }
+
+        if (!referralRecord) {
+            console.warn("Referral token not found in MongoDB or already burned/expired:", decoded.jti);
             continue;
         }
 
@@ -100,7 +113,8 @@ const verifyAndCalculateReferrals = async (referralTokens, orderProducts, curren
             productId: decoded.product_id,
             token,
             jti: decoded.jti,
-            redisKey,
+            referralId: referralRecord._id,
+            // redisKey: `referral:jti:${decoded.jti}`,
             creatorId: decoded.creator_id,
             discountAmount: unitDiscount,
             rewardPoints: Number(decoded.reward_points) || 0,
@@ -289,11 +303,23 @@ export const cod = async (req, res) => {
             }
         }
 
-        // Burn single-use referral tokens in Redis and award reward points to creator(s)
+        // Burn single-use referral tokens in MongoDB (and keep Redis commented out)
         for (const ref of verifiedReferrals) {
-            if (ref.redisKey) {
-                await redis.del(ref.redisKey);
+            if (ref.jti) {
+                await Referral.findOneAndUpdate(
+                    { jti: ref.jti },
+                    {
+                        status: "used",
+                        usedBy: req.user?._id,
+                        order: order._id,
+                        orderId: order.orderId,
+                        usedAt: new Date(),
+                    }
+                );
             }
+            // if (ref.redisKey) {
+            //     await redis.del(ref.redisKey);
+            // }
             if (ref.creatorId && ref.rewardPoints > 0) {
                 const pointsEarned = ref.rewardPoints * (ref.quantity || 1);
                 const updatedCreator = await User.findByIdAndUpdate(
@@ -671,11 +697,23 @@ export const stripePayments = async (req, res) => {
                 }
             }
 
-            // Burn single-use referral tokens in Redis and award reward points to creator(s)
+            // Burn single-use referral tokens in MongoDB (and keep Redis commented out)
             for (const ref of verifiedReferrals) {
-                if (ref.redisKey) {
-                    await redis.del(ref.redisKey);
+                if (ref.jti) {
+                    await Referral.findOneAndUpdate(
+                        { jti: ref.jti },
+                        {
+                            status: "used",
+                            usedBy: req.user?._id,
+                            order: order._id,
+                            orderId: order.orderId,
+                            usedAt: new Date(),
+                        }
+                    );
                 }
+                // if (ref.redisKey) {
+                //     await redis.del(ref.redisKey);
+                // }
                 if (ref.creatorId && ref.rewardPoints > 0) {
                     const pointsEarned = ref.rewardPoints * (ref.quantity || 1);
                     const updatedCreator = await User.findByIdAndUpdate(
@@ -1050,11 +1088,21 @@ export const stripeWebhook = async (req, res) => {
                     }
                 }
 
-                // Burn the single-use referral tokens in Redis and award reward points to creators
+                // Burn the single-use referral tokens in MongoDB (and keep Redis commented out)
                 if (Array.isArray(order.appliedReferrals) && order.appliedReferrals.length > 0) {
                     for (const ref of order.appliedReferrals) {
                         if (ref.jti) {
-                            await redis.del(`referral:jti:${ref.jti}`);
+                            await Referral.findOneAndUpdate(
+                                { jti: ref.jti },
+                                {
+                                    status: "used",
+                                    usedBy: order.user,
+                                    order: order._id,
+                                    orderId: order.orderId,
+                                    usedAt: new Date(),
+                                }
+                            );
+                            // await redis.del(`referral:jti:${ref.jti}`);
                         }
                         if (ref.creatorId && ref.rewardPoints > 0) {
                             const pointsEarned = ref.rewardPoints * (ref.quantity || 1);

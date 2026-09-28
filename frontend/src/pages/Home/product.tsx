@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronLeft, ChevronRight, Heart, ShoppingCart } from "lucide-react";
+import { Heart, ShoppingCart } from "lucide-react";
 import { triggerFlyToCart } from "../../components/common/FlyToCart/FlyToCart";
 import { useCart } from "../../context/cartContext";
 import { useAuth } from "../../context/authContext";
@@ -41,8 +41,6 @@ const formatImageUrl = (image: any, fallback: string = product1): string => {
   return `${API_BASE_URL}${formattedPath}`;
 };
 
-const CARD_WIDTH = 205; // 205px per slide container
-
 const ProductSection = () => {
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
@@ -50,26 +48,8 @@ const ProductSection = () => {
 
   const [allProducts, setAllProducts] = useState<DisplayProduct[]>([]);
   const [loading, setLoading] = useState(true);
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [isPaused, setIsPaused] = useState(false);
   const [wishlist, setWishlist] = useState<Record<string, boolean>>({});
   const [addedCartIds, setAddedCartIds] = useState<Record<string, boolean>>({});
-  const [viewportWidth, setViewportWidth] = useState(0);
-
-  const viewportRef = useRef<HTMLDivElement>(null);
-
-  // Measure slider viewport width dynamically
-  useEffect(() => {
-    const updateViewportWidth = () => {
-      if (viewportRef.current) {
-        setViewportWidth(viewportRef.current.clientWidth);
-      }
-    };
-
-    updateViewportWidth();
-    window.addEventListener("resize", updateViewportWidth);
-    return () => window.removeEventListener("resize", updateViewportWidth);
-  }, []);
 
   useEffect(() => {
     const fetchFeaturedProducts = async () => {
@@ -154,72 +134,6 @@ const ProductSection = () => {
   }, [isAuthenticated]);
 
   const displayList = allProducts;
-
-  // Calculate precise max scroll distance and maximum slide index
-  const totalTrackWidth = displayList.length * CARD_WIDTH;
-  const maxScrollPx = viewportWidth > 0 ? Math.max(0, totalTrackWidth - viewportWidth) : 0;
-  const hasOverflow = maxScrollPx > 0;
-  const maxIndex = hasOverflow ? Math.ceil(maxScrollPx / CARD_WIDTH) : 0;
-  const safeIndex = Math.min(currentIndex, maxIndex);
-
-  // Clamp translation so the last product aligns flush with the right edge with ZERO empty space
-  const currentTranslateX = hasOverflow ? Math.min(safeIndex * CARD_WIDTH, maxScrollPx) : 0;
-
-  const nextSlide = () => {
-    if (currentTranslateX < maxScrollPx) {
-      setCurrentIndex((prev) => prev + 1);
-    }
-  };
-
-  const prevSlide = () => {
-    if (safeIndex > 0) {
-      setCurrentIndex((prev) => prev - 1);
-    }
-  };
-
-  // Touch swipe support for mobile/tablets
-  const touchStartXRef = useRef<number | null>(null);
-  const touchEndXRef = useRef<number | null>(null);
-
-  const handleTouchStart = (e: React.TouchEvent) => {
-    touchStartXRef.current = e.targetTouches[0].clientX;
-    touchEndXRef.current = null;
-    setIsPaused(true);
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    touchEndXRef.current = e.targetTouches[0].clientX;
-  };
-
-  const handleTouchEnd = () => {
-    setIsPaused(false);
-    if (!touchStartXRef.current || !touchEndXRef.current) return;
-    const distance = touchStartXRef.current - touchEndXRef.current;
-    const minSwipeDistance = 45;
-
-    if (distance > minSwipeDistance && hasOverflow) {
-      nextSlide();
-    } else if (distance < -minSwipeDistance && hasOverflow) {
-      prevSlide();
-    }
-
-    touchStartXRef.current = null;
-    touchEndXRef.current = null;
-  };
-
-  // Auto-play interval
-  useEffect(() => {
-    if (isPaused || loading || displayList.length === 0 || !hasOverflow) return;
-
-    const interval = setInterval(() => {
-      setCurrentIndex((prev) => {
-        const nextIdx = prev + 1;
-        return nextIdx * CARD_WIDTH > maxScrollPx ? 0 : nextIdx;
-      });
-    }, 3500);
-
-    return () => clearInterval(interval);
-  }, [isPaused, loading, displayList.length, maxScrollPx, hasOverflow]);
 
   const toggleWishlist = async (
     e: React.MouseEvent,
@@ -311,7 +225,7 @@ const ProductSection = () => {
         setAddedCartIds((prev) => ({ ...prev, [product.id]: true }));
         setTimeout(() => {
           setAddedCartIds((prev) => ({ ...prev, [product.id]: false }));
-        }, 100000); // Redirect to cart button active for 4.5 seconds
+        }, 4500); // Redirect to cart button active for 4.5 seconds
       }
     } catch (error: any) {
       toast.error("Failed to add product to cart");
@@ -341,165 +255,111 @@ const ProductSection = () => {
           </div>
         </div>
 
-        {/* SLIDER CONTAINER */}
-        <div
-          className="product-slider-wrapper"
-          onMouseEnter={() => setIsPaused(true)}
-          onMouseLeave={() => setIsPaused(false)}
-          onTouchStart={handleTouchStart}
-          onTouchMove={handleTouchMove}
-          onTouchEnd={handleTouchEnd}
-        >
-          {/* NAVIGATION ARROWS - ONLY SHOWN IF THERE IS SCROLLABLE CONTENT */}
-          {!loading && safeIndex > 0 && hasOverflow && (
-            <button
-              className="product-slider-arrow product-slider-prev"
-              onClick={prevSlide}
-              aria-label="Previous product"
-            >
-              <ChevronLeft size={20} />
-            </button>
-          )}
+        {/* STATIC FIXED GRID */}
+        {loading ? (
+          /* SKELETON SHIMMER LOADING CARDS */
+          <div className="product-grid">
+            {Array.from({ length: 6 }).map((_, idx) => (
+              <div key={idx} className="product-skeleton-card">
+                <div className="skeleton-image" />
+                <div className="skeleton-pill" />
+                <div className="skeleton-title" />
+                <div className="skeleton-title-short" />
+                <div className="skeleton-price" />
+              </div>
+            ))}
+          </div>
+        ) : displayList.length === 0 ? (
+          <div style={{ padding: "40px 20px", textAlign: "center", color: "#64748b" }}>
+            <p>No featured products found.</p>
+          </div>
+        ) : (
+          <div className="product-grid">
+            {displayList.map((product) => {
+              const discount =
+                product.oldPrice > product.price
+                  ? Math.round(
+                      ((product.oldPrice - product.price) / product.oldPrice) * 100
+                    )
+                  : 0;
 
-          {!loading && currentTranslateX < maxScrollPx && hasOverflow && (
-            <button
-              className="product-slider-arrow product-slider-next"
-              onClick={nextSlide}
-              aria-label="Next product"
-            >
-              <ChevronRight size={20} />
-            </button>
-          )}
+              const isWishlisted = !!wishlist[product.id];
 
-          {/* VIEWPORT & TRACK */}
-          <div className="product-slider-viewport" ref={viewportRef}>
-            {loading ? (
-              /* SKELETON SHIMMER LOADING CARDS */
-              <div className="product-slider-track">
-                {Array.from({ length: 6 }).map((_, idx) => (
-                  <div key={idx} className="product-slide">
-                    <div className="product-skeleton-card">
-                      <div className="skeleton-image" />
-                      <div className="skeleton-pill" />
-                      <div className="skeleton-title" />
-                      <div className="skeleton-title-short" />
-                      <div className="skeleton-price" />
+              return (
+                <article
+                  key={product.id}
+                  className="product-card"
+                  onClick={() => goToProduct(product.id)}
+                >
+                  {/* IMAGE CONTAINER */}
+                  <div className="product-image-wrap">
+                    <span className="product-card-ad-badge">Ad</span>
+                    <img
+                      src={product.image}
+                      alt={product.name}
+                      className="product-image-slider"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = product1;
+                      }}
+                    />
+
+                    {/* WISHLIST BUTTON */}
+                    <button
+                      className={`product-wishlist-btn ${isWishlisted ? "active" : ""}`}
+                      onClick={(e) => toggleWishlist(e, product.id)}
+                      aria-label="Wishlist product"
+                    >
+                      <Heart
+                        size={15}
+                        fill={isWishlisted ? "#dc2626" : "none"}
+                        color={isWishlisted ? "#dc2626" : "#64748b"}
+                      />
+                    </button>
+                  </div>
+
+                  {/* PRODUCT DETAILS */}
+                  <div className="product-info">
+                    <div className="product-meta-row">
+                      <span className="product-category">{product.category}</span>
+                      {discount > 0 && (
+                        <span className="product-discount-badge">
+                          -{discount}%
+                        </span>
+                      )}
+                    </div>
+
+                    <h3 className="product-name">{product.name}</h3>
+
+                    <div className="product-bottom-row">
+                      <div className="product-price-row">
+                        <span className="product-price">
+                          ₹{(product.price || 0).toLocaleString("en-IN")}
+                        </span>
+                        {typeof product.oldPrice === "number" && product.oldPrice > product.price && (
+                          <span className="product-old-price">
+                            ₹{product.oldPrice.toLocaleString("en-IN")}
+                          </span>
+                        )}
+                      </div>
+
+                      <button
+                        type="button"
+                        className={`product-slider-cart-btn ${addedCartIds[product.id] ? "go-to-cart-btn" : ""}`}
+                        onClick={(e) => handleAddToCart(e, product)}
+                        title={addedCartIds[product.id] ? "Go to Cart" : "Add to Cart"}
+                        aria-label={addedCartIds[product.id] ? "Go to Cart" : "Add to Cart"}
+                      >
+                        {addedCartIds[product.id] ? (
+                          <ShoppingCart size={15} strokeWidth={2.4} className="moving-cart-icon" />
+                        ) : (
+                          <ShoppingCart size={14} strokeWidth={2} />
+                        )}
+                      </button>
                     </div>
                   </div>
-                ))}
-              </div>
-            ) : displayList.length === 0 ? (
-              <div style={{ padding: "40px 20px", textAlign: "center", color: "#64748b" }}>
-                <p>No featured products found.</p>
-              </div>
-            ) : (
-              <div
-                className={`product-slider-track ${!hasOverflow ? "no-overflow" : ""}`}
-                style={{
-                  transform: hasOverflow ? `translateX(-${currentTranslateX}px)` : "none",
-                }}
-              >
-                {displayList.map((product) => {
-                  const discount =
-                    product.oldPrice > product.price
-                      ? Math.round(
-                        ((product.oldPrice - product.price) / product.oldPrice) * 100
-                      )
-                      : 0;
-
-                  const isWishlisted = !!wishlist[product.id];
-
-                  return (
-                    <div key={product.id} className="product-slide">
-                      <article
-                        className="product-card"
-                        onClick={() => goToProduct(product.id)}
-                      >
-                        {/* IMAGE CONTAINER */}
-                        <div className="product-image-wrap">
-                          <img
-                            src={product.image}
-                            alt={product.name}
-                            className="product-image-slider"
-                            onError={(e) => {
-                              (e.target as HTMLImageElement).src = product1;
-                            }}
-                          />
-
-                          {/* WISHLIST BUTTON */}
-                          <button
-                            className={`product-wishlist-btn ${isWishlisted ? "active" : ""}`}
-                            onClick={(e) => toggleWishlist(e, product.id)}
-                            aria-label="Wishlist product"
-                          >
-                            <Heart
-                              size={15}
-                              fill={isWishlisted ? "#dc2626" : "none"}
-                              color={isWishlisted ? "#dc2626" : "#64748b"}
-                            />
-                          </button>
-                        </div>
-
-                        {/* PRODUCT DETAILS */}
-                        <div className="product-info">
-                          <div className="product-meta-row">
-                            <span className="product-category">{product.category}</span>
-                            {discount > 0 && (
-                              <span className="product-discount-badge">
-                                -{discount}%
-                              </span>
-                            )}
-                          </div>
-
-                          <h3 className="product-name">{product.name}</h3>
-
-                          <div className="product-bottom-row">
-                            <div className="product-price-row">
-                              <span className="product-price">
-                                ₹{(product.price || 0).toLocaleString("en-IN")}
-                              </span>
-                              {typeof product.oldPrice === "number" && product.oldPrice > product.price && (
-                                <span className="product-old-price">
-                                  ₹{product.oldPrice.toLocaleString("en-IN")}
-                                </span>
-                              )}
-                            </div>
-
-                            <button
-                              type="button"
-                              className={`product-slider-cart-btn ${addedCartIds[product.id] ? "go-to-cart-btn" : ""}`}
-                              onClick={(e) => handleAddToCart(e, product)}
-                              title={addedCartIds[product.id] ? "Go to Cart" : "Add to Cart"}
-                              aria-label={addedCartIds[product.id] ? "Go to Cart" : "Add to Cart"}
-                            >
-                              {addedCartIds[product.id] ? (
-                                <ShoppingCart size={15} strokeWidth={2.4} className="moving-cart-icon" />
-                              ) : (
-                                <ShoppingCart size={14} strokeWidth={2} />
-                              )}
-                            </button>
-                          </div>
-                        </div>
-                      </article>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* SLIDER DOTS */}
-        {!loading && hasOverflow && maxIndex > 0 && (
-          <div className="product-slider-dots">
-            {Array.from({ length: maxIndex + 1 }).map((_, index) => (
-              <button
-                key={index}
-                className={`product-slider-dot ${index === safeIndex ? "active" : ""}`}
-                onClick={() => setCurrentIndex(index)}
-                aria-label={`Go to slide ${index + 1}`}
-              />
-            ))}
+                </article>
+              );
+            })}
           </div>
         )}
       </div>

@@ -77,7 +77,7 @@ export const getStoredReferrals = (): Record<string, ActiveReferral> => {
           map[single.productId] = single;
           localStorage.setItem("active_referrals", JSON.stringify(map));
         }
-      } catch {}
+      } catch { }
     }
     return map;
   } catch {
@@ -120,7 +120,7 @@ export const removeStoredReferral = (productId: string) => {
           localStorage.removeItem("referral_token");
           localStorage.removeItem("referral_product_id");
         }
-      } catch {}
+      } catch { }
     }
 
     const remaining = Object.values(current);
@@ -353,9 +353,12 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
   // Reward points calculations
   const userRewardPoints = Number(user?.rewardPoints) || 0;
+  const UserRewardPoints_20_percent = (userRewardPoints * 20) / 100
+  // console.log(UserRewardPoints_20_percent)
   const deliveryFee = subtotal >= 499 || cartItems.length === 0 ? 0 : 99;
   const cartAmountAfterReferral = Math.max(0, subtotal - referralDiscount) + deliveryFee;
-  const maxRedeemablePoints = Math.min(userRewardPoints, Math.floor(cartAmountAfterReferral));
+  // const maxRedeemablePoints = Math.min(userRewardPoints, Math.floor(cartAmountAfterReferral));
+  const maxRedeemablePoints = Math.min(UserRewardPoints_20_percent, Math.floor(cartAmountAfterReferral));
   const pointsDiscount = Math.min(appliedPoints, maxRedeemablePoints);
 
   const applyRewardPoints = (points?: number) => {

@@ -21,6 +21,7 @@ import {
   Loader2,
   MessageSquare,
   Video,
+  Sparkles,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -942,6 +943,26 @@ const AdminDashboard: React.FC = () => {
           <div className="panel-footer-links">
             <Link to="/admin/promos" className="admin-panel-link">
               <span>Manage Video Promos</span>
+              <ArrowRight size={14} />
+            </Link>
+          </div>
+        </div>
+
+        {/* Top Offers Banners Panel */}
+        <div className="admin-panel">
+          <div className="admin-panel-head">
+            <div className="panel-badge-icon purple">
+              <Sparkles size={20} />
+            </div>
+            <p className="panel-tag">OFFERS & PROMOTIONS</p>
+          </div>
+          <h2>Top Offers Banners</h2>
+          <span>
+            Set dynamic 410×250 banners, adjust display positions, toggle visibility, and customize section title and background color.
+          </span>
+          <div className="panel-footer-links">
+            <Link to="/admin/top-offers" className="admin-panel-link">
+              <span>Manage Top Offers</span>
               <ArrowRight size={14} />
             </Link>
           </div>

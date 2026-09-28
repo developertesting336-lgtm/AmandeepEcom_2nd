@@ -9,7 +9,7 @@
   max-width: none;
   margin: 0;
   padding: 24px 3.5% 28px;
-  background-color: #f4f3ef;
+  background-color: transparent;
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   overflow: hidden;
   box-sizing: border-box;
@@ -41,6 +41,7 @@
   display: flex;
   flex-direction: column;
 }
+
 
 .product-section-eyebrow {
   display: inline-flex;
@@ -125,43 +126,47 @@
 }
 
 /* =========================================================
-   SLIDER WRAPPER & TRACK
+   STATIC FIXED PRODUCTS GRID
 ========================================================= */
 
-.product-slider-wrapper {
-  position: relative;
+.product-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 16px;
   width: 100%;
-  box-sizing: border-box;
-}
-
-.product-slider-viewport {
-  width: 100%;
-  overflow: hidden;
   box-sizing: border-box;
   padding: 6px 0 10px;
+  justify-items: center;
 }
 
-.product-slider-track {
-  display: flex;
-  width: 100%;
-  align-items: stretch;
-  transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
-  will-change: transform;
+@media (max-width: 1300px) {
+  .product-grid {
+    grid-template-columns: repeat(5, 1fr);
+    gap: 14px;
+  }
 }
 
-.product-slider-track.no-overflow {
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: 16px 0;
-  transform: none !important;
+@media (max-width: 1040px) {
+  .product-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+  }
 }
 
-.product-slide {
-  flex: 0 0 205px;
-  width: 205px;
-  padding: 0 8px;
-  box-sizing: border-box;
+@media (max-width: 768px) {
+  .product-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+  }
 }
+
+@media (max-width: 520px) {
+  .product-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+}
+
 
 /* =========================================================
    PRODUCT CARD - NO BG COLOR & NO BORDER
@@ -244,6 +249,27 @@
   border-radius: 5px;
   letter-spacing: 0.3px;
   box-shadow: 0 1px 4px rgba(220, 38, 38, 0.2);
+}
+
+/* AD BADGE (TOP-LEFT CORNER OF PRODUCT CARD) */
+
+.product-card-ad-badge {
+  position: absolute;
+  z-index: 3;
+  top: 6px;
+  left: 6px;
+  font-size: 9.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #64748b;
+  background-color: rgba(255, 255, 255, 0.65);
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(203, 213, 225, 0.7);
+  padding: 1px 5px;
+  border-radius: 4px;
+  line-height: 1.2;
+  pointer-events: none;
 }
 
 /* WISHLIST BUTTON */

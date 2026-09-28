@@ -1,6 +1,8 @@
 import bcrypt from "bcrypt";
+import crypto from "crypto";
 import jwt from "jsonwebtoken";
 import User from "../models/user.js";
+import Otp from "../models/Otp.js";
 import redis from "../config/redis.js";
 import { Resend } from 'resend';
 
@@ -57,21 +59,33 @@ export const registerUser = async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 12);
 
     // Generate 6-digit OTP
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const otp = crypto.randomInt(100000, 1000000).toString();
 
-    const regDataKey = `reg_data:${normalizedEmail}`;
-    const regOtpKey = `reg_otp:${normalizedEmail}`;
-
-    // Store pending user registration data and OTP in Redis for 5 minutes (300 seconds)
-    const userData = {
-      name: name.trim(),
+    // Store pending user registration data and OTP in MongoDB with 5-minute TTL
+    await Otp.deleteMany({ email: normalizedEmail, type: "registration" });
+    await Otp.create({
       email: normalizedEmail,
-      password: hashedPassword,
-      phone: phone ? phone.trim() : "",
-    };
+      otp,
+      type: "registration",
+      userData: {
+        name: name.trim(),
+        password: hashedPassword,
+        phone: phone ? phone.trim() : "",
+      },
+      expiresAt: new Date(Date.now() + 5 * 60 * 1000), // 5 minutes TTL
+    });
 
-    await redis.set(regDataKey, JSON.stringify(userData), "EX", 300);
-    await redis.set(regOtpKey, otp, "EX", 300);
+    // --- Redis storage (commented out) ---
+    // const regDataKey = `reg_data:${normalizedEmail}`;
+    // const regOtpKey = `reg_otp:${normalizedEmail}`;
+    // const userData = {
+    //   name: name.trim(),
+    //   email: normalizedEmail,
+    //   password: hashedPassword,
+    //   phone: phone ? phone.trim() : "",
+    // };
+    // await redis.set(regDataKey, JSON.stringify(userData), "EX", 300);
+    // await redis.set(regOtpKey, otp, "EX", 300);
 
     // Send OTP email via Resend
     const resend = new Resend(process.env.RESEND_API_KEY);
@@ -116,33 +130,42 @@ export const verifyRegisterOtp = async (req, res) => {
     }
 
     const normalizedEmail = email.toLowerCase().trim();
-    const regDataKey = `reg_data:${normalizedEmail}`;
-    const regOtpKey = `reg_otp:${normalizedEmail}`;
 
-    const storedOtp = await redis.get(regOtpKey);
-    const storedUserData = await redis.get(regDataKey);
+    // Query pending registration OTP from MongoDB
+    const otpRecord = await Otp.findOne({
+      email: normalizedEmail,
+      type: "registration",
+      expiresAt: { $gt: new Date() },
+    });
 
-    if (!storedOtp || !storedUserData) {
+    // --- Redis retrieval (commented out) ---
+    // const regDataKey = `reg_data:${normalizedEmail}`;
+    // const regOtpKey = `reg_otp:${normalizedEmail}`;
+    // const storedOtp = await redis.get(regOtpKey);
+    // const storedUserData = await redis.get(regDataKey);
+
+    if (!otpRecord || !otpRecord.userData) {
       return res.status(400).json({
         success: false,
         message: "Registration OTP has expired or session is invalid. Please register again.",
       });
     }
 
-    if (storedOtp.trim() !== otp.toString().trim()) {
+    if (otpRecord.otp.trim() !== otp.toString().trim()) {
       return res.status(400).json({
         success: false,
         message: "Invalid OTP. Please check and try again.",
       });
     }
 
-    const userData = JSON.parse(storedUserData);
+    const userData = otpRecord.userData;
 
     // Check again if user was created in the meantime
     const existingUser = await User.findOne({ email: normalizedEmail });
     if (existingUser) {
-      await redis.del(regDataKey);
-      await redis.del(regOtpKey);
+      // await redis.del(regDataKey);
+      // await redis.del(regOtpKey);
+      await Otp.deleteOne({ _id: otpRecord._id });
       return res.status(409).json({
         success: false,
         message: "User with this email already exists",
@@ -159,9 +182,12 @@ export const verifyRegisterOtp = async (req, res) => {
       isActive: true,
     });
 
-    // Delete Redis keys
-    await redis.del(regDataKey);
-    await redis.del(regOtpKey);
+    // Delete MongoDB OTP record
+    await Otp.deleteOne({ _id: otpRecord._id });
+
+    // --- Delete Redis keys (commented out) ---
+    // await redis.del(regDataKey);
+    // await redis.del(regOtpKey);
 
     // Generate token and set HTTP-only cookie
     const token = generateToken(user._id);
@@ -216,26 +242,39 @@ export const resendRegisterOtp = async (req, res) => {
     }
 
     const normalizedEmail = email.toLowerCase().trim();
-    const regDataKey = `reg_data:${normalizedEmail}`;
-    const regOtpKey = `reg_otp:${normalizedEmail}`;
 
-    const storedUserData = await redis.get(regDataKey);
+    // Find pending registration in MongoDB
+    const otpRecord = await Otp.findOne({
+      email: normalizedEmail,
+      type: "registration",
+      expiresAt: { $gt: new Date() },
+    });
 
-    if (!storedUserData) {
+    // --- Redis retrieval (commented out) ---
+    // const regDataKey = `reg_data:${normalizedEmail}`;
+    // const regOtpKey = `reg_otp:${normalizedEmail}`;
+    // const storedUserData = await redis.get(regDataKey);
+
+    if (!otpRecord || !otpRecord.userData) {
       return res.status(400).json({
         success: false,
         message: "No pending registration found or session expired. Please register again.",
       });
     }
 
-    const userData = JSON.parse(storedUserData);
+    const userData = otpRecord.userData;
 
-    // Generate fresh OTP
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    // Generate fresh 6-digit OTP
+    const otp = crypto.randomInt(100000, 1000000).toString();
 
-    // Store new OTP and reset TTL to 5 minutes (300 seconds)
-    await redis.set(regOtpKey, otp, "EX", 300);
-    await redis.expire(regDataKey, 300);
+    // Store new OTP and reset TTL to 5 minutes in MongoDB
+    otpRecord.otp = otp;
+    otpRecord.expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+    await otpRecord.save();
+
+    // --- Redis storage (commented out) ---
+    // await redis.set(regOtpKey, otp, "EX", 300);
+    // await redis.expire(regDataKey, 300);
 
     // Send email via Resend
     const resend = new Resend(process.env.RESEND_API_KEY);
@@ -446,20 +485,34 @@ export const forgotPassword = async (req, res) => {
         message: "User with this email not found",
       });
     }
+    // Check if an existing unexpired OTP exists in MongoDB
+    const existingOtpRecord = await Otp.findOne({
+      email: normalizedEmail,
+      type: "forgot_password",
+      expiresAt: { $gt: new Date() },
+    });
 
-    const redisKey = `otp:${normalizedEmail}`;
-
-    // If OTP already exists for this email in Redis, remove it
-    const existingOtp = await redis.get(redisKey);
-    if (existingOtp) {
-      await redis.del(redisKey);
-    }
+    // Remove any previous OTPs for this email and type in MongoDB
+    await Otp.deleteMany({ email: normalizedEmail, type: "forgot_password" });
 
     // Generate fresh 6-digit OTP
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const otp = crypto.randomInt(100000, 1000000).toString();
 
-    // Store new OTP in Redis with 5 minutes (300 seconds) TTL
-    await redis.set(redisKey, otp, "EX", 300);
+    // Store new OTP in MongoDB with 5-minute TTL
+    await Otp.create({
+      email: normalizedEmail,
+      otp,
+      type: "forgot_password",
+      expiresAt: new Date(Date.now() + 5 * 60 * 1000),
+    });
+
+    // --- Redis storage (commented out) ---
+    // const redisKey = `otp:${normalizedEmail}`;
+    // const existingOtp = await redis.get(redisKey);
+    // if (existingOtp) {
+    //   await redis.del(redisKey);
+    // }
+    // await redis.set(redisKey, otp, "EX", 300);
 
     const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -472,7 +525,7 @@ export const forgotPassword = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      message: existingOtp
+      message: existingOtpRecord
         ? "New OTP resent successfully. It is valid for 5 minutes."
         : "OTP sent successfully. It is valid for 5 minutes."
     });
@@ -514,19 +567,26 @@ export const verifyOtp = async (req, res) => {
     }
 
     const normalizedEmail = email.toLowerCase().trim();
-    const redisKey = `otp:${normalizedEmail}`;
 
-    // Get stored OTP from Redis
-    const storedOtp = await redis.get(redisKey);
+    // Find valid OTP record in MongoDB
+    const otpRecord = await Otp.findOne({
+      email: normalizedEmail,
+      type: "forgot_password",
+      expiresAt: { $gt: new Date() },
+    });
 
-    if (!storedOtp) {
+    // --- Redis retrieval (commented out) ---
+    // const redisKey = `otp:${normalizedEmail}`;
+    // const storedOtp = await redis.get(redisKey);
+
+    if (!otpRecord) {
       return res.status(400).json({
         success: false,
         message: "OTP has expired or does not exist. Please request a new OTP.",
       });
     }
 
-    if (storedOtp.trim() !== otp.toString().trim()) {
+    if (otpRecord.otp.trim() !== otp.toString().trim()) {
       return res.status(400).json({
         success: false,
         message: "Invalid OTP. Please try again.",
@@ -548,8 +608,11 @@ export const verifyOtp = async (req, res) => {
     user.password = hashedPassword;
     await user.save();
 
-    // Delete verified OTP from Redis
-    await redis.del(redisKey);
+    // Delete verified OTP from MongoDB
+    await Otp.deleteOne({ _id: otpRecord._id });
+
+    // --- Delete verified OTP from Redis (commented out) ---
+    // await redis.del(redisKey);
 
     return res.status(200).json({
       success: true,

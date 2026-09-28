@@ -12,6 +12,8 @@ import {
   RefreshCw,
   CheckCircle2,
   RotateCcw,
+  Coins,
+  Tag,
 } from "lucide-react";
 import { useAuth } from "../../context/authContext";
 import {
@@ -385,13 +387,27 @@ const Orders: React.FC = () => {
                 const address = order.shippingAddress || order.address;
                 const fullAddressString = formatFullAddress(address);
                 const paymentMode = (order.paymentMode || order.paymentMethod || "COD").toUpperCase();
-                const isOnline = paymentMode !== "COD";
+                const isOnline = paymentMode === "ONLINE" || (paymentMode !== "COD" && paymentMode !== "POINTS");
                 const payStatus = (order.paymentStatus || (paymentMode === "COD" ? "pending" : "paid")).toLowerCase();
                 
                 // Robust normalization for fulfillment status
                 const rawOrdStatus = order.orderStatus || order.status || (order as any).deliveryStatus || (order as any).fulfillmentStatus;
                 const ordStatus = normalizeOrderStatus(rawOrdStatus);
                 const isCancelled = ordStatus === "cancelled";
+
+                // Discounts calculation
+                const referralDiscount =
+                  Number(order.discount ?? order.referralDiscount ?? 0) ||
+                  (Array.isArray(order.appliedReferrals)
+                    ? order.appliedReferrals.reduce(
+                        (sum: number, ref: any) =>
+                          sum + (Number(ref.totalDiscount) || Number(ref.discountAmount) || 0),
+                        0
+                      )
+                    : 0);
+                const ptsDiscount = Number(order.pointDiscount ?? order.pointsDiscount ?? 0);
+                const ptsUsed = Number(order.pointsUsed ?? (ptsDiscount > 0 ? ptsDiscount : 0));
+                const totalDiscount = Number(order.totalDiscount ?? (referralDiscount + ptsDiscount));
 
                 // Total calculation
                 const itemsTotal =
@@ -412,9 +428,9 @@ const Orders: React.FC = () => {
                     ? order.orderTotal
                     : typeof order.totalAmount === "number"
                     ? order.totalAmount
-                    : itemsTotal + deliveryCharges;
+                    : Math.max(0, itemsTotal - totalDiscount + deliveryCharges);
 
-                const canRefund = isOnline && payStatus === "paid";
+                const canRefund = isOnline && payStatus === "paid" && paymentMode !== "POINTS";
 
                 return (
                   <tr key={order._id} className={`admin-order-row ${isCancelled ? "row-cancelled" : ""}`}>
@@ -507,7 +523,7 @@ const Orders: React.FC = () => {
                       </div>
                     </td>
 
-                    {/* Order Total */}
+                    {/* Order Total & Discounts */}
                     <td className="cell-order-total">
                       <div className="total-cell">
                         <strong className="total-highlight-txt">{formatCurrency(orderTotal)}</strong>
@@ -516,6 +532,26 @@ const Orders: React.FC = () => {
                         ) : (
                           <span className="delivery-note free">Free Delivery</span>
                         )}
+                        {(referralDiscount > 0 || ptsDiscount > 0) && (
+                          <div className="admin-order-discounts-badges">
+                            {referralDiscount > 0 && (
+                              <span
+                                className="admin-order-discount-pill referral"
+                                title={`Referral discount: -₹${referralDiscount}`}
+                              >
+                                <Tag size={9} /> -{formatCurrency(referralDiscount)}
+                              </span>
+                            )}
+                            {ptsDiscount > 0 && (
+                              <span
+                                className="admin-order-discount-pill points"
+                                title={`Points discount: -₹${ptsDiscount} (${ptsUsed} pts)`}
+                              >
+                                <Coins size={9} /> -{formatCurrency(ptsDiscount)} ({ptsUsed} pts)
+                              </span>
+                            )}
+                          </div>
+                        )}
                       </div>
                     </td>
 
@@ -523,8 +559,23 @@ const Orders: React.FC = () => {
                     <td className="cell-order-pay">
                       <div className="payment-cell">
                         <div className="pay-mode-row">
-                          <span className={`pay-mode-badge ${isOnline ? "mode-online" : "mode-cod"}`}>
-                            {paymentMode}
+                          <span
+                            className={`pay-mode-badge ${
+                              paymentMode === "POINTS"
+                                ? "mode-points"
+                                : isOnline
+                                ? "mode-online"
+                                : "mode-cod"
+                            }`}
+                          >
+                            {paymentMode === "POINTS" ? (
+                              <>
+                                <Coins size={9} style={{ marginRight: 3, verticalAlign: "middle" }} />
+                                POINTS
+                              </>
+                            ) : (
+                              paymentMode
+                            )}
                           </span>
                           <span className={`admin-pay-status-pill pay-status-${payStatus}`}>
                             {payStatus.toUpperCase()}
@@ -728,41 +779,122 @@ const Orders: React.FC = () => {
                   <span>Payment & Financial Summary</span>
                 </div>
 
-                <div className="modal-financial-grid">
-                  <div className="fin-row">
-                    <span>Payment Mode:</span>
-                    <strong className="capitalize">
-                      {(selectedOrder.paymentMode || selectedOrder.paymentMethod || "COD").toUpperCase()}
-                    </strong>
-                  </div>
-                  <div className="fin-row">
-                    <span>Payment Status:</span>
-                    <span className={`admin-pay-status-pill pay-status-${(selectedOrder.paymentStatus || "pending").toLowerCase()}`}>
-                      {(selectedOrder.paymentStatus || "pending").toUpperCase()}
-                    </span>
-                  </div>
-                  <div className="fin-row">
-                    <span>Items Total:</span>
-                    <span>{formatCurrency(selectedOrder.itemsTotal)}</span>
-                  </div>
-                  <div className="fin-row">
-                    <span>Delivery Charges:</span>
-                    <span>
-                      {selectedOrder.deliveryCharges === 0
-                        ? "FREE"
-                        : `+ ${formatCurrency(selectedOrder.deliveryCharges)}`}
-                    </span>
-                  </div>
-                  <div className="fin-row grand-total">
-                    <span>Grand Order Total:</span>
-                    <strong>{formatCurrency(selectedOrder.orderTotal || selectedOrder.totalAmount)}</strong>
-                  </div>
-                </div>
+                {(() => {
+                  const modalRefDiscount =
+                    Number(selectedOrder.discount ?? selectedOrder.referralDiscount ?? 0) ||
+                    (Array.isArray(selectedOrder.appliedReferrals)
+                      ? selectedOrder.appliedReferrals.reduce(
+                          (sum: number, ref: any) =>
+                            sum + (Number(ref.totalDiscount) || Number(ref.discountAmount) || 0),
+                          0
+                        )
+                      : 0);
+                  const modalPtsDiscount = Number(selectedOrder.pointDiscount ?? selectedOrder.pointsDiscount ?? 0);
+                  const modalPtsUsed = Number(selectedOrder.pointsUsed ?? (modalPtsDiscount > 0 ? modalPtsDiscount : 0));
+                  const modalTotalDiscount = Number(selectedOrder.totalDiscount ?? (modalRefDiscount + modalPtsDiscount));
+                  const modalPaymentMode = (selectedOrder.paymentMode || selectedOrder.paymentMethod || "COD").toUpperCase();
+                  const modalPayStatus = (selectedOrder.paymentStatus || (modalPaymentMode === "COD" ? "pending" : "paid")).toLowerCase();
+
+                  // Subtotal calculation
+                  const modalItemsTotal =
+                    typeof selectedOrder.itemsTotal === "number" && selectedOrder.itemsTotal > 0
+                      ? selectedOrder.itemsTotal
+                      : (selectedOrder.products || selectedOrder.items || []).reduce((sum, item) => {
+                          const price =
+                            item.purchasePrice ??
+                            item.price ??
+                            (typeof item.productId === "object" ? item.productId?.price : 0) ??
+                            0;
+                          return sum + price * (item.quantity || 1);
+                        }, 0);
+
+                  return (
+                    <div className="modal-financial-grid">
+                      <div className="fin-row">
+                        <span>Payment Mode:</span>
+                        {modalPaymentMode === "POINTS" ? (
+                          <span className="pay-mode-badge mode-points" style={{ padding: "3px 8px", fontSize: "11px" }}>
+                            <Coins size={12} style={{ marginRight: 4 }} />
+                            REWARD POINTS (₹0 Cash)
+                          </span>
+                        ) : (
+                          <strong className="capitalize">{modalPaymentMode}</strong>
+                        )}
+                      </div>
+                      <div className="fin-row">
+                        <span>Payment Status:</span>
+                        <span className={`admin-pay-status-pill pay-status-${modalPayStatus}`}>
+                          {modalPayStatus.toUpperCase()}
+                        </span>
+                      </div>
+                      <div className="fin-row">
+                        <span>Items Total (Subtotal):</span>
+                        <span>{formatCurrency(modalItemsTotal)}</span>
+                      </div>
+
+                      {/* Referral Discount */}
+                      {modalRefDiscount > 0 && (
+                        <div className="fin-row discount-row referral">
+                          <span className="discount-label">
+                            <Tag size={12} className="fin-disc-icon" /> Referral Discount:
+                          </span>
+                          <span className="discount-value green-discount">
+                            - {formatCurrency(modalRefDiscount)}
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Points Discount */}
+                      {modalPtsDiscount > 0 && (
+                        <div className="fin-row discount-row points">
+                          <span className="discount-label">
+                            <Coins size={12} className="fin-disc-icon" /> Points Discount ({modalPtsUsed} pts):
+                          </span>
+                          <span className="discount-value amber-discount">
+                            - {formatCurrency(modalPtsDiscount)}
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Total Discounts applied if both exist */}
+                      {modalRefDiscount > 0 && modalPtsDiscount > 0 && (
+                        <div className="fin-row discount-row sub-total-discount">
+                          <span className="discount-label total">Total Discounts:</span>
+                          <span className="discount-value total-discount-val">
+                            - {formatCurrency(modalTotalDiscount)}
+                          </span>
+                        </div>
+                      )}
+
+                      <div className="fin-row">
+                        <span>Delivery Charges:</span>
+                        <span>
+                          {selectedOrder.deliveryCharges === 0
+                            ? "FREE"
+                            : `+ ${formatCurrency(selectedOrder.deliveryCharges)}`}
+                        </span>
+                      </div>
+
+                      <div className="fin-row grand-total">
+                        <span>Grand Order Total:</span>
+                        <div className="grand-total-val-box">
+                          <strong>{formatCurrency(selectedOrder.orderTotal || selectedOrder.totalAmount)}</strong>
+                          {modalTotalDiscount > 0 && (
+                            <span className="fin-savings-badge">
+                              Saved {formatCurrency(modalTotalDiscount)}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
             </div>
 
             <div className="modal-footer">
               {(selectedOrder.paymentMode || selectedOrder.paymentMethod || "").toLowerCase() !== "cod" &&
+                (selectedOrder.paymentMode || selectedOrder.paymentMethod || "").toLowerCase() !== "points" &&
                 (selectedOrder.paymentStatus || "").toLowerCase() === "paid" && (
                   <button
                     className="modal-refund-action-btn"

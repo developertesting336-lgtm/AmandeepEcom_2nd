@@ -2,6 +2,7 @@ import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import mongoose from "mongoose";
 import Product from "../models/Product.js";
+import Referral from "../models/Referral.js";
 import redis from "../config/redis.js";
 
 /**
@@ -76,21 +77,33 @@ export const createReferralLink = async (req, res) => {
 
     const token = jwt.sign(payload, secret);
 
-    // 8. Store JTI in Redis with TTL matching token expiry for single-use check
-    const redisKey = `referral:jti:${jti}`;
-    await redis.set(
-      redisKey,
-      JSON.stringify({
-        status: "active",
-        creator_id: creatorId.toString(),
-        product_id: product._id.toString(),
-        discount_amount: discountAmount,
-        reward_points: rewardPoints,
-        createdAt: new Date().toISOString(),
-      }),
-      "EX",
-      expiresInSeconds
-    );
+    // 8. Store Referral in MongoDB with 7-day TTL index
+    await Referral.create({
+      jti,
+      token,
+      creator: creatorId,
+      product: product._id,
+      discountAmount,
+      rewardPoints,
+      status: "active",
+      expiresAt: new Date(Date.now() + expiresInSeconds * 1000),
+    });
+
+    // --- Redis storage (commented out) ---
+    // const redisKey = `referral:jti:${jti}`;
+    // await redis.set(
+    //   redisKey,
+    //   JSON.stringify({
+    //     status: "active",
+    //     creator_id: creatorId.toString(),
+    //     product_id: product._id.toString(),
+    //     discount_amount: discountAmount,
+    //     reward_points: rewardPoints,
+    //     createdAt: new Date().toISOString(),
+    //   }),
+    //   "EX",
+    //   expiresInSeconds
+    // );
 
     // 9. Construct shareable URL
     const frontendUrl =
@@ -182,11 +195,18 @@ export const verifyReferralToken = async (req, res) => {
       });
     }
 
-    // 4. Verify JTI exists in Redis (ensures single-use and not yet burned/expired)
-    const redisKey = `referral:jti:${decoded.jti}`;
-    const redisData = await redis.get(redisKey);
+    // 4. Verify Referral exists in MongoDB and is active / unexpired
+    const referralRecord = await Referral.findOne({
+      jti: decoded.jti,
+      status: "active",
+      expiresAt: { $gt: new Date() },
+    });
 
-    if (!redisData) {
+    // --- Redis check (commented out) ---
+    // const redisKey = `referral:jti:${decoded.jti}`;
+    // const redisData = await redis.get(redisKey);
+
+    if (!referralRecord) {
       return res.status(400).json({
         success: false,
         message: "This referral link has already been used or has expired",
