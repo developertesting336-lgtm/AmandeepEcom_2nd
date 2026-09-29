@@ -19,10 +19,12 @@ export interface ProductReviewsProps {
   productId: string;
   productName: string;
   productImage?: string;
+  onStatsLoaded?: (stats: { ratingsCount: number; ratingsAverage: number }) => void;
 }
 
 export const ProductReviews: React.FC<ProductReviewsProps> = ({
   productId,
+  onStatsLoaded,
 }) => {
   const { token } = useAuth();
 
@@ -85,6 +87,13 @@ export const ProductReviews: React.FC<ProductReviewsProps> = ({
           const data = res.data;
           setRatingsAverage(data.ratingsAverage || 0);
           setRatingsCount(data.ratingsCount || 0);
+
+          if (onStatsLoaded) {
+            onStatsLoaded({
+              ratingsCount: data.ratingsCount || 0,
+              ratingsAverage: data.ratingsAverage || 0,
+            });
+          }
 
           if (data.ratingDistribution) {
             setRatingDistribution({

@@ -362,34 +362,39 @@
 }
 
 /* TRUST / GUARANTEE BADGES */
+/* TRUST / GUARANTEE BADGES (COMPACT HEADER-ONLY) */
 .pdp-trust-cards-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 14px;
-  margin-bottom: 24px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
 }
 
 .pdp-trust-card {
-  padding: 12px 16px;
-  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 11px;
+  border-radius: 6px;
+  background-color: transparent;
+  border: 1px solid #e2e8f0;
   box-sizing: border-box;
+  transition: all 0.15s ease;
+}
+
+.pdp-trust-card:hover {
+  border-color: #cbd5e1;
+  background-color: #f8fafc;
+}
+
+.pdp-trust-card .pdp-trust-icon {
+  flex-shrink: 0;
 }
 
 .pdp-trust-card.warranty {
-  background-color: #f0fdf4;
-  border: 1px solid #bbf7d0;
-}
-
-.pdp-trust-card.return-policy {
-  background-color: #eff6ff;
-  border: 1px solid #bfdbfe;
-}
-
-.pdp-trust-card-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 4px;
+  background-color: transparent;
+  border: 1px solid #e2e8f0;
 }
 
 .pdp-trust-card.warranty .pdp-trust-icon {
@@ -397,9 +402,15 @@
 }
 
 .pdp-trust-card.warranty .pdp-trust-card-title {
-  color: #15803d;
-  font-size: 13px;
-  font-weight: 700;
+  color: #1e293b;
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.pdp-trust-card.return-policy {
+  background-color: transparent;
+  border: 1px solid #e2e8f0;
 }
 
 .pdp-trust-card.return-policy .pdp-trust-icon {
@@ -407,16 +418,10 @@
 }
 
 .pdp-trust-card.return-policy .pdp-trust-card-title {
-  color: #1d4ed8;
-  font-size: 13px;
-  font-weight: 700;
-}
-
-.pdp-trust-card-desc {
-  font-size: 12px;
-  color: #475569;
-  margin: 0;
-  line-height: 1.35;
+  color: #1e293b;
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.2;
 }
 
 /* PURCHASE ACTIONS ROW */
@@ -814,8 +819,8 @@
   }
 
   .pdp-trust-cards-grid {
-    grid-template-columns: 1fr;
-    gap: 10px;
+    gap: 8px;
+    margin-bottom: 14px;
   }
 
   .pdp-actions-row {
@@ -1454,3 +1459,373 @@
   box-shadow: 0 4px 12px rgba(16, 185, 129, 0.35);
   letter-spacing: 0.2px;
 }
+
+/* =====================================================
+   STICKY BOTTOM ACTION BAR (STICKS ON SCROLL UNTIL PDP MAIN CARD ENDS)
+===================================================== */
+.pdp-sticky-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-top: 1px solid rgba(226, 232, 240, 0.9);
+  box-shadow: 0 -8px 25px -4px rgba(15, 23, 42, 0.08), 0 -2px 6px -1px rgba(15, 23, 42, 0.04);
+  z-index: 999;
+  padding: 10px 0;
+  box-sizing: border-box;
+}
+
+.pdp-sticky-bar-inner {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 0 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  box-sizing: border-box;
+}
+
+@media (min-width: 1600px) {
+  .pdp-sticky-bar-inner {
+    max-width: 1600px;
+    padding: 0 36px;
+  }
+}
+
+/* LEFT: PRODUCT PREVIEW */
+.pdp-sticky-preview {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+  flex: 1;
+}
+
+.pdp-sticky-thumb {
+  width: 48px;
+  height: 48px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  background-color: #ffffff;
+  object-fit: contain;
+  padding: 2px;
+  flex-shrink: 0;
+}
+
+.pdp-sticky-text-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.pdp-sticky-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.pdp-sticky-title {
+  font-size: 14.5px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 440px;
+}
+
+.pdp-sticky-variant-badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  color: #2563eb;
+  background-color: #eff6ff;
+  border: 1px solid #bfdbfe;
+  padding: 1px 6px;
+  border-radius: 4px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.pdp-sticky-pricing-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.pdp-sticky-price {
+  font-size: 18px;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.3px;
+}
+
+.pdp-sticky-old-price {
+  font-size: 13px;
+  color: #94a3b8;
+  text-decoration: line-through;
+}
+
+.pdp-sticky-discount-pill {
+  font-size: 11px;
+  font-weight: 700;
+  color: #16a34a;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  padding: 1px 6px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+.pdp-sticky-referral-tag {
+  font-size: 11px;
+  font-weight: 700;
+  color: #2563eb;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  padding: 1px 6px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+/* RIGHT: ACTIONS */
+.pdp-sticky-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.pdp-sticky-mobile-price {
+  display: none;
+}
+
+.pdp-sticky-qty {
+  display: inline-flex;
+  align-items: center;
+  background-color: #ffffff;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 8px;
+  height: 44px;
+  box-sizing: border-box;
+}
+
+.pdp-sticky-qty-btn {
+  width: 34px;
+  height: 100%;
+  background: transparent;
+  border: none;
+  color: #0f172a;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+  padding: 0;
+}
+
+.pdp-sticky-qty-btn:hover {
+  background-color: #f1f5f9;
+  color: #2563eb;
+}
+
+.pdp-sticky-qty-num {
+  width: 30px;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.pdp-sticky-btns-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.pdp-sticky-btn {
+  height: 44px;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  border: none;
+  padding: 0 20px;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+}
+
+.pdp-sticky-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.pdp-sticky-btn-cart {
+  background-color: #0f172a;
+  color: #ffffff;
+}
+
+.pdp-sticky-btn-cart:hover:not(:disabled) {
+  background-color: #1e293b;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.18);
+}
+
+.pdp-sticky-btn-cart.added {
+  background-color: #fef08a !important;
+  color: #713f12 !important;
+  box-shadow: 0 4px 14px rgba(254, 240, 138, 0.4) !important;
+}
+
+.pdp-sticky-btn-buy {
+  background-color: #2563eb;
+  color: #ffffff;
+}
+
+.pdp-sticky-btn-buy:hover:not(:disabled) {
+  background-color: #1d4ed8;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
+}
+
+/* RESPONSIVE STICKY BAR */
+@media (max-width: 960px) {
+  .pdp-sticky-title {
+    max-width: 240px;
+  }
+}
+
+@media (max-width: 768px) {
+  .pdp-sticky-bar {
+    padding: 8px 0;
+    padding-bottom: max(8px, env(safe-area-inset-bottom));
+  }
+
+  .pdp-sticky-bar-inner {
+    padding: 0 14px;
+    gap: 12px;
+  }
+
+  .pdp-sticky-preview {
+    gap: 10px;
+  }
+
+  .pdp-sticky-thumb {
+    width: 40px;
+    height: 40px;
+  }
+
+  .pdp-sticky-title {
+    max-width: 140px;
+    font-size: 13px;
+  }
+
+  .pdp-sticky-price {
+    font-size: 15px;
+  }
+
+  .pdp-sticky-old-price,
+  .pdp-sticky-discount-pill,
+  .pdp-sticky-referral-tag {
+    display: none;
+  }
+
+  .pdp-sticky-btn {
+    height: 42px;
+    font-size: 13px;
+    padding: 0 14px;
+    gap: 6px;
+  }
+
+  .pdp-sticky-qty {
+    height: 42px;
+  }
+
+  .pdp-sticky-qty-btn {
+    width: 28px;
+  }
+
+  .pdp-sticky-qty-num {
+    width: 24px;
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 540px) {
+  .pdp-sticky-preview {
+    display: none;
+  }
+
+  .pdp-sticky-actions {
+    width: 100%;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  .pdp-sticky-mobile-price {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 1px;
+    min-width: 65px;
+  }
+
+  .pdp-sticky-mobile-price .pdp-sticky-price {
+    font-size: 16px;
+    line-height: 1.1;
+  }
+
+  .pdp-sticky-mobile-price .pdp-sticky-discount-pill {
+    display: inline-block;
+    font-size: 10px;
+    padding: 1px 4px;
+    width: fit-content;
+  }
+
+  .pdp-sticky-qty {
+    height: 40px;
+  }
+
+  .pdp-sticky-qty-btn {
+    width: 26px;
+    font-size: 14px;
+  }
+
+  .pdp-sticky-qty-num {
+    width: 20px;
+    font-size: 12.5px;
+  }
+
+  .pdp-sticky-btns-group {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+  }
+
+  .pdp-sticky-btn {
+    width: 100%;
+    height: 40px;
+    font-size: 12.5px;
+    padding: 0 8px;
+    gap: 4px;
+  }
+}
+

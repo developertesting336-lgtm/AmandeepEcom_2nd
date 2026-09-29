@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import {
   ArrowLeft,
@@ -33,6 +33,7 @@ import SimilarProducts from "./SimilarProducts";
 import RecommendedSection from "../Home/RecommendedSection";
 import VariantSelectionModal, { isProductWithVariants, parseVariants } from "../../components/common/VariantSelectionModal/VariantSelectionModal";
 import ProductReviews from "../../components/common/ProductReviews/ProductReviews";
+import ProductImageZoom from "../../components/ProductImageZoom";
 import "./ProductDetails.css";
 
 import product1 from "../../assets/1.jpeg";
@@ -226,6 +227,41 @@ const ProductDetails = () => {
   const [referralShareModalOpen, setReferralShareModalOpen] = useState(false);
   const [generatedReferralLink, setGeneratedReferralLink] = useState("");
   const [copiedLink, setCopiedLink] = useState(false);
+
+  // Sticky bottom actions bar state & ref
+  const mainCardRef = useRef<HTMLDivElement>(null);
+  const [isStickyBarVisible, setIsStickyBarVisible] = useState(false);
+
+  // Reviews stats state (synced with ProductReviews)
+  const [reviewsCount, setReviewsCount] = useState<number | null>(null);
+  const [reviewsAverage, setReviewsAverage] = useState<number | null>(null);
+
+  // Scroll listener: sticky bottom actions until pdp-main-card ends
+  useEffect(() => {
+    const handleScroll = () => {
+      if (!mainCardRef.current) return;
+      const cardRect = mainCardRef.current.getBoundingClientRect();
+      const vh = window.innerHeight;
+
+      // 1. User has scrolled down into the page
+      const hasScrolled = window.scrollY > 80;
+
+      // 2. pdp-main-card has not ended yet:
+      // The bottom of pdp-main-card is still below the viewport bottom
+      const cardNotEnded = cardRect.bottom > vh;
+
+      setIsStickyBarVisible(hasScrolled && cardNotEnded);
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    window.addEventListener("resize", handleScroll, { passive: true });
+    handleScroll();
+
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      window.removeEventListener("resize", handleScroll);
+    };
+  }, []);
 
   // Sync active referral for this product from localStorage on mount or product change
   useEffect(() => {
@@ -436,6 +472,12 @@ const ProductDetails = () => {
 
         if (fetchedProduct && typeof fetchedProduct === "object" && fetchedProduct._id) {
           setProduct(fetchedProduct);
+          if (typeof fetchedProduct.ratingsCount === "number") {
+            setReviewsCount(fetchedProduct.ratingsCount);
+          }
+          if (typeof fetchedProduct.ratingsAverage === "number") {
+            setReviewsAverage(fetchedProduct.ratingsAverage);
+          }
           if (productId) {
             const allRefs = getStoredReferrals();
             if (allRefs[productId] && (!allRefs[productId].productName || allRefs[productId].productName === "Product")) {
@@ -523,7 +565,7 @@ const ProductDetails = () => {
         });
 
         setIsAdded(true);
-        setTimeout(() => setIsAdded(false), 100000);
+        setTimeout(() => setIsAdded(false), 3500);
       }
     } catch (error: any) {
       toast.error("Failed to add product to cart");
@@ -746,6 +788,9 @@ const ProductDetails = () => {
         ? product.category
         : "";
 
+  const totalRatingsCount = reviewsCount !== null ? reviewsCount : (Number(product.ratingsCount) || 0);
+  const currentRatingsAvg = reviewsAverage !== null ? reviewsAverage : (Number(product.ratingsAverage) || 0);
+
   const subcategoryName: string =
     typeof product.subcategory === "object" && product.subcategory !== null
       ? product.subcategory.name
@@ -791,8 +836,8 @@ const ProductDetails = () => {
 
   const warrantyType = parsedWarranty?.type && parsedWarranty.type !== "No Warranty" ? parsedWarranty.type : "Warranty";
   const warrantyTitle = warrantyDuration ? `${warrantyDuration} ${warrantyType}` : warrantyType;
-  const warrantyDesc =
-    parsedWarranty?.description || parsedWarranty?.terms || "Standard warranty against manufacturing defects";
+  // const warrantyDesc =
+  //   parsedWarranty?.description || parsedWarranty?.terms || "Standard warranty against manufacturing defects";
 
   // Return Policy availability from backend
   const hasReturnPolicy = Boolean(
@@ -822,16 +867,16 @@ const ProductDetails = () => {
           ? "Refund Available"
           : "Return Policy Available";
 
-  const returnDesc =
-    parsedReturnPolicy?.description ||
-    parsedReturnPolicy?.conditions ||
-    (parsedReturnPolicy?.replacementAvailable && parsedReturnPolicy?.refundAvailable
-      ? "Eligible for refund or replacement under policy"
-      : parsedReturnPolicy?.refundAvailable
-        ? "Eligible for refund under policy conditions"
-        : parsedReturnPolicy?.replacementAvailable
-          ? "Eligible for replacement under policy conditions"
-          : "Eligible for return as per store policy");
+  // const returnDesc =
+  //   parsedReturnPolicy?.description ||
+  //   parsedReturnPolicy?.conditions ||
+  //   (parsedReturnPolicy?.replacementAvailable && parsedReturnPolicy?.refundAvailable
+  //     ? "Eligible for refund or replacement under policy"
+  //     : parsedReturnPolicy?.refundAvailable
+  //       ? "Eligible for refund under policy conditions"
+  //       : parsedReturnPolicy?.replacementAvailable
+  //         ? "Eligible for replacement under policy conditions"
+  //         : "Eligible for return as per store policy");
 
   // Specs extraction helpers from parsed backend details
   const sizeVal = parsedDetails?.size?.trim();
@@ -867,45 +912,30 @@ const ProductDetails = () => {
 
 
         {/* MAIN PRODUCT BOX */}
-        <div className="pdp-main-card">
+        <div className="pdp-main-card" ref={mainCardRef}>
           {/* LEFT: GALLERY ZONE */}
           <div className="pdp-gallery-zone">
-            <div className="pdp-main-image-wrap">
-              <button
-                type="button"
-                className={`pdp-wishlist-btn ${isWishlisted ? "active" : ""}`}
-                onClick={toggleWishlist}
-                aria-label="Toggle Wishlist"
-              >
-                <Heart
-                  size={18}
-                  fill={isWishlisted ? "#dc2626" : "none"}
-                  color={isWishlisted ? "#dc2626" : "#64748b"}
-                />
-              </button>
-              <img
-                src={mainImage}
-                alt={product.name}
-                className="pdp-main-image"
-              />
-            </div>
-
-            {/* THUMBNAILS ROW - DYNAMIC TO NUMBER OF IMAGES */}
-            {imagesList.length > 1 && (
-              <div className="pdp-thumbs-row">
-                {imagesList.map((img, idx) => (
-                  <button
-                    key={idx}
-                    type="button"
-                    className={`pdp-thumb-btn ${idx === selectedImgIndex ? "active" : ""}`}
-                    onClick={() => setSelectedImgIndex(idx)}
-                  >
-                    <img src={img} alt={`Thumb ${idx + 1}`} />
-                    <span className="pdp-thumb-label">Image {idx + 1}</span>
-                  </button>
-                ))}
-              </div>
-            )}
+            <ProductImageZoom
+              images={imagesList}
+              alt={product.name}
+              selectedImageIndex={selectedImgIndex}
+              onImageChange={setSelectedImgIndex}
+              zoomLevel={3}
+              overlayTopRight={
+                <button
+                  type="button"
+                  className={`pdp-wishlist-btn ${isWishlisted ? "active" : ""}`}
+                  onClick={toggleWishlist}
+                  aria-label="Toggle Wishlist"
+                >
+                  <Heart
+                    size={18}
+                    fill={isWishlisted ? "#dc2626" : "none"}
+                    color={isWishlisted ? "#dc2626" : "#64748b"}
+                  />
+                </button>
+              }
+            />
           </div>
 
           {/* RIGHT: INFO & CONVERSION ZONE */}
@@ -918,46 +948,46 @@ const ProductDetails = () => {
             {/* PRODUCT TITLE */}
             <h2 className="pdp-product-title">{product.name}</h2>
 
-            {/* RATING SNIPPET */}
-            <div className="pdp-rating-row">
-              <a
-                href="#product-reviews-container"
-                className="pdp-rating-badge-link"
-                onClick={(e) => {
-                  e.preventDefault();
-                  window.dispatchEvent(new CustomEvent("open-product-reviews"));
-                  setTimeout(() => {
-                    document
-                      .getElementById("product-reviews-container")
-                      ?.scrollIntoView({ behavior: "smooth" });
-                  }, 50);
-                }}
-              >
-                <span className="pdp-star-val">
-                  {product.ratingsAverage && product.ratingsAverage > 0
-                    ? product.ratingsAverage.toFixed(1)
-                    : "0.0"}
-                </span>
-                <Star size={12} className="pdp-star-icon" />
-              </a>
-              <a
-                href="#product-reviews-container"
-                className="pdp-reviews-count-link"
-                onClick={(e) => {
-                  e.preventDefault();
-                  window.dispatchEvent(new CustomEvent("open-product-reviews"));
-                  setTimeout(() => {
-                    document
-                      .getElementById("product-reviews-container")
-                      ?.scrollIntoView({ behavior: "smooth" });
-                  }, 50);
-                }}
-              >
-                {product.ratingsCount && product.ratingsCount > 0
-                  ? `${product.ratingsCount} ${product.ratingsCount === 1 ? "Rating" : "Ratings"}`
-                  : "No reviews yet"}
-              </a>
-            </div>
+            {/* RATING SNIPPET - ONLY VISIBLE IF MORE THAN 5 REVIEWS */}
+            {totalRatingsCount > 5 && (
+              <div className="pdp-rating-row">
+                <a
+                  href="#product-reviews-container"
+                  className="pdp-rating-badge-link"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    window.dispatchEvent(new CustomEvent("open-product-reviews"));
+                    setTimeout(() => {
+                      document
+                        .getElementById("product-reviews-container")
+                        ?.scrollIntoView({ behavior: "smooth" });
+                    }, 50);
+                  }}
+                >
+                  <span className="pdp-star-val">
+                    {currentRatingsAvg > 0
+                      ? currentRatingsAvg.toFixed(1)
+                      : "0.0"}
+                  </span>
+                  <Star size={12} className="pdp-star-icon" />
+                </a>
+                <a
+                  href="#product-reviews-container"
+                  className="pdp-reviews-count-link"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    window.dispatchEvent(new CustomEvent("open-product-reviews"));
+                    setTimeout(() => {
+                      document
+                        .getElementById("product-reviews-container")
+                        ?.scrollIntoView({ behavior: "smooth" });
+                    }, 50);
+                  }}
+                >
+                  {totalRatingsCount} {totalRatingsCount === 1 ? "Rating" : "Ratings"}
+                </a>
+              </div>
+            )}
 
             {/* STOCK STATUS */}
             {/* <div className="pdp-meta-row">
@@ -1115,22 +1145,16 @@ const ProductDetails = () => {
                 {/* Warranty Card */}
                 {hasWarranty && (
                   <div className="pdp-trust-card warranty">
-                    <div className="pdp-trust-card-header">
-                      <ShieldCheck size={16} className="pdp-trust-icon" />
-                      <span className="pdp-trust-card-title">{warrantyTitle}</span>
-                    </div>
-                    <p className="pdp-trust-card-desc">{warrantyDesc}</p>
+                    <ShieldCheck size={15} className="pdp-trust-icon" />
+                    <span className="pdp-trust-card-title">{warrantyTitle}</span>
                   </div>
                 )}
 
                 {/* Return Policy Card */}
                 {hasReturnPolicy && (
                   <div className="pdp-trust-card return-policy">
-                    <div className="pdp-trust-card-header">
-                      <RotateCcw size={16} className="pdp-trust-icon" />
-                      <span className="pdp-trust-card-title">{returnTitle}</span>
-                    </div>
-                    <p className="pdp-trust-card-desc">{returnDesc}</p>
+                    <RotateCcw size={15} className="pdp-trust-icon" />
+                    <span className="pdp-trust-card-title">{returnTitle}</span>
                   </div>
                 )}
               </div>
@@ -1476,6 +1500,10 @@ const ProductDetails = () => {
             productId={product._id}
             productName={product.name}
             productImage={imagesList[0]}
+            onStatsLoaded={({ ratingsCount, ratingsAverage }) => {
+              setReviewsCount(ratingsCount);
+              setReviewsAverage(ratingsAverage);
+            }}
           />
         )}
       </div>
@@ -1493,7 +1521,7 @@ const ProductDetails = () => {
               setSelectedVariantIndex(vIdx);
             }
             setIsAdded(true);
-            setTimeout(() => setIsAdded(false), 100000);
+            setTimeout(() => setIsAdded(false), 3500);
           }}
         />
       )}
@@ -1589,6 +1617,149 @@ const ProductDetails = () => {
               </div>
             </motion.div>
           </div>
+        )}
+      </AnimatePresence>
+
+      {/* STICKY BOTTOM ACTION BAR (STICKS ON SCROLL UNTIL PDP MAIN CARD ENDS) */}
+      <AnimatePresence>
+        {isStickyBarVisible && product && (
+          <motion.div
+            className="pdp-sticky-bar"
+            initial={{ y: "100%", opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: "100%", opacity: 0 }}
+            transition={{ type: "spring", damping: 28, stiffness: 280 }}
+          >
+            <div className="pdp-sticky-bar-inner">
+              {/* LEFT: PRODUCT SUMMARY */}
+              <div className="pdp-sticky-preview">
+                <img
+                  src={mainImage}
+                  alt={product.name}
+                  className="pdp-sticky-thumb"
+                />
+                <div className="pdp-sticky-text-wrap">
+                  <div className="pdp-sticky-title-row">
+                    <span className="pdp-sticky-title">{product.name}</span>
+                    {selectedVariant && selectedVariant.attributes && selectedVariant.attributes.length > 0 && (
+                      <span className="pdp-sticky-variant-badge">
+                        {selectedVariant.attributes.map((a) => a.value).join(" / ")}
+                      </span>
+                    )}
+                  </div>
+                  <div className="pdp-sticky-pricing-row">
+                    <span className="pdp-sticky-price">
+                      ₹{currentPrice.toLocaleString("en-IN")}
+                    </span>
+                    {hasDiscount && (
+                      <>
+                        <span className="pdp-sticky-old-price">
+                          ₹{basePrice.toLocaleString("en-IN")}
+                        </span>
+                        <span className="pdp-sticky-discount-pill">
+                          {discountPercent}% OFF
+                        </span>
+                      </>
+                    )}
+                    {referralDiscount > 0 && (
+                      <span className="pdp-sticky-referral-tag">
+                        ₹{referralDiscount} Referral Applied
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* RIGHT: QUANTITY & ACTION BUTTONS */}
+              <div className="pdp-sticky-actions">
+                {/* Mobile compact price display */}
+                <div className="pdp-sticky-mobile-price">
+                  <span className="pdp-sticky-price">₹{currentPrice.toLocaleString("en-IN")}</span>
+                  {hasDiscount && (
+                    <span className="pdp-sticky-discount-pill">{discountPercent}% OFF</span>
+                  )}
+                </div>
+
+                {/* Quantity Counter */}
+                <div className="pdp-sticky-qty">
+                  <button
+                    type="button"
+                    className="pdp-sticky-qty-btn"
+                    onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+                    aria-label="Decrease quantity"
+                  >
+                    -
+                  </button>
+                  <span className="pdp-sticky-qty-num">{quantity}</span>
+                  <button
+                    type="button"
+                    className="pdp-sticky-qty-btn"
+                    onClick={() => setQuantity((q) => q + 1)}
+                    aria-label="Increase quantity"
+                  >
+                    +
+                  </button>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="pdp-sticky-btns-group">
+                  <motion.button
+                    type="button"
+                    whileTap={{ scale: 0.95 }}
+                    className={`pdp-sticky-btn pdp-sticky-btn-cart ${isAdded ? "added" : ""}`}
+                    onClick={handleAddToCart}
+                    disabled={product.stock <= 0 || isAdding}
+                  >
+                    <AnimatePresence mode="wait">
+                      {isAdded ? (
+                        <motion.span
+                          key="added"
+                          initial={{ opacity: 0, y: 4, scale: 0.9 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          exit={{ opacity: 0, y: -4, scale: 0.9 }}
+                          transition={{ duration: 0.15 }}
+                          style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}
+                        >
+                          <ShoppingCart size={17} strokeWidth={2.2} /> Go to Cart
+                        </motion.span>
+                      ) : isAdding ? (
+                        <motion.span
+                          key="adding"
+                          initial={{ opacity: 0, y: 4 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -4 }}
+                          transition={{ duration: 0.15 }}
+                          style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}
+                        >
+                          <Loader2 size={16} className="animate-spin" /> Adding...
+                        </motion.span>
+                      ) : (
+                        <motion.span
+                          key="idle"
+                          initial={{ opacity: 0, y: 4 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -4 }}
+                          transition={{ duration: 0.15 }}
+                          style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}
+                        >
+                          <ShoppingCart size={17} /> Add to Cart
+                        </motion.span>
+                      )}
+                    </AnimatePresence>
+                  </motion.button>
+
+                  <button
+                    type="button"
+                    className="pdp-sticky-btn pdp-sticky-btn-buy"
+                    onClick={handleBuyNow}
+                    disabled={product.stock <= 0}
+                  >
+                    <Zap size={17} fill="currentColor" /> Buy Now
+                  </button>
+                </div>
+              </div>
+            </div>
+          </motion.div>
         )}
       </AnimatePresence>
 
