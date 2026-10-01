@@ -4,8 +4,10 @@ import {
   updateUserProfile,
   updatePassword,
   getAdminProfile,
+  updateCookieConsent,
+  getCookieConsent,
 } from "../controllers/profile.controller.js";
-import { protect } from "../middlewares/auth.middleware.js";
+import { protect, optionalAuth } from "../middlewares/auth.middleware.js";
 import { adminOnly, userOnly } from "../middlewares/admin.middleware.js";
 
 const router = express.Router();
@@ -21,7 +23,13 @@ router.get("/user", protect, userOnly, getUserProfile);
 router.put("/user", protect, userOnly, updateUserProfile);
 router.put("/user/profile", protect, userOnly, updateUserProfile);
 
-// 3. Update password (with old password verification)
+// 3. Cookie consent preference (Get status & update)
+router.get("/user/cookies", optionalAuth, getCookieConsent);
+router.get("/cookies", optionalAuth, getCookieConsent);
+router.put("/user/cookies", protect, userOnly, updateCookieConsent);
+// router.patch("/user/cookies", protect, userOnly, updateCookieConsent);
+
+// 4. Update password (with old password verification)
 router.put("/user/password", protect, userOnly, updatePassword);
 router.put("/password", protect, userOnly, updatePassword);
 

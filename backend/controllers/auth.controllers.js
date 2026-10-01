@@ -212,6 +212,7 @@ export const verifyRegisterOtp = async (req, res) => {
           email: user.email,
           role: user.role,
           phone: user.phone,
+          isCookiesAccepted: user.isCookiesAccepted || false,
           rewardPoints: user.rewardPoints || 0,
         },
       },
@@ -380,6 +381,7 @@ export const loginUser = async (req, res) => {
       user: {
         id: user._id,
         name: user.name,
+        isCookiesAccepted: user.isCookiesAccepted,
         email: user.email,
         role: user.role,
         rewardPoints: user.rewardPoints || 0,

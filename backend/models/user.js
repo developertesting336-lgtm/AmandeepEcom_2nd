@@ -51,6 +51,16 @@ const userSchema = new mongoose.Schema(
       default: true,
     },
 
+    isCookiesAccepted: {
+      type: Boolean,
+      default: false,
+    },
+
+    cookiesAcceptedAt: {
+      type: Date,
+      default: null,
+    },
+
     rewardPoints: {
       type: Number,
       default: 0,

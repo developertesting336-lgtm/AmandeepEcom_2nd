@@ -27,6 +27,7 @@ import PaymentSuccess from "./pages/Payment/PaymentSuccess";
 import PaymentCancelled from "./pages/Payment/PaymentCancelled";
 import Wishlist from "./pages/Wishlist/Wishlist";
 import PrivacyPolicy from "./pages/Legal/PrivacyPolicy";
+import CookiePolicy from "./pages/Legal/CookiePolicy";
 import TermsConditions from "./pages/Legal/TermsConditions";
 import ShippingPolicy from "./pages/Legal/ShippingPolicy";
 import ContactHelp from "./pages/ContactHelp/ContactHelp";
@@ -47,6 +48,8 @@ const ScrollToTop = () => {
 };
 
 function App() {
+
+
 
   // useEffect(() => {
   //   const registerServiceWorker = async () => {
@@ -120,6 +123,8 @@ function App() {
         <Route path="/oauth-success" element={<OAuthSuccess />} />
         <Route path="/privacy-policy" element={<PrivacyPolicy />} />
         <Route path="/privacy" element={<PrivacyPolicy />} />
+        <Route path="/cookie-policy" element={<CookiePolicy />} />
+        <Route path="/cookies" element={<CookiePolicy />} />
         <Route path="/terms" element={<TermsConditions />} />
         <Route path="/terms-conditions" element={<TermsConditions />} />
         <Route path="/terms-and-conditions" element={<TermsConditions />} />

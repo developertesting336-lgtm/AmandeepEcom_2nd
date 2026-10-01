@@ -468,12 +468,12 @@ const EditProduct = () => {
           const r =
             typeof prod.referral === "string"
               ? (() => {
-                  try {
-                    return JSON.parse(prod.referral);
-                  } catch {
-                    return {};
-                  }
-                })()
+                try {
+                  return JSON.parse(prod.referral);
+                } catch {
+                  return {};
+                }
+              })()
               : prod.referral;
 
           setReferral({
@@ -1059,7 +1059,7 @@ const EditProduct = () => {
               </div>
 
               <div className="edit-group">
-                <label>Stock Quantity *</label>
+                <label>one time Purcahse quantity limit *</label>
                 <input
                   type="number"
                   min="0"

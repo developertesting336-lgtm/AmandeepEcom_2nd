@@ -4,6 +4,7 @@ import Product from "../models/Product.js";
 import Category from "../models/Category.js";
 import Wishlist from "../models/Wishlist.js";
 import UserViewProfile from "../models/UserViewProfile.js";
+import Order from "../models/Order.js";
 import fuzzysort from "fuzzysort";
 import parseNaturalLanguageSearch from "../ai/nlSearch.js";
 
@@ -912,6 +913,150 @@ export const getSimilarProducts = async (req, res) => {
     });
   }
 };
+
+
+/**
+ * @desc    Get most popular products based on order frequency in the last X days (default 30)
+ * @route   GET /api/popular or GET /api/products/popular
+ * @access  Public
+ */
+export const getPopularProducts = async (req, res) => {
+  try {
+    const limit = Math.min(Math.max(Number(req.query.limit) || 10, 1), 50);
+    const days = Math.min(Math.max(Number(req.query.days) || 30, 1), 365);
+
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - days);
+
+    // 1. Aggregate orders in the last `days` days excluding cancelled orders
+    const orderStats = await Order.aggregate([
+      {
+        $match: {
+          createdAt: { $gte: startDate },
+          orderStatus: { $ne: "cancelled" },
+        },
+      },
+      {
+        $unwind: "$products",
+      },
+      {
+        $match: {
+          "products.productId": { $exists: true, $ne: null },
+        },
+      },
+      {
+        $group: {
+          _id: "$products.productId",
+          totalSold: { $sum: { $ifNull: ["$products.quantity", 1] } },
+          orderCount: { $sum: 1 },
+        },
+      },
+      {
+        $sort: { totalSold: -1, orderCount: -1 },
+      },
+      {
+        $limit: limit,
+      },
+    ]);
+
+    const productIds = orderStats.map((item) => item._id);
+
+    let products = [];
+
+    // 2. Fetch full product details for the top ordered products
+    if (productIds.length > 0) {
+      const fetchedProducts = await Product.find({
+        _id: { $in: productIds },
+        isActive: true,
+      })
+        .select(
+          "name short_description price salePrice images category subcategory brand stock rating numReviews isFeatured hasVariants variants sku createdAt"
+        )
+        .populate("category", "name slug")
+        .populate("subcategory", "name slug")
+        .lean();
+
+      const productMap = new Map(
+        fetchedProducts.map((p) => [p._id.toString(), p])
+      );
+
+      for (const stat of orderStats) {
+        const prod = productMap.get(stat._id.toString());
+        if (prod) {
+          products.push({
+            ...prod,
+            totalSold: stat.totalSold,
+            orderCount: stat.orderCount,
+          });
+        }
+      }
+    }
+
+    // 3. Fallback / backfill if fewer than `limit` products have been ordered
+    if (products.length < limit) {
+      const existingIds = products.map((p) => p._id);
+      const remainingLimit = limit - products.length;
+
+      // Try backfilling with active featured products
+      const featured = await Product.find({
+        isActive: true,
+        isFeatured: true,
+        _id: { $nin: existingIds },
+      })
+        .select(
+          "name short_description price salePrice images category subcategory brand stock rating numReviews isFeatured hasVariants variants sku createdAt"
+        )
+        .populate("category", "name slug")
+        .populate("subcategory", "name slug")
+        .limit(remainingLimit)
+        .lean();
+
+      products.push(
+        ...featured.map((p) => ({ ...p, totalSold: 0, orderCount: 0 }))
+      );
+
+      // If still not reached limit, backfill with newest active products
+      if (products.length < limit) {
+        const allExistingIds = products.map((p) => p._id);
+        const finalRemaining = limit - products.length;
+
+        const additional = await Product.find({
+          isActive: true,
+          _id: { $nin: allExistingIds },
+        })
+          .select(
+            "name short_description price salePrice images category subcategory brand stock rating numReviews isFeatured hasVariants variants sku createdAt"
+          )
+          .populate("category", "name slug")
+          .populate("subcategory", "name slug")
+          .sort({ createdAt: -1 })
+          .limit(finalRemaining)
+          .lean();
+
+        products.push(
+          ...additional.map((p) => ({ ...p, totalSold: 0, orderCount: 0 }))
+        );
+      }
+    }
+
+    return res.status(200).json({
+      success: true,
+      count: products.length,
+      timeframeDays: days,
+      data: {
+        products,
+      },
+    });
+  } catch (error) {
+    console.error("Get Popular Products Error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch popular products",
+      error: error.message,
+    });
+  }
+};
+
 
 
 

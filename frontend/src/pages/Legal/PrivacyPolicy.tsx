@@ -71,7 +71,7 @@ const PrivacyPolicy: React.FC = () => {
               </ul>
             </section>
 
-            <section className="legal-section">
+            <section className="legal-section" id="cookies">
               <h2>5. Cookies and Tracking</h2>
               <p>
                 Our website uses cookies and similar technologies to remember your preferences, keep you signed in, manage shopping cart sessions, and analyze site performance. You can choose to disable cookies through your browser settings, though some store features may not function as intended.

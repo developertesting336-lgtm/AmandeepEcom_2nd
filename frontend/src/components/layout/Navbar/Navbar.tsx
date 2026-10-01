@@ -547,30 +547,6 @@ const Navbar = () => {
               </div>
             )}
 
-            {/* Mobile / Top Bar Quick Cart Icon */}
-            {isAuthenticated && user?.role !== "admin" && (
-              <Link
-                to="/cart"
-                id="navbar-cart-mobile-btn"
-                className={`notif-bell-trigger mobile-cart-top-btn ${
-                  isCartBouncing ? "cart-icon-bouncing" : ""
-                }`}
-                onClick={closeMenu}
-                aria-label="View Cart"
-                title="View Cart"
-              >
-                <ShoppingCart size={19} strokeWidth={1.9} />
-                {totalItems > 0 && (
-                  <span
-                    className={`cart-badge-count ${
-                      isCartBouncing ? "cart-badge-bouncing" : ""
-                    }`}
-                  >
-                    {totalItems}
-                  </span>
-                )}
-              </Link>
-            )}
 
             {/* Mobile Hamburger Toggle (Three navbar lines) */}
             <button

@@ -86,6 +86,38 @@ export const ProductImageZoom: React.FC<ProductImageZoomProps> = ({
 
   // Thumbnail scroll container ref
   const thumbsScrollRef = useRef<HTMLDivElement>(null);
+  const touchStartXRef = useRef<number | null>(null);
+
+  // Auto scroll active thumbnail into view
+  useEffect(() => {
+    if (thumbsScrollRef.current) {
+      const activeEl = thumbsScrollRef.current.children[activeIndex] as HTMLElement;
+      if (activeEl) {
+        activeEl.scrollIntoView({
+          behavior: 'smooth',
+          block: 'nearest',
+          inline: 'center',
+        });
+      }
+    }
+  }, [activeIndex]);
+
+  const handleStageTouchStart = (e: React.TouchEvent) => {
+    touchStartXRef.current = e.touches[0].clientX;
+  };
+
+  const handleStageTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartXRef.current === null) return;
+    const diff = touchStartXRef.current - e.changedTouches[0].clientX;
+    touchStartXRef.current = null;
+    if (Math.abs(diff) > 40) {
+      if (diff > 0 && activeIndex < normalizedImages.length - 1) {
+        handleSelectImage(activeIndex + 1);
+      } else if (diff < 0 && activeIndex > 0) {
+        handleSelectImage(activeIndex - 1);
+      }
+    }
+  };
 
   const currentImage = normalizedImages[activeIndex] || normalizedImages[0];
 
@@ -167,7 +199,11 @@ export const ProductImageZoom: React.FC<ProductImageZoomProps> = ({
   return (
     <div className={`piz-gallery-container ${className}`}>
       {/* MAIN VIEWER STAGE */}
-      <div className="piz-main-stage">
+      <div
+        className="piz-main-stage"
+        onTouchStart={handleStageTouchStart}
+        onTouchEnd={handleStageTouchEnd}
+      >
         {/* Overlay Slots (Wishlist button, Badges) */}
         {overlayTopLeft && <div className="piz-overlay-slot-top-left">{overlayTopLeft}</div>}
         {overlayTopRight && <div className="piz-overlay-slot-top-right">{overlayTopRight}</div>}

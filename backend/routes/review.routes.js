@@ -8,6 +8,7 @@ import {
 } from "../controllers/review.controller.js";
 import { protect } from "../middlewares/auth.middleware.js";
 import { userOnly } from "../middlewares/admin.middleware.js";
+import upload from "../middlewares/upload.middleware.js";
 
 const router = express.Router();
 
@@ -26,8 +27,8 @@ router.get("/product/:productId", getProductReviews);
 // and fetch their existing review if already submitted
 router.get("/eligibility/:productId", protect, userOnly, checkReviewEligibility);
 
-// 3. Create or update review (unified endpoint: 1 review per product per user)
-router.post("/", protect, userOnly, createOrUpdateReview);
+// 3. Create or update review (unified endpoint: 1 review per product per user, with optional images up to 5)
+router.post("/", protect, userOnly, upload.array("images", 5), createOrUpdateReview);
 
 // 4. Delete user's own review
 router.delete("/:reviewId", protect, userOnly, deleteReview);

@@ -872,13 +872,13 @@ const AddProduct = () => {
                       variants:
                         e.target.checked && prev.variants.length === 0
                           ? [
-                              {
-                                price: prev.price || "",
-                                salePrice: prev.salePrice || "",
-                                attributes: [{ name: "", value: "" }],
-                                isActive: true,
-                              },
-                            ]
+                            {
+                              price: prev.price || "",
+                              salePrice: prev.salePrice || "",
+                              attributes: [{ name: "", value: "" }],
+                              isActive: true,
+                            },
+                          ]
                           : prev.variants,
                     }))
                   }

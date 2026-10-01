@@ -43,6 +43,22 @@ const reviewSchema = new mongoose.Schema(
       default: 0,
       min: [0, "Helpful votes cannot be negative"],
     },
+
+    // Review images uploaded by the customer
+    images: [
+      {
+        public_id: {
+          type: String,
+          required: true,
+          trim: true,
+        },
+        url: {
+          type: String,
+          required: true,
+          trim: true,
+        },
+      },
+    ],
   },
   {
     timestamps: true,

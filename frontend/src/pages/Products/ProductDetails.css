@@ -10,6 +10,7 @@
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   color: #0f172a;
   box-sizing: border-box;
+  overflow-x: hidden;
 }
 
 .pdp-container {
@@ -86,6 +87,10 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .pdp-main-image-wrap {
@@ -424,6 +429,150 @@
   line-height: 1.2;
 }
 
+/* =====================================================
+   COMPACT DELIVERY ESTIMATE / PINCODE SECTION
+===================================================== */
+.pdp-delivery-compact {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 9px;
+  padding: 8px 10px;
+  margin-top: 10px;
+  margin-bottom: 8px;
+}
+
+.pdp-delivery-compact-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pdp-delivery-compact-input-wrap {
+  position: relative;
+  flex: 1;
+  display: flex;
+  align-items: center;
+}
+
+.pdp-delivery-compact-icon {
+  position: absolute;
+  left: 9px;
+  color: #94a3b8;
+  pointer-events: none;
+}
+
+.pdp-delivery-compact-input {
+  width: 100%;
+  height: 32px;
+  padding: 0 24px 0 28px;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #0f172a;
+  background-color: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.pdp-delivery-compact-input:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
+}
+
+.pdp-delivery-compact-input::placeholder {
+  color: #94a3b8;
+  font-size: 12px;
+}
+
+.pdp-delivery-compact-clear {
+  position: absolute;
+  right: 6px;
+  background: none;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pdp-delivery-compact-clear:hover {
+  color: #0f172a;
+}
+
+.pdp-delivery-compact-btn {
+  height: 32px;
+  padding: 0 12px;
+  background-color: #0f172a;
+  color: #ffffff;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+  transition: background-color 0.15s ease;
+}
+
+.pdp-delivery-compact-btn:hover:not(:disabled) {
+  background-color: #1e293b;
+}
+
+.pdp-delivery-compact-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.pdp-delivery-compact-error {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 6px;
+  font-size: 11.5px;
+  color: #dc2626;
+  font-weight: 500;
+}
+
+.pdp-delivery-compact-info {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 6px;
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px dashed #e2e8f0;
+  font-size: 12px;
+  color: #334155;
+}
+
+.pdp-delivery-compact-line {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.pdp-delivery-green-icon {
+  color: #059669;
+  flex-shrink: 0;
+}
+
+.pdp-delivery-date-text {
+  color: #047857;
+  font-weight: 700;
+}
+
+.pdp-delivery-compact-loc {
+  color: #64748b;
+  font-size: 11.5px;
+}
+
 /* PURCHASE ACTIONS ROW */
 .pdp-actions-row {
   display: flex;
@@ -747,9 +896,19 @@
 ===================================================== */
 @media (max-width: 960px) {
   .pdp-main-card {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
     gap: 28px;
     padding: 24px;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  .pdp-gallery-zone {
+    max-width: 480px;
+    margin: 0 auto;
+    width: 100%;
+    min-width: 0;
   }
 
   .pdp-main-image-wrap {
@@ -795,7 +954,21 @@
 
 @media (max-width: 640px) {
   .pdp-container {
-    padding: 16px 12px 40px;
+    padding: 14px 10px 40px;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  .pdp-main-card {
+    padding: 16px 12px;
+    border-radius: 12px;
+  }
+
+  .pdp-gallery-zone {
+    max-width: 100%;
+    margin: 0;
+    width: 100%;
   }
 
   .pdp-product-title {

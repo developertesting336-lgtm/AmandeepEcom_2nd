@@ -2,6 +2,8 @@ import mongoose from "mongoose";
 import Review from "../models/Review.js";
 import Product from "../models/Product.js";
 import Order from "../models/Order.js";
+import uploadBufferToCloudinary from "../utils/uploadToCloudinary.js";
+import deleteFromCloudinary from "../utils/deleteFromCloudinary.js";
 
 // =====================================================
 // 1. GET ALL REVIEWS FOR A PRODUCT (Public)
@@ -219,6 +221,27 @@ export const createOrUpdateReview = async (req, res) => {
       });
     }
 
+    // Upload any newly provided images to Cloudinary (ecommerce/reviews)
+    const uploadedImages = [];
+    if (req.files && req.files.length > 0) {
+      try {
+        for (const file of req.files) {
+          const image = await uploadBufferToCloudinary(
+            file.buffer,
+            "ecommerce/reviews"
+          );
+          uploadedImages.push(image);
+        }
+      } catch (uploadError) {
+        console.error("Cloudinary Review Image Upload Error:", uploadError);
+        return res.status(500).json({
+          success: false,
+          message: "Failed to upload review image(s)",
+          error: uploadError.message,
+        });
+      }
+    }
+
     // Check if user already reviewed this product (Upsert pattern)
     let review = await Review.findOne({ productId, userId });
     let isUpdated = false;
@@ -227,6 +250,64 @@ export const createOrUpdateReview = async (req, res) => {
       // Update existing review
       review.stars = numStars;
       review.detailedReview = detailedReview.trim();
+
+      // Handle images update
+      if (req.body.existingImages !== undefined) {
+        let keptImages = [];
+        try {
+          const parsed =
+            typeof req.body.existingImages === "string"
+              ? JSON.parse(req.body.existingImages)
+              : req.body.existingImages;
+
+          if (Array.isArray(parsed)) {
+            // Keep existing images that match public_id or url
+            keptImages = (review.images || []).filter((img) =>
+              parsed.some(
+                (p) =>
+                  (p && p.public_id && p.public_id === img.public_id) ||
+                  (p && p.url && p.url === img.url) ||
+                  p === img.public_id ||
+                  p === img.url
+              )
+            );
+
+            // Clean up removed images from Cloudinary
+            const removedImages = (review.images || []).filter(
+              (img) => !keptImages.some((k) => k.public_id === img.public_id)
+            );
+            for (const rem of removedImages) {
+              if (rem.public_id) {
+                await deleteFromCloudinary(rem.public_id).catch((err) =>
+                  console.error("Cloudinary delete error on review update:", err)
+                );
+              }
+            }
+          }
+        } catch (err) {
+          console.warn("Failed to parse existingImages:", err);
+          keptImages = review.images || [];
+        }
+
+        review.images = [...keptImages, ...uploadedImages].slice(0, 5);
+      } else if (
+        req.body.replaceImages === "true" ||
+        req.body.replaceImages === true
+      ) {
+        // Full replacement of images requested
+        for (const oldImg of review.images || []) {
+          if (oldImg.public_id) {
+            await deleteFromCloudinary(oldImg.public_id).catch((err) =>
+              console.error("Cloudinary delete error on review update:", err)
+            );
+          }
+        }
+        review.images = uploadedImages.slice(0, 5);
+      } else if (uploadedImages.length > 0) {
+        // Append newly uploaded images up to 5 total
+        review.images = [...(review.images || []), ...uploadedImages].slice(0, 5);
+      }
+
       await review.save(); // triggers post("save") which recalculates average and star distribution
       isUpdated = true;
     } else {
@@ -236,6 +317,7 @@ export const createOrUpdateReview = async (req, res) => {
         userId,
         stars: numStars,
         detailedReview: detailedReview.trim(),
+        images: uploadedImages.slice(0, 5),
       });
       // Review.create() calls save(), which triggers post("save")
     }
@@ -296,6 +378,19 @@ export const deleteReview = async (req, res) => {
         success: false,
         message: "You are not authorized to delete this review",
       });
+    }
+
+    // Delete review images from Cloudinary
+    if (review.images && review.images.length > 0) {
+      for (const img of review.images) {
+        if (img.public_id) {
+          try {
+            await deleteFromCloudinary(img.public_id);
+          } catch (delErr) {
+            console.error("Error deleting review image from Cloudinary:", delErr);
+          }
+        }
+      }
     }
 
     // Deleting the document triggers post("deleteOne") hook to recalculate product rating

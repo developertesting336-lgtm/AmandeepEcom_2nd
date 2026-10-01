@@ -15,6 +15,9 @@ import {
   Copy,
   Check,
   X,
+  MapPin,
+  Truck,
+  AlertCircle,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { triggerFlyToCart } from "../../components/common/FlyToCart/FlyToCart";
@@ -34,6 +37,7 @@ import RecommendedSection from "../Home/RecommendedSection";
 import VariantSelectionModal, { isProductWithVariants, parseVariants } from "../../components/common/VariantSelectionModal/VariantSelectionModal";
 import ProductReviews from "../../components/common/ProductReviews/ProductReviews";
 import ProductImageZoom from "../../components/ProductImageZoom";
+import { getDeliveryEstimate, type DeliveryEstimateResponse } from "../../services/deliveryService";
 import "./ProductDetails.css";
 
 import product1 from "../../assets/1.jpeg";
@@ -235,6 +239,54 @@ const ProductDetails = () => {
   // Reviews stats state (synced with ProductReviews)
   const [reviewsCount, setReviewsCount] = useState<number | null>(null);
   const [reviewsAverage, setReviewsAverage] = useState<number | null>(null);
+
+  // Delivery Estimation states
+  const [deliveryPincode, setDeliveryPincode] = useState("");
+  const [isCheckingDelivery, setIsCheckingDelivery] = useState(false);
+  const [deliveryEstimate, setDeliveryEstimate] = useState<DeliveryEstimateResponse | null>(null);
+  const [deliveryError, setDeliveryError] = useState<string | null>(null);
+
+  const handleCheckDelivery = async (pinToCheck?: string, showToast = true) => {
+    const pin = (pinToCheck || deliveryPincode).trim();
+    if (!pin) {
+      setDeliveryError("Please enter a valid pincode.");
+      return;
+    }
+    if (pin.length < 4 || pin.length > 10) {
+      setDeliveryError("Please enter a valid postal pincode.");
+      return;
+    }
+
+    setIsCheckingDelivery(true);
+    setDeliveryError(null);
+
+    try {
+      const res = await getDeliveryEstimate(pin);
+      if (res.success && res.isDeliverable) {
+        setDeliveryEstimate(res);
+        localStorage.setItem("shopora_delivery_pincode", pin);
+        if (showToast && res.expectedDelivery?.formattedRange) {
+          toast.success(`Delivery estimate: ${res.expectedDelivery.formattedRange}`);
+        }
+      } else {
+        setDeliveryEstimate(res);
+        setDeliveryError(res.message || "Delivery is currently not available for this pincode.");
+      }
+    } catch (err: any) {
+      setDeliveryError(err.message || "Failed to check delivery estimate. Please try again.");
+    } finally {
+      setIsCheckingDelivery(false);
+    }
+  };
+
+  // Auto-load last checked pincode from localStorage if available
+  useEffect(() => {
+    const savedPin = localStorage.getItem("shopora_delivery_pincode");
+    if (savedPin && savedPin.trim().length >= 4) {
+      setDeliveryPincode(savedPin.trim());
+      handleCheckDelivery(savedPin.trim(), false);
+    }
+  }, []);
 
   // Scroll listener: sticky bottom actions until pdp-main-card ends
   useEffect(() => {
@@ -1159,6 +1211,107 @@ const ProductDetails = () => {
                 )}
               </div>
             )}
+
+            {/* COMPACT DELIVERY PINCODE & ESTIMATE SECTION */}
+            <div className="pdp-delivery-compact">
+              <div className="pdp-delivery-compact-row">
+                <div className="pdp-delivery-compact-input-wrap">
+                  <MapPin size={14} className="pdp-delivery-compact-icon" />
+                  <input
+                    type="text"
+                    className="pdp-delivery-compact-input"
+                    placeholder="Enter pincode for delivery date"
+                    value={deliveryPincode}
+                    maxLength={8}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/[^0-9]/g, "").slice(0, 6);
+                      setDeliveryPincode(val);
+                      if (deliveryError) setDeliveryError(null);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        handleCheckDelivery();
+                      }
+                    }}
+                  />
+                  {deliveryPincode && (
+                    <button
+                      type="button"
+                      className="pdp-delivery-compact-clear"
+                      onClick={() => {
+                        setDeliveryPincode("");
+                        setDeliveryEstimate(null);
+                        setDeliveryError(null);
+                      }}
+                      aria-label="Clear pincode"
+                    >
+                      <X size={12} />
+                    </button>
+                  )}
+                </div>
+
+                <button
+                  type="button"
+                  className="pdp-delivery-compact-btn"
+                  onClick={() => handleCheckDelivery()}
+                  disabled={isCheckingDelivery || !deliveryPincode.trim()}
+                >
+                  {isCheckingDelivery ? (
+                    <Loader2 size={13} className="animate-spin" />
+                  ) : deliveryEstimate ? (
+                    "Change"
+                  ) : (
+                    "Check"
+                  )}
+                </button>
+              </div>
+
+              {/* Delivery Estimate Result Below */}
+              <AnimatePresence mode="wait">
+                {deliveryError && (
+                  <motion.div
+                    key="error"
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="pdp-delivery-compact-error"
+                  >
+                    <AlertCircle size={13} className="flex-shrink-0" />
+                    <span>{deliveryError}</span>
+                  </motion.div>
+                )}
+
+                {deliveryEstimate && deliveryEstimate.isDeliverable && (
+                  <motion.div
+                    key="success"
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="pdp-delivery-compact-info"
+                  >
+                    <div className="pdp-delivery-compact-line">
+                      <Truck size={14} className="pdp-delivery-green-icon" />
+                      <span>
+                        Delivery by{" "}
+                        <strong className="pdp-delivery-date-text">
+                          {deliveryEstimate.expectedDelivery?.formattedRange || "3 - 5 days"}
+                        </strong>
+                      </span>
+                    </div>
+
+                    {(deliveryEstimate.city || deliveryEstimate.state) && (
+                      <span className="pdp-delivery-compact-loc">
+                        to{" "}
+                        {deliveryEstimate.city
+                          ? `${deliveryEstimate.city}${deliveryEstimate.state ? `, ${deliveryEstimate.state}` : ""}`
+                          : deliveryEstimate.state}
+                      </span>
+                    )}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
 
             {/* PURCHASE CONTROLS */}
             <div className="pdp-actions-row">

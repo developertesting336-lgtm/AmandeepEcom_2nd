@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { X, Star, AlertCircle, CheckCircle2, Loader2 } from "lucide-react";
+import { X, Star, AlertCircle, CheckCircle2, Loader2, ImagePlus } from "lucide-react";
 import { checkReviewEligibility, submitReview } from "../../../services/reviewService";
-import type { ReviewItem } from "../../../services/reviewService";
+import type { ReviewItem, ReviewImage } from "../../../services/reviewService";
 import productFallback from "../../../assets/1.jpeg";
 import "./ReviewModal.css";
 
@@ -37,12 +37,25 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
   const [stars, setStars] = useState<number>(5);
   const [hoverStars, setHoverStars] = useState<number>(0);
   const [detailedReview, setDetailedReview] = useState<string>("");
+  const [existingImages, setExistingImages] = useState<ReviewImage[]>([]);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [filePreviews, setFilePreviews] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [isLoadingEligibility, setIsLoadingEligibility] = useState<boolean>(false);
   const [canReview, setCanReview] = useState<boolean>(true);
   const [existingReview, setExistingReview] = useState<ReviewItem | null>(null);
   const [errorMsg, setErrorMsg] = useState<string>("");
   const [successMsg, setSuccessMsg] = useState<string>("");
+
+  // Revoke object URLs on change or unmount
+  useEffect(() => {
+    const urls = selectedFiles.map((f) => URL.createObjectURL(f));
+    setFilePreviews(urls);
+
+    return () => {
+      urls.forEach((u) => URL.revokeObjectURL(u));
+    };
+  }, [selectedFiles]);
 
   useEffect(() => {
     if (!isOpen || !product?._id) return;
@@ -51,6 +64,8 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
     setStars(5);
     setHoverStars(0);
     setDetailedReview("");
+    setExistingImages([]);
+    setSelectedFiles([]);
     setErrorMsg("");
     setSuccessMsg("");
     setExistingReview(null);
@@ -66,6 +81,9 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
           setExistingReview(res.review);
           setStars(res.review.stars || 5);
           setDetailedReview(res.review.detailedReview || "");
+          if (res.review.images && Array.isArray(res.review.images)) {
+            setExistingImages(res.review.images);
+          }
         } else if (!res.canReview) {
           setErrorMsg(res.message || "You can only review products that have been delivered to you.");
         }
@@ -80,6 +98,37 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
   }, [isOpen, product?._id, token]);
 
   if (!isOpen || !product) return null;
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files) return;
+    const incoming = Array.from(e.target.files);
+    const availableSlots = 5 - (existingImages.length + selectedFiles.length);
+
+    if (availableSlots <= 0) {
+      setErrorMsg("You can upload a maximum of 5 images.");
+      return;
+    }
+
+    const validFiles = incoming.filter((f) =>
+      ["image/jpeg", "image/png", "image/webp", "image/jpg"].includes(f.type)
+    );
+
+    if (validFiles.length < incoming.length) {
+      setErrorMsg("Only JPEG, PNG, or WebP images are allowed.");
+    }
+
+    const filesToAdd = validFiles.slice(0, availableSlots);
+    setSelectedFiles((prev) => [...prev, ...filesToAdd]);
+    e.target.value = "";
+  };
+
+  const handleRemoveExistingImage = (indexToRemove: number) => {
+    setExistingImages((prev) => prev.filter((_, idx) => idx !== indexToRemove));
+  };
+
+  const handleRemoveSelectedFile = (indexToRemove: number) => {
+    setSelectedFiles((prev) => prev.filter((_, idx) => idx !== indexToRemove));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -108,6 +157,8 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
           productId: product._id,
           stars,
           detailedReview: detailedReview.trim(),
+          images: selectedFiles,
+          existingImages,
         },
         token
       );
@@ -254,6 +305,66 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
                 required
               />
               <span className="input-hint">Minimum 5 characters required</span>
+            </div>
+
+            {/* Photos Upload Section */}
+            <div className="review-photos-block">
+              <div className="photos-label-row">
+                <label className="section-label">Add Photos (Optional)</label>
+                <span className="photos-count-hint">
+                  {existingImages.length + selectedFiles.length} / 5 photos
+                </span>
+              </div>
+
+              <div className="review-photos-grid">
+                {/* Existing Images */}
+                {existingImages.map((img, idx) => (
+                  <div key={`existing-${img.public_id || idx}`} className="review-photo-preview-item">
+                    <img src={img.url} alt="Review attachment" />
+                    <button
+                      type="button"
+                      className="photo-remove-btn"
+                      onClick={() => handleRemoveExistingImage(idx)}
+                      title="Remove photo"
+                    >
+                      <X size={12} />
+                    </button>
+                    <span className="existing-tag">Saved</span>
+                  </div>
+                ))}
+
+                {/* Newly selected files */}
+                {filePreviews.map((url, idx) => (
+                  <div key={`new-${idx}`} className="review-photo-preview-item">
+                    <img src={url} alt="Review attachment preview" />
+                    <button
+                      type="button"
+                      className="photo-remove-btn"
+                      onClick={() => handleRemoveSelectedFile(idx)}
+                      title="Remove photo"
+                    >
+                      <X size={12} />
+                    </button>
+                  </div>
+                ))}
+
+                {/* Upload Trigger Button */}
+                {existingImages.length + selectedFiles.length < 5 && (
+                  <label className="review-photo-upload-dropzone">
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp,image/jpg"
+                      multiple
+                      onChange={handleFileSelect}
+                      style={{ display: "none" }}
+                      disabled={isSubmitting}
+                    />
+                    <ImagePlus size={20} className="upload-icon" />
+                    <span className="upload-text">Upload</span>
+                  </label>
+                )}
+              </div>
+              <span className="input-hint">JPEG, PNG, or WebP up to 5 photos</span>
             </div>
 
             {/* Alert Messages */}

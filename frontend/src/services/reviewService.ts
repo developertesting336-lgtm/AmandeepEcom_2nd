@@ -1,5 +1,10 @@
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
 
+export interface ReviewImage {
+  url: string;
+  public_id: string;
+}
+
 export interface ReviewItem {
   _id: string;
   productId: string;
@@ -9,6 +14,7 @@ export interface ReviewItem {
   };
   stars: number;
   detailedReview: string;
+  images?: ReviewImage[];
   helpfulVotes?: number;
   createdAt: string;
   updatedAt: string;
@@ -27,6 +33,9 @@ export interface SubmitReviewPayload {
   productId: string;
   stars: number;
   detailedReview: string;
+  images?: File[];
+  existingImages?: ReviewImage[];
+  replaceImages?: boolean;
 }
 
 export interface SubmitReviewResponse {
@@ -91,22 +100,53 @@ export const checkReviewEligibility = async (
 
 // 2. Submit new or updated review (upsert)
 export const submitReview = async (
-  payload: SubmitReviewPayload,
+  payload: SubmitReviewPayload | FormData,
   token?: string | null
 ): Promise<SubmitReviewResponse> => {
   try {
-    const headers: Record<string, string> = {
-      "Content-Type": "application/json",
-    };
+    const headers: Record<string, string> = {};
     if (token) {
       headers["Authorization"] = `Bearer ${token}`;
+    }
+
+    let body: any;
+
+    if (payload instanceof FormData) {
+      body = payload;
+    } else if (
+      (payload.images && payload.images.length > 0) ||
+      payload.existingImages !== undefined
+    ) {
+      const formData = new FormData();
+      formData.append("productId", payload.productId);
+      formData.append("stars", String(payload.stars));
+      formData.append("detailedReview", payload.detailedReview);
+
+      if (payload.images && payload.images.length > 0) {
+        payload.images.forEach((file) => {
+          formData.append("images", file);
+        });
+      }
+
+      if (payload.existingImages !== undefined) {
+        formData.append("existingImages", JSON.stringify(payload.existingImages));
+      }
+
+      if (payload.replaceImages !== undefined) {
+        formData.append("replaceImages", String(payload.replaceImages));
+      }
+
+      body = formData;
+    } else {
+      headers["Content-Type"] = "application/json";
+      body = JSON.stringify(payload);
     }
 
     const res = await fetch(`${API_BASE_URL}/api/reviews`, {
       method: "POST",
       headers,
       credentials: "include",
-      body: JSON.stringify(payload),
+      body,
     });
 
     return await res.json();

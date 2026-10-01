@@ -658,16 +658,6 @@
   text-decoration: none;
 }
 
-.mobile-cart-top-btn {
-  display: none;
-}
-
-@media (max-width: 1024px) {
-  .mobile-cart-top-btn {
-    display: flex;
-  }
-}
-
 .notif-bell-trigger:hover,
 .notif-bell-trigger.active {
   background-color: #ffffff;

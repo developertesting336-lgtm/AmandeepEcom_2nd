@@ -226,3 +226,87 @@ export const getAdminProfile = async (req, res) => {
     });
   }
 };
+
+// =====================================================
+// UPDATE COOKIE CONSENT
+// =====================================================
+export const updateCookieConsent = async (req, res) => {
+  try {
+    const { isCookiesAccepted } = req.body;
+    const accepted = isCookiesAccepted !== undefined ? Boolean(isCookiesAccepted) : true;
+
+    const user = await User.findByIdAndUpdate(
+      req.user._id,
+      {
+        $set: {
+          isCookiesAccepted: accepted,
+          cookiesAcceptedAt: accepted ? new Date() : null,
+        },
+      },
+      { new: true }
+    ).select("-password");
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: accepted ? "Cookies accepted successfully" : "Cookie preference updated",
+      data: {
+        isCookiesAccepted: user.isCookiesAccepted,
+        cookiesAcceptedAt: user.cookiesAcceptedAt,
+      },
+    });
+  } catch (error) {
+    console.error("Update Cookie Consent Error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to update cookie consent",
+      error: error.message,
+    });
+  }
+};
+
+// =====================================================
+// GET COOKIE CONSENT STATUS
+// =====================================================
+export const getCookieConsent = async (req, res) => {
+  try {
+    if (!req.user) {
+      return res.status(200).json({
+        success: true,
+        isAuthenticated: false,
+        isCookiesAccepted: false,
+        cookiesAcceptedAt: null,
+        data: {
+          isAuthenticated: false,
+          isCookiesAccepted: false,
+          cookiesAcceptedAt: null,
+        },
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      isAuthenticated: true,
+      isCookiesAccepted: Boolean(req.user.isCookiesAccepted),
+      cookiesAcceptedAt: req.user.cookiesAcceptedAt || null,
+      data: {
+        isAuthenticated: true,
+        isCookiesAccepted: Boolean(req.user.isCookiesAccepted),
+        cookiesAcceptedAt: req.user.cookiesAcceptedAt || null,
+      },
+    });
+  } catch (error) {
+    console.error("Get Cookie Consent Error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to get cookie consent status",
+      error: error.message,
+    });
+  }
+};

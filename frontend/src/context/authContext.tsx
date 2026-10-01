@@ -13,6 +13,7 @@ export interface User {
   email: string;
   role?: string;
   rewardPoints?: number;
+  isCookiesAccepted?: boolean;
   [key: string]: any;
 }
 
@@ -49,6 +50,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
             ...freshUser,
             id: freshUser._id || freshUser.id,
             rewardPoints: Number(freshUser.rewardPoints) || 0,
+            isCookiesAccepted: freshUser.isCookiesAccepted ?? false,
           };
           setUser(normalized);
           localStorage.setItem("user", JSON.stringify(normalized));

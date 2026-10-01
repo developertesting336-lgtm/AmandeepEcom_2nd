@@ -5,6 +5,7 @@ import {
   CheckCircle2,
   ChevronDown,
   Loader2,
+  X,
 } from "lucide-react";
 import {
   getProductReviews,
@@ -54,6 +55,7 @@ export const ProductReviews: React.FC<ProductReviewsProps> = ({
   const [isLoadingMore, setIsLoadingMore] = useState<boolean>(false);
   const [votingReviewId, setVotingReviewId] = useState<string | null>(null);
   const [votedReviews, setVotedReviews] = useState<Record<string, boolean>>({});
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
 
   // Listen for external open triggers (e.g. clicking rating/reviews links near product title)
   useEffect(() => {
@@ -183,10 +185,11 @@ export const ProductReviews: React.FC<ProductReviewsProps> = ({
   };
 
   return (
-    <section
-      className={`product-reviews-section ${!isOpen ? "section-collapsed" : ""}`}
-      id="product-reviews-container"
-    >
+    <>
+      <section
+        className={`product-reviews-section ${!isOpen ? "section-collapsed" : ""}`}
+        id="product-reviews-container"
+      >
       {/* HEADER: TOP PILL ON THE LEFT (CLICKABLE TO OPEN/CLOSE DROPDOWN SECTION) */}
       <div className={`reviews-section-header ${!isOpen ? "header-collapsed" : ""}`}>
         <button
@@ -368,6 +371,23 @@ export const ProductReviews: React.FC<ProductReviewsProps> = ({
                       {/* Review Body Text */}
                       <p className="review-body-text">{review.detailedReview}</p>
 
+                      {/* Customer Review Photos */}
+                      {review.images && review.images.length > 0 && (
+                        <div className="review-customer-photos">
+                          {review.images.map((img, imgIdx) => (
+                            <button
+                              key={img.public_id || imgIdx}
+                              type="button"
+                              className="review-photo-thumb-btn"
+                              onClick={() => setPreviewImage(img.url)}
+                              title="Click to zoom in"
+                            >
+                              <img src={img.url} alt={`Customer photo ${imgIdx + 1}`} loading="lazy" />
+                            </button>
+                          ))}
+                        </div>
+                      )}
+
                       {/* Card Footer: Helpful Voting */}
                       <div className="review-card-footer">
                         <span className="helpful-question">
@@ -425,6 +445,30 @@ export const ProductReviews: React.FC<ProductReviewsProps> = ({
         </div>
       )}
     </section>
+
+      {/* Full Photo Lightbox Preview */}
+      {previewImage && (
+        <div
+          className="review-photo-lightbox-backdrop"
+          onClick={() => setPreviewImage(null)}
+        >
+          <div
+            className="review-photo-lightbox-modal"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              className="lightbox-close-btn"
+              onClick={() => setPreviewImage(null)}
+              aria-label="Close photo preview"
+            >
+              <X size={20} />
+            </button>
+            <img src={previewImage} alt="Review attachment enlarged" />
+          </div>
+        </div>
+      )}
+    </>
   );
 };
 

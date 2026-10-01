@@ -34,7 +34,7 @@ export const addToCart = async (req, res) => {
     if (product.stock < quantity) {
       return res.status(400).json({
         success: false,
-        message: `Only ${product.stock} item(s) available in stock`,
+        message: `Only ${product.stock} item(s) you can purchase at a time!`,
       });
     }
 
@@ -99,7 +99,7 @@ export const addToCart = async (req, res) => {
       if (newQuantity > product.stock) {
         return res.status(400).json({
           success: false,
-          message: `Cannot add more. Only ${product.stock} item(s) available in stock`,
+          message: `Cannot add more. Only ${product.stock} item(s) you can purchase for this Product at one Time`,
         });
       }
 
@@ -283,7 +283,7 @@ export const updateCartItem = async (req, res) => {
     if (quantity > product.stock) {
       return res.status(400).json({
         success: false,
-        message: `Only ${product.stock} item(s) available in stock`,
+        message: `Only ${product.stock} item(s) you can purchase at a time for This Product!`,
       });
     }
 
