@@ -36,6 +36,7 @@ import SimilarProducts from "./SimilarProducts";
 import RecommendedSection from "../Home/RecommendedSection";
 import VariantSelectionModal, { isProductWithVariants, parseVariants } from "../../components/common/VariantSelectionModal/VariantSelectionModal";
 import ProductReviews from "../../components/common/ProductReviews/ProductReviews";
+import ProductQASection from "../../components/common/ProductQA/ProductQASection";
 import ProductImageZoom from "../../components/ProductImageZoom";
 import { getDeliveryEstimate, type DeliveryEstimateResponse } from "../../services/deliveryService";
 import "./ProductDetails.css";
@@ -1657,6 +1658,14 @@ const ProductDetails = () => {
               setReviewsCount(ratingsCount);
               setReviewsAverage(ratingsAverage);
             }}
+          />
+        )}
+
+        {/* CUSTOMER QUESTIONS & ANSWERS SECTION */}
+        {product && (
+          <ProductQASection
+            productId={product._id}
+            productName={product.name}
           />
         )}
       </div>

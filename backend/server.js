@@ -30,6 +30,7 @@ import topOfferRoutes from './routes/topOffer.routes.js'
 import adminDeliveryRoutes from './routes/admin.delivery.routes.js'
 import deliveryRoutes from './routes/delivery.routes.js'
 import cookieParser from "cookie-parser";
+import qaRoutes from "./routes/QA.routes.js";
 
 
 dotenv.config();
@@ -106,6 +107,7 @@ app.use('/api/rewards', rewardRoutes)
 app.use('/api', topOfferRoutes)
 app.use('/api/admin/delivery', adminDeliveryRoutes)
 app.use('/api/delivery', deliveryRoutes)
+app.use('/api/qa', qaRoutes)
 
 
 

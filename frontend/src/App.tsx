@@ -16,6 +16,7 @@ import Categories from "./pages/Admin/Categories";
 import Orders from "./pages/Admin/Orders";
 import Users from "./pages/Admin/Users";
 import AdminInquiries from "./pages/Admin/Inquiries";
+import AdminQA from "./pages/Admin/AdminQA";
 import PromoBanners from "./pages/Admin/PromoBanners";
 import TopOffersAdmin from "./pages/Admin/TopOffersAdmin";
 import UserProducts from "./pages/Products/UserProducts";
@@ -138,6 +139,8 @@ function App() {
         <Route path="/admin/orders" element={<Orders />} />
         <Route path="/admin/users" element={<Users />} />
         <Route path="/admin/inquiries" element={<AdminInquiries />} />
+        <Route path="/admin/qa" element={<AdminQA />} />
+        <Route path="/admin/questions" element={<AdminQA />} />
         <Route path="/admin/promos" element={<PromoBanners />} />
         <Route path="/admin/video-promos" element={<PromoBanners />} />
         <Route path="/admin/top-offers" element={<TopOffersAdmin />} />

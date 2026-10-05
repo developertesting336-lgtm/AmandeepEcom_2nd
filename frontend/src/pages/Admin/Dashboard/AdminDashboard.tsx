@@ -20,6 +20,7 @@ import {
   Activity,
   Loader2,
   MessageSquare,
+  HelpCircle,
   Video,
   Sparkles,
 } from "lucide-react";
@@ -923,6 +924,26 @@ const AdminDashboard: React.FC = () => {
           <div className="panel-footer-links">
             <Link to="/admin/inquiries" className="admin-panel-link">
               <span>View Customer Inquiries</span>
+              <ArrowRight size={14} />
+            </Link>
+          </div>
+        </div>
+
+        {/* Product Q&A Panel */}
+        <div className="admin-panel">
+          <div className="admin-panel-head">
+            <div className="panel-badge-icon purple">
+              <HelpCircle size={20} />
+            </div>
+            <p className="panel-tag">PRODUCT QUESTIONS & ANSWERS</p>
+          </div>
+          <h2>Product Q&A</h2>
+          <span>
+            Respond to customer pre-sales inquiries, clarify product specs, answer pending questions, and boost conversion.
+          </span>
+          <div className="panel-footer-links">
+            <Link to="/admin/qa" className="admin-panel-link">
+              <span>Manage Questions & Answers</span>
               <ArrowRight size={14} />
             </Link>
           </div>

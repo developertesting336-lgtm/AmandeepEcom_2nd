@@ -1,3 +1,6 @@
+import dotenv from "dotenv";
+dotenv.config();
+
 import Order from '../models/Order.js'
 import Product from '../models/Product.js'
 import Cart from '../models/Cart.js';
@@ -824,6 +827,7 @@ export const stripePayments = async (req, res) => {
                 country: address?.country || "India",
             },
             paymentStatus: "pending",
+            orderStatus: "pending",
             paymentMode: "online",
             stripeCheckoutSessionId: null,
             stripePaymentIntentId: null,
@@ -939,6 +943,13 @@ export const stripePayments = async (req, res) => {
                 orderMongoId: order._id.toString(),
                 userId: req.user._id.toString(),
             },
+            payment_intent_data: {
+                metadata: {
+                    orderId: order.orderId,
+                    orderMongoId: order._id.toString(),
+                    userId: req.user._id.toString(),
+                },
+            },
         });
 
         order.stripeCheckoutSessionId = session.id;
@@ -1006,7 +1017,13 @@ export const stripeWebhook = async (req, res) => {
                 );
 
                 const order = await Order.findOne({
-                    stripeCheckoutSessionId: session.id
+                    $or: [
+                        { stripeCheckoutSessionId: session.id },
+                        ...(session.metadata?.orderMongoId && mongoose.isValidObjectId(session.metadata.orderMongoId)
+                            ? [{ _id: session.metadata.orderMongoId }]
+                            : []),
+                        ...(session.metadata?.orderId ? [{ orderId: session.metadata.orderId }] : []),
+                    ],
                 });
 
                 if (!order) {
@@ -1034,12 +1051,35 @@ export const stripeWebhook = async (req, res) => {
                 order.stripePaymentIntentId =
                     session.payment_intent || null;
 
+                if (!order.stripeCheckoutSessionId) {
+                    order.stripeCheckoutSessionId = session.id;
+                }
+
                 await order.save();
 
                 console.log(
-                    "Order marked as PAID:",
+                    "Order marked as PAID and CONFIRMED:",
                     order.orderId
                 );
+
+                // Send payment success & order confirmation notification to buyer
+                try {
+                    await createNotification({
+                        userId: order.user,
+                        type: "ORDER_PLACED",
+                        title: "Order Placed Successfully! 🎉",
+                        message: `Your payment for order ${order.orderId} was successful and your order has been confirmed!`,
+                        orderId: order._id,
+                        url: "/order",
+                        metadata: {
+                            orderId: order.orderId,
+                            orderTotal: order.orderTotal,
+                        },
+                        sendPush: true,
+                    });
+                } catch (buyerNotifErr) {
+                    console.warn("Could not send order confirmation notification to buyer:", buyerNotifErr);
+                }
 
                 // Remove purchased products from cart
                 await Cart.updateOne(
@@ -1184,40 +1224,124 @@ export const stripeWebhook = async (req, res) => {
 
 
             // ==========================================
-            // PAYMENT FAILED
+            // SESSION EXPIRED (Customer abandoned checkout)
             // ==========================================
 
-            case "payment_intent.payment_failed": {
+            case "checkout.session.expired": {
 
-                const paymentIntent = event.data.object;
+                const session = event.data.object;
 
                 console.log(
-                    "Payment failed:",
-                    paymentIntent.id
+                    "Checkout session expired:",
+                    session.id
                 );
 
                 const order = await Order.findOne({
-                    stripePaymentIntentId: paymentIntent.id
+                    $or: [
+                        { stripeCheckoutSessionId: session.id },
+                        ...(session.metadata?.orderMongoId && mongoose.isValidObjectId(session.metadata.orderMongoId)
+                            ? [{ _id: session.metadata.orderMongoId }]
+                            : []),
+                        ...(session.metadata?.orderId ? [{ orderId: session.metadata.orderId }] : []),
+                    ],
                 });
 
                 if (!order) {
                     console.error(
-                        "Order not found for payment intent:",
-                        paymentIntent.id
+                        "Order not found for expired session:",
+                        session.id
+                    );
+                    break;
+                }
+
+                // Only cancel if not already paid
+                if (order.paymentStatus !== "paid") {
+                    order.paymentStatus = "failed";
+                    order.orderStatus = "cancelled";
+                    order.cancellationReason = "Checkout session expired / abandoned";
+                    order.cancelledAt = new Date();
+
+                    await order.save();
+
+                    console.log(
+                        `Order ${order.orderId} cancelled due to expired checkout session`
+                    );
+                }
+
+                break;
+            }
+
+
+            // ==========================================
+            // PAYMENT FAILED
+            // ==========================================
+
+            case "checkout.session.async_payment_failed":
+            case "payment_intent.payment_failed": {
+
+                const paymentObj = event.data.object;
+
+                console.log(
+                    "Payment failed for:",
+                    paymentObj.id
+                );
+
+                const order = await Order.findOne({
+                    $or: [
+                        { stripePaymentIntentId: paymentObj.id },
+                        { stripeCheckoutSessionId: paymentObj.id },
+                        ...(paymentObj.metadata?.orderMongoId && mongoose.isValidObjectId(paymentObj.metadata.orderMongoId)
+                            ? [{ _id: paymentObj.metadata.orderMongoId }]
+                            : []),
+                        ...(paymentObj.metadata?.orderId ? [{ orderId: paymentObj.metadata.orderId }] : []),
+                    ],
+                });
+
+                if (!order) {
+                    console.error(
+                        "Order not found for failed payment:",
+                        paymentObj.id
                     );
 
                     break;
                 }
 
-                // Delete failed order
-                await Order.deleteOne({
-                    _id: order._id
-                });
+                // Only cancel if not already paid
+                if (order.paymentStatus !== "paid") {
+                    order.paymentStatus = "failed";
+                    order.orderStatus = "cancelled";
+                    order.stripePaymentIntentId = paymentObj.id || order.stripePaymentIntentId;
+                    order.cancellationReason =
+                        paymentObj.last_payment_error?.message ||
+                        paymentObj.cancellation_reason ||
+                        "Payment failed or declined";
+                    order.cancelledAt = new Date();
 
-                console.log(
-                    "Failed order deleted:",
-                    order.orderId
-                );
+                    await order.save();
+
+                    console.log(
+                        `Order ${order.orderId} marked as FAILED and CANCELLED`
+                    );
+
+                    // Send notification to buyer
+                    try {
+                        await createNotification({
+                            userId: order.user,
+                            type: "PAYMENT_FAILED",
+                            title: "Payment Failed ⚠️",
+                            message: `Payment for order ${order.orderId} could not be completed (${order.cancellationReason}). You can retry payment anytime from your cart.`,
+                            orderId: order._id,
+                            url: "/cart",
+                            metadata: {
+                                orderId: order.orderId,
+                                reason: order.cancellationReason,
+                            },
+                            sendPush: true,
+                        });
+                    } catch (failNotifErr) {
+                        console.warn("Could not send payment failure notification to buyer:", failNotifErr);
+                    }
+                }
 
                 break;
             }

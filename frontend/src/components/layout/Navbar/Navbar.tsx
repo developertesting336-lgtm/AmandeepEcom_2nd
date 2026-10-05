@@ -821,6 +821,14 @@ const Navbar = () => {
                 </Link>
 
                 <Link
+                  to="/admin/qa"
+                  className="navbar-link"
+                  onClick={closeMenu}
+                >
+                  Q&A
+                </Link>
+
+                <Link
                   to="/admin/promos"
                   className="navbar-link"
                   onClick={closeMenu}
