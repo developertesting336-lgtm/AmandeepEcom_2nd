@@ -31,6 +31,8 @@ import adminDeliveryRoutes from './routes/admin.delivery.routes.js'
 import deliveryRoutes from './routes/delivery.routes.js'
 import cookieParser from "cookie-parser";
 import qaRoutes from "./routes/QA.routes.js";
+import swaggerUi from "swagger-ui-express";
+import swaggerSpec from "./config/swagger.js";
 
 
 dotenv.config();
@@ -79,7 +81,26 @@ app.listen(PORT, () => {
 });
 
 app.get('/status', (req, res) => {
-  res.send("working")
+  res.send("working");
+});
+
+// Swagger API Documentation
+app.use(
+  "/api/docs",
+  swaggerUi.serve,
+  swaggerUi.setup(swaggerSpec, {
+    customSiteTitle: "Amandeep E-Commerce API Docs",
+    swaggerOptions: {
+      persistAuthorization: true,
+      displayRequestDuration: true,
+      filter: true,
+    },
+  })
+);
+
+app.get("/api/docs.json", (req, res) => {
+  res.setHeader("Content-Type", "application/json");
+  res.send(swaggerSpec);
 })
 
 
