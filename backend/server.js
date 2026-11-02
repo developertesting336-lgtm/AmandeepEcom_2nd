@@ -33,6 +33,7 @@ import cookieParser from "cookie-parser";
 import qaRoutes from "./routes/QA.routes.js";
 import swaggerUi from "swagger-ui-express";
 import swaggerSpec from "./config/swagger.js";
+import rateLimiter from "./middlewares/rateLimiter.js"
 
 
 dotenv.config();
@@ -68,6 +69,7 @@ app.use(
 app.use(express.json({ limit: "10mb" }));
 app.use(cookieParser());
 app.use(express.urlencoded({ limit: "10mb", extended: true }));
+app.use(rateLimiter)
 app.use(
   "/uploads",
   express.static(path.join(process.cwd(), "uploads"))
